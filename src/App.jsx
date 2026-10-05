@@ -949,7 +949,6 @@ function ParticipantWrite({ code, onLeave }) {
   useEffect(() => {
     (async () => {
       const b = await getShared(batchKey(code));
-      setBatch(b);
       const p = await getShared(participantKey(code, slug));
       if (p) {
         claimedAtRef.current = p.claimedAt || Date.now();
@@ -962,11 +961,21 @@ function ParticipantWrite({ code, onLeave }) {
         longestStreakMsRef.current = p.longestStreakMs || 0;
         longestStreakWordsRef.current = p.longestStreakWords || 0;
         if (p.status === "submitted" || p.status === "locked") setSubmitted(true);
-        if (editorRef.current && p.content) editorRef.current.innerHTML = p.content;
+        initialContentRef.current = p.content || "";
         setWordCount(p.wordCount || 0);
       }
+      setBatch(b); // only now does the editor appear on screen
     })();
   }, [code, slug]);
+
+  // Put any saved draft back into the editor once it exists (e.g. after a refresh or rejoining).
+  const initialContentRef = useRef(null);
+  useEffect(() => {
+    if (batch && editorRef.current && initialContentRef.current !== null) {
+      editorRef.current.innerHTML = initialContentRef.current;
+      initialContentRef.current = null;
+    }
+  }, [batch, submitted]);
 
   const flashBanner = (msg) => { setBanner(msg); setTimeout(() => setBanner((cur) => (cur === msg ? null : cur)), 4000); };
 
@@ -985,6 +994,14 @@ function ParticipantWrite({ code, onLeave }) {
     const blockDrop = (e) => { e.preventDefault(); logPaste("drop"); flashBanner("Dragging text in isn't allowed here."); };
     const blockCopy = (e) => { e.preventDefault(); flashBanner("Copying out of this isn't allowed here."); };
     const blockContext = (e) => e.preventDefault();
+    // Safety net for paste routes that skip the "paste" event (some mobile keyboards' clipboard buttons).
+    const onBeforeInput = (e) => {
+      if (e.inputType === "insertFromPaste" || e.inputType === "insertFromPasteAsQuotation") {
+        e.preventDefault(); logPaste("paste"); flashBanner("Pasting isn't allowed here — please type your answer.");
+      } else if (e.inputType === "insertFromDrop") {
+        e.preventDefault(); logPaste("drop"); flashBanner("Dragging text in isn't allowed here.");
+      }
+    };
     const onKeydown = (e) => {
       const k = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && k === "v") { e.preventDefault(); logPaste("shortcut"); flashBanner("Pasting isn't allowed here — please type your answer."); return; }
@@ -1014,7 +1031,9 @@ function ParticipantWrite({ code, onLeave }) {
     el.addEventListener("cut", blockCopy);
     el.addEventListener("contextmenu", blockContext);
     el.addEventListener("keydown", onKeydown);
+    el.addEventListener("beforeinput", onBeforeInput);
     return () => {
+      el.removeEventListener("beforeinput", onBeforeInput);
       el.removeEventListener("paste", blockPaste);
       el.removeEventListener("drop", blockDrop);
       el.removeEventListener("copy", blockCopy);
@@ -1022,7 +1041,8 @@ function ParticipantWrite({ code, onLeave }) {
       el.removeEventListener("contextmenu", blockContext);
       el.removeEventListener("keydown", onKeydown);
     };
-  }, [submitted]);
+    // `batch` matters: the editor only exists once the batch has loaded, so the listeners must attach then.
+  }, [submitted, batch]);
 
   // Focus/away tracking — window blur/focus catches switching to a separate app or window;
   // document.visibilitychange additionally catches switching to a NEW TAB in the same browser
