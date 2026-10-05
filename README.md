@@ -43,14 +43,15 @@ Coach's browser ────────┘
 
    ⚠️ Never use the **service_role** or **secret** key. That key is an admin password for your database.
 
-### Step 4: Merge this code into your main branch on GitHub
+### Step 4: Create a `main` branch on GitHub
 
-The code is on the branch `claude/multiuser-assessment-deployment-0z6pgo`. Render normally deploys the `main` branch, so:
+The code is on the branch `claude/multiuser-assessment-deployment-0z6pgo`. It's convenient to have a simply named `main` branch that the live site follows:
 
-1. Open your repository on GitHub. You'll see a yellow banner saying the branch "had recent pushes". Click **Compare & pull request**.
-2. Click **Create pull request**, then **Merge pull request**, then **Confirm merge**.
+1. Open your repository on GitHub. Click the branch dropdown near the top left (it shows the `claude/...` name).
+2. Type `main` in the box, then click **Create branch: main from 'claude/...'**.
+3. Go to **Settings**, then **General**, then **Default branch**. Switch it to `main` and confirm.
 
-(If you'd rather skip this, you can point Render at the `claude/...` branch in Step 5.)
+From now on, new work arrives on other branches as **pull requests**. Clicking **Merge** on a pull request puts the changes into `main`, and Render updates the live site automatically.
 
 ### Step 5: Put the website on Render
 
@@ -162,5 +163,5 @@ You only need this if you want to make changes and preview them before they go l
 ## Troubleshooting
 
 - **The coach page spins forever, or "That code wasn't found"**: the Supabase keys are probably missing or wrong. Check both environment variables in Render (Step 5), redeploy, and confirm you ran `schema.sql` (Step 2).
-- **The site takes a while to open**: free static sites on Render don't sleep, but the first load after a deploy can be slow. Refresh after a few seconds.
+- **Nothing happens after a while on Supabase's free plan**: Supabase pauses free projects after about a week with no activity. Open your Supabase dashboard and click **Restore project** before a session.
 - **To see actual errors**: in Chrome, press F12 and open the **Console** tab. Errors mentioning `getShared` or `setShared` are database problems.
