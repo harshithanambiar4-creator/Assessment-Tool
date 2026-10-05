@@ -142,6 +142,30 @@ const TARGET_MINUTES = 30;         // the soft time target shown to everyone
 
 ---
 
+## Spelling help and autocorrect
+
+When creating a batch, each coach picks how much spelling help participants get. It can also be changed on the dashboard while the batch is running.
+
+| Setting | What participants get |
+|---|---|
+| **Off** | No red underlines and no autocorrect. Phone keyboards are asked not to correct either. |
+| **Underline mistakes** | Misspelled words get a red underline, and right-clicking shows suggestions. Nothing changes automatically. |
+| **Underline + autocorrect** (default) | As above, and common misspellings are fixed as they type, like in Word: "teh" becomes "the", "recieve" becomes "receive", "i" becomes "I", "dont" becomes "don't". Ctrl+Z undoes a correction. |
+
+Autocorrect is **never counted as pasting**. The coach sees a note on the participant's page, such as "Autocorrected 3 words: teh → the, …", but it isn't a flag. Autocorrected words also count as corrections, so they don't trigger "Few corrections".
+
+To add words to the autocorrect list, edit [`src/autocorrect.js`](src/autocorrect.js) on GitHub. Each line is `misspelling: "correction",`. Only add misspellings that aren't real words.
+
+Grammar tools such as Grammarly are switched off in the writing area.
+
+## Fonts
+
+The font menu works like Word's: about 140 fonts from Word's list, plus common Mac fonts. Like Word, it can only show fonts that are **installed on the participant's device**, so each person sees the fonts their computer has.
+
+Popular Office fonts have free look-alikes that load automatically, so they appear for everyone, including on Macs and phones. These are Arial, Calibri, Cambria, Times New Roman, Georgia, Garamond, Courier New, Comic Sans MS, Century Gothic, Franklin Gothic and Baskerville.
+
+Aptos (Word's newest default) only appears where the computer has it installed. The writing area starts in Aptos if it's available, otherwise in Calibri.
+
 ## Security
 
 - **Coaches** each have their own email and password. A coach can only see and change their **own** batches. The database enforces this, not just the website.
