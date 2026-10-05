@@ -3,10 +3,11 @@ import {
   ShieldOff, Lock, Clock, Users, LogIn, PlusCircle, ArrowLeft,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Loader2, CheckCircle2, History, Copy, AlertTriangle,
-  Send, ChevronRight, Info, Square
+  Send, ChevronRight, Info, Square, LogOut, KeyRound
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { supabase } from "./supabaseClient";
+import DOMPurify from "dompurify";
+import { supabase, isCoachLink, needsNewPassword, authLinkError } from "./supabaseClient";
 
 // ---------- Design tokens (ReSource Pro palette, consistent with the earlier 1:1 version) ----------
 const C = {
@@ -29,6 +30,7 @@ const LOW_REVISION_RATE = 0.02;
 const STREAK_BREAK_SEC = 5;
 const NONSTOP_FLAG_MIN = 4;
 const PASTE_FLAG_MIN_ATTEMPTS = 1; // flag on the first blocked paste/drop attempt
+const PIN_LOCKOUT = 10;            // wrong PINs before a name is locked (must match supabase/schema.sql)
 
 const ASSESSMENT_LABELS = { baseline: "Baseline Assessment", mid: "Mid Assessment", final: "Final Assessment" };
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
@@ -50,48 +52,50 @@ function fmtMinSec(ms) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// ---------- Storage (Supabase table "kv": one row per key, value stored as JSON) ----------
-// Like getShared, but throws when the database can't be reached instead of pretending the key is empty.
-async function getSharedStrict(key) {
-  const { data, error } = await supabase.from("kv").select("value").eq("key", key).maybeSingle();
-  if (error) throw error;
-  return data ? data.value : null;
-}
-async function getShared(key) {
-  try { return await getSharedStrict(key); }
-  catch (err) { console.error("getShared", key, err.message); return null; }
-}
-// Turns a database error into a message a coach can act on.
+// ---------- Database ----------
+// Coaches read/write the "batches" and "participants" tables directly; row-level security in
+// supabase/schema.sql limits each coach to their own batches. Participants never touch the tables —
+// they go through three database functions (rpc) that check the code, PIN and private token.
+
+// Turns a database or login error into a message a person can act on.
 function dbErrorMessage(err) {
   const msg = (err && err.message) || String(err);
   if (/failed to fetch|networkerror|load failed|invalid url|missing/i.test(msg))
     return `Can't reach the database. The Supabase address or key on Render is probably wrong or missing. (${msg})`;
+  if (/invalid login credentials/i.test(msg)) return "That email and password don't match a coach account.";
+  if (/email not confirmed/i.test(msg)) return "This coach account hasn't been confirmed yet. Ask whoever set it up to tick \"Auto Confirm User\".";
   if (/permission denied|row-level security|42501/i.test(msg))
-    return `The database refused to save. The table permissions need fixing in Supabase. (${msg})`;
-  if (/invalid api key|jwt|apikey|no api key/i.test(msg))
+    return `The database refused this. Check that supabase/schema.sql has been run. (${msg})`;
+  if (/invalid api key|apikey|no api key/i.test(msg))
     return `The Supabase key on Render isn't accepted. Check VITE_SUPABASE_ANON_KEY. (${msg})`;
-  if (/relation .* does not exist|could not find the table/i.test(msg))
-    return `The "kv" table wasn't found. Run supabase/schema.sql in Supabase's SQL Editor. (${msg})`;
-  return `Database error: ${msg}`;
+  if (/does not exist|could not find the (table|function)/i.test(msg))
+    return `The database isn't set up yet. Run supabase/schema.sql in Supabase's SQL Editor. (${msg})`;
+  return `Something went wrong: ${msg}`;
 }
-async function setShared(key, value) {
-  const { error } = await supabase.from("kv").upsert({ key, value, updated_at: new Date().toISOString() });
-  if (error) { console.error("setShared", key, error.message); throw error; }
+async function rpc(fn, args) {
+  const { data, error } = await supabase.rpc(fn, args);
+  if (error) throw error;
+  return data;
 }
-async function sha256(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+const toMs = (t) => (t ? Date.parse(t) : null);
+
+// Database row → the shape the screens and computeFlags use.
+function participantFromRow(r) {
+  return {
+    id: r.id, name: r.name, slug: r.slug, pin: r.pin, status: r.status,
+    claimedAt: toMs(r.claimed_at), submittedAt: toMs(r.submitted_at),
+    content: r.content, wordCount: r.word_count,
+    activityLog: r.activity_log, focusLog: r.focus_log,
+    keyCount: r.key_count, backspaceCount: r.backspace_count,
+    pasteAttempts: r.paste_attempts, copyAttempts: r.copy_attempts,
+    longestStreakMs: Number(r.longest_streak_ms), longestStreakWords: r.longest_streak_words,
+    deviceSwitches: r.device_switches, reopened: r.reopened, reopenLog: r.reopen_log,
+    pinFailures: r.pin_failures,
+  };
 }
-const batchKey = (code) => `batch:${code}`;
-const participantKey = (code, slug) => `batch:${code}:p:${slug}`;
-async function listBatches() { return (await getShared("batches-index")) || []; }
-async function addBatchToIndex(entry) {
-  const idx = await listBatches();
-  await setShared("batches-index", [entry, ...idx.filter((b) => b.code !== entry.code)]);
-}
-async function patchBatchIndex(code, patch) {
-  const idx = await listBatches();
-  await setShared("batches-index", idx.map((b) => (b.code === code ? { ...b, ...patch } : b)));
+function batchFromRow(r) {
+  return { id: r.id, code: r.code, assessmentType: r.assessment_type, prompt: r.prompt,
+    status: r.status, createdAt: toMs(r.created_at), endedAt: toMs(r.ended_at) };
 }
 
 // ---------- Flag computation (shared by dashboard tiles and the detail view) ----------
@@ -129,143 +133,171 @@ function computeFlags(p) {
   };
 }
 
-// The link's hash alone decides which surface renders — a plain link opens straight to
-// joining, nothing coach-related is ever reachable from it. Add #coach to the same link
-// to reach the coach side (still behind the passphrase). Works with zero server involvement:
-// the hash never leaves the browser, so this needs no hosting change at all — it's read
-// client-side whether this is pasted into an artifact preview or opened from a shared link.
-const isCoachLink = typeof window !== "undefined" && window.location.hash.replace(/^#/, "").toLowerCase() === "coach";
-
+// A plain link opens straight to joining — nothing coach-related is reachable from it.
+// Add #coach to the same link to reach the coach side, which needs a coach login.
 export default function App() {
   const [role, setRole] = useState(isCoachLink ? "coach-home" : "participant-join");
   const [coachMode, setCoachMode] = useState(isCoachLink);
   const [activeCode, setActiveCode] = useState(null);
-  const [coachUnlocked, setCoachUnlocked] = useState(false); // verified once per session (and remembered on this device via localStorage)
 
   // ---- Participant surface (the plain link) — join and write only, nothing else exists here ----
-  // Fallback way into the coach side that doesn't depend on the address bar: typing the word COACH
-  // where the batch code goes. It only opens the passphrase gate — nothing is visible without it.
+  // Typing the word COACH where the batch code goes opens the coach login, for anyone who
+  // lost the #coach link. Nothing is visible without signing in.
   if (!coachMode) {
     if (role === "participant-write") return <ParticipantWrite code={activeCode} onLeave={() => setRole("participant-join")} />;
     return <ParticipantJoin
       onJoined={(c) => { setActiveCode(c); setRole("participant-write"); }}
       onCoachKeyword={() => { setRole("coach-home"); setCoachMode(true); }} />;
   }
-
-  // ---- Coach surface — only reached via the #coach link or the COACH keyword, and always behind the passphrase ----
-  if (!coachUnlocked) {
-    return <CoachGate
-      onUnlocked={() => setCoachUnlocked(true)}
-      onBack={isCoachLink ? null : () => { setCoachMode(false); setRole("participant-join"); }} />;
-  }
-  if (role === "coach-new")
-    return <CoachNewBatch onCreated={(c) => { setActiveCode(c); setRole("coach-dashboard"); }} onBack={() => setRole("coach-home")} />;
-  if (role === "coach-history")
-    return <CoachHistory onOpen={(c) => { setActiveCode(c); setRole("coach-dashboard"); }} onBack={() => setRole("coach-home")} />;
-  if (role === "coach-dashboard")
-    return <CoachDashboard code={activeCode} onBack={() => setRole("coach-home")} />;
-  return <CoachHome onPick={setRole} />;
+  return <CoachArea role={role} setRole={setRole}
+    onBack={isCoachLink ? null : () => { setCoachMode(false); setRole("participant-join"); }} />;
 }
 
-// ---------- Coach passphrase gate — a light door lock, not real authentication.
-// It keeps casual participants out of coach screens; it can't stop someone determined
-// who inspects their own browser's storage, same limit as everything else in this tool.
-function CoachGate({ onUnlocked, onBack }) {
-  const [phase, setPhase] = useState("loading"); // loading | set | enter
-  const [remoteHash, setRemoteHash] = useState(null);
-  const [value, setValue] = useState("");
-  const [confirmValue, setConfirmValue] = useState("");
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
+function Spinner() {
+  return <div className="flex items-center justify-center h-screen" style={{ background: C.bg }}><Loader2 className="animate-spin" size={22} style={{ color: C.teal }} /></div>;
+}
+
+// ---------- Coach side: everything here needs a signed-in coach ----------
+function CoachArea({ role, setRole, onBack }) {
+  const [session, setSession] = useState(undefined); // undefined = still checking
+  const [mustSetPassword, setMustSetPassword] = useState(needsNewPassword);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [batchId, setBatchId] = useState(null);
 
   useEffect(() => {
-    (async () => {
-      let h;
-      try { h = await getSharedStrict("coach-passphrase-hash"); }
-      catch (err) { setError(dbErrorMessage(err)); setPhase("broken"); return; }
-      setRemoteHash(h);
-      if (!h) { setPhase("set"); return; }
-      let local = null;
-      try { local = window.localStorage.getItem("law-coach-unlock"); } catch { /* ignore */ }
-      if (local && local === h) { onUnlocked(); return; }
-      setPhase("enter");
-    })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setMustSetPassword(true);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
-  const submitSet = async () => {
-    if (!value.trim()) return;
-    if (value !== confirmValue) { setError("Those two don't match."); return; }
-    setBusy(true); setError(null);
-    const h = await sha256(value.trim());
-    try { await setShared("coach-passphrase-hash", h); }
-    catch (err) { setError(dbErrorMessage(err)); setBusy(false); return; }
-    try { window.localStorage.setItem("law-coach-unlock", h); } catch { /* ignore */ }
-    setBusy(false);
-    onUnlocked();
-  };
-
-  const submitEnter = async () => {
-    if (!value.trim()) return;
-    setBusy(true); setError(null);
-    const h = await sha256(value.trim());
-    if (h === remoteHash) {
-      try { window.localStorage.setItem("law-coach-unlock", h); } catch { /* ignore */ }
-      onUnlocked();
-    } else {
-      setError("That passphrase doesn't match.");
-    }
-    setBusy(false);
-  };
-
-  if (phase === "loading") return <div className="flex items-center justify-center h-screen" style={{ background: C.bg }}><Loader2 className="animate-spin" size={22} style={{ color: C.teal }} /></div>;
-  if (phase === "broken") {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-6" style={{ background: C.bg, fontFamily: FONT }}>
-        <div className="w-full max-w-md rounded-xl p-7" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-          <div className="text-lg font-semibold mb-2" style={{ color: C.red }}>Can't connect to the database</div>
-          <div className="text-sm break-words" style={{ color: C.text }}>{error}</div>
-        </div>
-      </div>
-    );
+  if (session === undefined) return <Spinner />;
+  if (!session) return <CoachLogin onBack={onBack} />;
+  if (mustSetPassword || changingPassword) {
+    return <SetPassword email={session.user.email} forced={mustSetPassword}
+      onDone={() => { setMustSetPassword(false); setChangingPassword(false); }}
+      onCancel={() => setChangingPassword(false)} />;
   }
+  const open = (id) => { setBatchId(id); setRole("coach-dashboard"); };
+  if (role === "coach-new") return <CoachNewBatch onCreated={open} onBack={() => setRole("coach-home")} />;
+  if (role === "coach-history") return <CoachHistory onOpen={open} onBack={() => setRole("coach-home")} />;
+  if (role === "coach-dashboard") return <CoachDashboard batchId={batchId} onBack={() => setRole("coach-home")} />;
+  return <CoachHome email={session.user.email} onPick={setRole}
+    onChangePassword={() => setChangingPassword(true)}
+    onSignOut={() => supabase.auth.signOut()} />;
+}
 
+function Card({ children, onBack, width = "max-w-sm" }) {
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6" style={{ background: C.bg, fontFamily: FONT }}>
-      <div className="w-full max-w-sm">
+      <div className={`w-full ${width}`}>
         {onBack && (
           <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-medium mb-6" style={{ color: C.muted }}><ArrowLeft size={15} /> Back</button>
         )}
-        <div className="rounded-xl p-7" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-          {phase === "set" ? (
-            <>
-              <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>Set a coach passphrase</div>
-              <div className="text-sm mb-5" style={{ color: C.muted }}>No one's set one yet. Anyone who knows it can create batches and open live dashboards — share it only with other coaches, never in the group chat.</div>
-              <input type="password" value={value} onChange={(e) => setValue(e.target.value)} className="w-full text-sm rounded-md px-3 py-2.5 outline-none mb-3" style={{ border: `1px solid ${C.border}` }} placeholder="New passphrase" />
-              <input type="password" value={confirmValue} onChange={(e) => setConfirmValue(e.target.value)} className="w-full text-sm rounded-md px-3 py-2.5 outline-none mb-3" style={{ border: `1px solid ${C.border}` }} placeholder="Confirm passphrase" />
-              {error && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{error}</div>}
-              <button onClick={submitSet} disabled={busy || !value.trim()} className="w-full text-sm font-semibold rounded-md py-2.5" style={{ background: C.navy, color: "#fff", opacity: (busy || !value.trim()) ? 0.5 : 1 }}>
-                {busy ? "Setting…" : "Set passphrase & continue"}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>Coach passphrase</div>
-              <div className="text-sm mb-5" style={{ color: C.muted }}>This area is for coaches only.</div>
-              <input type="password" value={value} onChange={(e) => setValue(e.target.value)} className="w-full text-sm rounded-md px-3 py-2.5 outline-none mb-3" style={{ border: `1px solid ${C.border}` }} placeholder="Passphrase" autoFocus />
-              {error && <div className="text-xs mb-3" style={{ color: C.amber }}>{error}</div>}
-              <button onClick={submitEnter} disabled={busy || !value.trim()} className="w-full text-sm font-semibold rounded-md py-2.5" style={{ background: C.navy, color: "#fff", opacity: (busy || !value.trim()) ? 0.5 : 1 }}>
-                {busy ? "Checking…" : "Continue"}
-              </button>
-            </>
-          )}
-        </div>
+        <div className="rounded-xl p-7" style={{ background: C.panel, border: `1px solid ${C.border}` }}>{children}</div>
       </div>
     </div>
   );
 }
+const inputCls = "w-full text-sm rounded-md px-3 py-2.5 outline-none mb-3";
+const inputStyle = { border: `1px solid ${C.border}` };
+function PrimaryButton({ onClick, disabled, children }) {
+  return (
+    <button onClick={onClick} disabled={disabled} className="w-full text-sm font-semibold rounded-md py-2.5"
+      style={{ background: C.navy, color: "#fff", opacity: disabled ? 0.5 : 1 }}>{children}</button>
+  );
+}
 
-// ---------- Coach home (menu shown after the #coach link + passphrase) ----------
-function CoachHome({ onPick }) {
+function CoachLogin({ onBack }) {
+  const [mode, setMode] = useState("login"); // login | forgot | sent
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(authLinkError
+    ? "That email link didn't work — it may have expired or already been used. Use \"Forgot password?\" to get a new one." : null);
+  const [busy, setBusy] = useState(false);
+
+  const signIn = async (e) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setBusy(true); setError(null);
+    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (err) setError(dbErrorMessage(err));
+    setBusy(false);
+  };
+  const sendReset = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setBusy(true); setError(null);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/?coach` });
+    setBusy(false);
+    if (err) setError(dbErrorMessage(err)); else setMode("sent");
+  };
+
+  if (mode === "sent") {
+    return (
+      <Card onBack={onBack}>
+        <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>Check your email</div>
+        <div className="text-sm mb-5" style={{ color: C.muted }}>If {email.trim()} is a coach account, a link to choose a new password is on its way. Open it on this device. It can take a few minutes, so check your spam folder too.</div>
+        <button onClick={() => setMode("login")} className="text-sm font-medium" style={{ color: C.teal }}>Back to sign in</button>
+      </Card>
+    );
+  }
+  return (
+    <Card onBack={onBack}>
+      <form onSubmit={mode === "login" ? signIn : sendReset}>
+        <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>{mode === "login" ? "Coach sign in" : "Reset your password"}</div>
+        <div className="text-sm mb-5" style={{ color: C.muted }}>
+          {mode === "login" ? "This area is for coaches only." : "Enter your coach email and we'll send you a link to choose a new password."}
+        </div>
+        <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} style={inputStyle} placeholder="Email" autoFocus />
+        {mode === "login" && (
+          <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} style={inputStyle} placeholder="Password" />
+        )}
+        {error && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{error}</div>}
+        <PrimaryButton disabled={busy || !email.trim() || (mode === "login" && !password)}>
+          {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Send reset link"}
+        </PrimaryButton>
+      </form>
+      <button onClick={() => { setMode(mode === "login" ? "forgot" : "login"); setError(null); }} className="text-xs font-medium mt-4" style={{ color: C.muted }}>
+        {mode === "login" ? "Forgot password?" : "Back to sign in"}
+      </button>
+    </Card>
+  );
+}
+
+function SetPassword({ email, forced, onDone, onCancel }) {
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const save = async (e) => {
+    e.preventDefault();
+    if (pw.length < 8) { setError("Use at least 8 characters."); return; }
+    if (pw !== pw2) { setError("Those two don't match."); return; }
+    setBusy(true); setError(null);
+    const { error: err } = await supabase.auth.updateUser({ password: pw });
+    setBusy(false);
+    if (err) setError(dbErrorMessage(err)); else onDone();
+  };
+  return (
+    <Card onBack={forced ? null : onCancel}>
+      <form onSubmit={save}>
+        <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>Choose a new password</div>
+        <div className="text-sm mb-5" style={{ color: C.muted }}>For {email}. At least 8 characters.</div>
+        <input type="email" autoComplete="username" value={email} readOnly hidden />
+        <input type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} className={inputCls} style={inputStyle} placeholder="New password" autoFocus />
+        <input type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} className={inputCls} style={inputStyle} placeholder="Confirm new password" />
+        {error && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{error}</div>}
+        <PrimaryButton disabled={busy || !pw}>{busy ? "Saving…" : "Save password"}</PrimaryButton>
+      </form>
+    </Card>
+  );
+}
+
+// ---------- Coach home ----------
+function CoachHome({ email, onPick, onChangePassword, onSignOut }) {
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6" style={{ background: C.bg, fontFamily: FONT }}>
       <div className="w-full max-w-lg">
@@ -285,9 +317,14 @@ function CoachHome({ onPick }) {
           </button>
           <button onClick={() => onPick("coach-history")} className="rounded-xl p-6 text-left" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
             <History size={22} style={{ color: C.green }} />
-            <div className="text-base font-semibold mt-3" style={{ color: C.navy }}>Past batches</div>
+            <div className="text-base font-semibold mt-3" style={{ color: C.navy }}>My batches</div>
             <div className="text-xs mt-1" style={{ color: C.muted }}>Open a live dashboard or review a finished one</div>
           </button>
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-8 text-xs" style={{ color: C.muted }}>
+          <span>Signed in as <strong style={{ color: C.navy }}>{email}</strong></span>
+          <button onClick={onChangePassword} className="flex items-center gap-1 font-medium"><KeyRound size={12} /> Change password</button>
+          <button onClick={onSignOut} className="flex items-center gap-1 font-medium"><LogOut size={12} /> Sign out</button>
         </div>
       </div>
     </div>
@@ -321,24 +358,22 @@ function CoachNewBatch({ onCreated, onBack }) {
     setCreating(false);
   };
   const createBatch = async () => {
-    const code = makeCode();
     const taken = new Set();
     const roster = parsed.map(({ name, pin }) => ({ name, slug: slugify(name, taken), pin: pin || genPin() }));
-    const batch = {
-      code, assessmentType: type, prompt: prompt.trim(),
-      roster: roster.map(({ name, slug }) => ({ name, slug })), // no PINs here — this record is fetched in bulk by every joiner
-      createdAt: Date.now(), status: "active", endedAt: null,
-    };
-    await setShared(batchKey(code), batch);
-    // Each participant's PIN lives only on their own record, only fetched when someone attempts that one claim.
-    await Promise.all(roster.map((r) => setShared(participantKey(code, r.slug), {
-      name: r.name, slug: r.slug, pin: r.pin, status: "unjoined", claimedAt: null, submittedAt: null,
-      content: "", wordCount: 0, activityLog: [], focusLog: [], backspaceCount: 0, keyCount: 0,
-      reopened: false, reopenLog: [], activeDeviceToken: null, deviceSwitches: 0, deviceSwitchLog: [],
-      pasteAttempts: 0, pasteLog: [], copyAttempts: 0, copyLog: [], longestStreakMs: 0, longestStreakWords: 0,
-    })));
-    await addBatchToIndex({ code, assessmentType: type, createdAt: batch.createdAt, status: "active", participantCount: roster.length });
-    setCreated({ code, roster });
+    // Codes are random; on the rare clash with an existing batch, just try another.
+    let batch = null;
+    for (let attempt = 0; attempt < 5 && !batch; attempt++) {
+      const { data, error } = await supabase.from("batches")
+        .insert({ code: makeCode(), assessment_type: type, prompt: prompt.trim() })
+        .select().single();
+      if (error && error.code !== "23505") throw error;
+      batch = data;
+    }
+    if (!batch) throw new Error("Couldn't find a free batch code — please try again.");
+    const { error } = await supabase.from("participants").insert(
+      roster.map((r, i) => ({ batch_id: batch.id, position: i, name: r.name, slug: r.slug, pin: r.pin })));
+    if (error) throw error;
+    setCreated({ id: batch.id, code: batch.code, roster });
   };
 
   const copyList = () => {
@@ -367,7 +402,7 @@ function CoachNewBatch({ onCreated, onBack }) {
             <button onClick={copyList} className="w-full flex items-center justify-center gap-2 text-sm font-semibold rounded-md py-2.5 mb-3" style={{ border: `1px solid ${C.border}`, color: C.navy }}>
               <Copy size={14} /> {copied ? "Copied" : "Copy list"}
             </button>
-            <button onClick={() => onCreated(created.code)} className="w-full flex items-center justify-center gap-2 text-sm font-semibold rounded-md py-2.5" style={{ background: C.navy, color: "#fff" }}>
+            <button onClick={() => onCreated(created.id)} className="w-full flex items-center justify-center gap-2 text-sm font-semibold rounded-md py-2.5" style={{ background: C.navy, color: "#fff" }}>
               Continue to dashboard
             </button>
           </div>
@@ -482,7 +517,7 @@ function StatusPill({ status }) {
 }
 
 // ---------- Coach: dashboard (live monitoring + after-the-fact review, same screen) ----------
-function CoachDashboard({ code, onBack }) {
+function CoachDashboard({ batchId, onBack }) {
   const [batch, setBatch] = useState(null);
   const [rows, setRows] = useState({});
   const [now, setNow] = useState(Date.now());
@@ -490,24 +525,31 @@ function CoachDashboard({ code, onBack }) {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [ending, setEnding] = useState(false);
   const [openSlug, setOpenSlug] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     let stop = false;
     const poll = async () => {
-      const b = await getShared(batchKey(code));
-      if (stop || !b) return;
-      setBatch(b);
-      const entries = await Promise.all(b.roster.map(async (r) => [r.slug, await getShared(participantKey(code, r.slug))]));
+      const [b, ps] = await Promise.all([
+        supabase.from("batches").select("*").eq("id", batchId).single(),
+        supabase.from("participants").select("*").eq("batch_id", batchId).order("position"),
+      ]);
+      if (stop) return;
+      if (b.error || ps.error) { setLoadError(dbErrorMessage(b.error || ps.error)); return; }
+      setLoadError(null);
+      const participants = ps.data.map(participantFromRow);
+      setBatch({ ...batchFromRow(b.data), roster: participants.map(({ name, slug }) => ({ name, slug })) });
       const next = {};
-      entries.forEach(([slug, p]) => { next[slug] = p; });
+      participants.forEach((p) => { next[p.slug] = p; });
       setRows(next);
     };
     poll();
     const iv = setInterval(poll, 5000);
     const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => { stop = true; clearInterval(iv); clearInterval(clock); };
-  }, [code]);
+  }, [batchId, openSlug]);
 
+  const code = batch ? batch.code : "";
   const copyCode = () => {
     if (navigator.clipboard) navigator.clipboard.writeText(code);
     setCopied(true); setTimeout(() => setCopied(false), 1500);
@@ -515,20 +557,22 @@ function CoachDashboard({ code, onBack }) {
 
   const endBatch = async () => {
     setEnding(true);
-    const b = await getShared(batchKey(code));
-    const updated = { ...b, status: "ended", endedAt: Date.now() };
-    await setShared(batchKey(code), updated);
-    await patchBatchIndex(code, { status: "ended" });
-    setBatch(updated);
+    const { data, error } = await supabase.from("batches")
+      .update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", batchId).select().single();
+    if (error) setLoadError(dbErrorMessage(error));
+    else setBatch((cur) => ({ ...cur, ...batchFromRow(data) }));
     setEnding(false);
     setConfirmEnd(false);
   };
 
-  if (!batch) return <div className="flex items-center justify-center h-screen" style={{ background: C.bg }}><Loader2 className="animate-spin" size={22} style={{ color: C.teal }} /></div>;
+  if (!batch) {
+    if (loadError) return <Card onBack={onBack} width="max-w-md"><div className="text-sm" style={{ color: C.red }}>{loadError}</div></Card>;
+    return <Spinner />;
+  }
 
   if (openSlug) {
     const r = batch.roster.find((x) => x.slug === openSlug);
-    return <ParticipantDetail code={code} rosterEntry={r} onBack={() => setOpenSlug(null)} />;
+    return <ParticipantDetail batchId={batchId} batchStatus={batch.status} rosterEntry={r} onBack={() => setOpenSlug(null)} />;
   }
 
   const elapsedMs = now - batch.createdAt;
@@ -561,6 +605,7 @@ function CoachDashboard({ code, onBack }) {
           </div>
         </div>
 
+        {loadError && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{loadError}</div>}
         <div className="grid grid-cols-4 gap-3 mb-5">
           {[["Roster", batch.roster.length], ["Joined", joined], ["Submitted", submitted], ["Avg. words", avgWords]].map(([label, val]) => (
             <div key={label} className="rounded-lg p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
@@ -575,7 +620,10 @@ function CoachDashboard({ code, onBack }) {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
           {batch.roster.map((r) => {
             const p = rows[r.slug];
-            const status = p ? p.status : "unjoined";
+            // Someone who closed their browser before the batch ended never gets locked by their own
+            // device, so show them as locked here; their last autosave is what's kept.
+            const status = !p ? "unjoined"
+              : (batch.status === "ended" && p.status === "writing" && !p.reopened) ? "locked" : p.status;
             const flags = p ? computeFlags(p) : {};
             return (
               <button key={r.slug} onClick={() => setOpenSlug(r.slug)} className="text-left rounded-lg p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
@@ -585,6 +633,9 @@ function CoachDashboard({ code, onBack }) {
                 </div>
                 <div className="mt-1.5"><StatusPill status={status} /></div>
                 <div className="text-xs mt-2" style={{ color: C.muted }}>{p ? `${p.wordCount || 0} words` : "—"}</div>
+                {p && p.pinFailures >= PIN_LOCKOUT && (
+                  <div className="text-[11px] font-medium mt-1.5" style={{ color: C.red }}>Locked out: too many wrong PINs</div>
+                )}
                 <FlagBadges flags={flags} />
               </button>
             );
@@ -616,38 +667,53 @@ function CoachDashboard({ code, onBack }) {
 }
 
 // ---------- Coach: one participant's detail (live or after the fact) ----------
-function ParticipantDetail({ code, rosterEntry, onBack }) {
+function ParticipantDetail({ batchId, batchStatus, rosterEntry, onBack }) {
   const [p, setP] = useState(null);
   const [confirmReopen, setConfirmReopen] = useState(false);
   const [reopening, setReopening] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    const { data, error: err } = await supabase.from("participants").select("*")
+      .eq("batch_id", batchId).eq("slug", rosterEntry.slug).single();
+    if (err) { setError(dbErrorMessage(err)); return null; }
+    const v = participantFromRow(data);
+    setP(v);
+    return v;
+  }, [batchId, rosterEntry.slug]);
 
   useEffect(() => {
-    let stop = false;
-    const poll = async () => { const v = await getShared(participantKey(code, rosterEntry.slug)); if (!stop) setP(v); };
-    poll();
-    const iv = setInterval(poll, 5000);
-    return () => { stop = true; clearInterval(iv); };
-  }, [code, rosterEntry.slug]);
+    load();
+    const iv = setInterval(load, 5000);
+    return () => clearInterval(iv);
+  }, [load]);
 
   const flags = p ? computeFlags(p) : {};
   const chartData = p ? (p.activityLog || []).map((e) => ({ min: Math.round((e.t - (p.claimedAt || e.t)) / 60000), words: e.words })) : [];
-  const canReopen = p && (p.status === "submitted" || p.status === "locked");
+  const shownStatus = p && batchStatus === "ended" && p.status === "writing" && !p.reopened ? "locked" : p && p.status;
+  const canReopen = p && (shownStatus === "submitted" || shownStatus === "locked");
+  // Participant writing is shown as formatted text; DOMPurify strips anything that could run code in the coach's browser.
+  const safeHtml = p && p.content ? DOMPurify.sanitize(p.content) : "";
 
+  const update = async (patch) => {
+    setError(null);
+    const { error: err } = await supabase.from("participants").update(patch).eq("id", p.id);
+    if (err) setError(dbErrorMessage(err));
+    await load();
+  };
   const reopen = async () => {
     setReopening(true);
-    const existing = await getShared(participantKey(code, rosterEntry.slug));
+    const existing = await load();
     if (existing) {
-      const log = existing.reopenLog || [];
-      const updated = {
-        ...existing, status: "writing", submittedAt: null, reopened: true,
-        reopenLog: [...log, { reopenedAt: Date.now(), fromStatus: existing.status, previousSubmittedAt: existing.submittedAt }],
-      };
-      await setShared(participantKey(code, rosterEntry.slug), updated);
-      setP(updated);
+      await update({
+        status: "writing", submitted_at: null, reopened: true,
+        reopen_log: [...(existing.reopenLog || []), { reopenedAt: Date.now(), fromStatus: existing.status, previousSubmittedAt: existing.submittedAt }],
+      });
     }
     setReopening(false);
     setConfirmReopen(false);
   };
+  const unlockPin = () => update({ pin_failures: 0 });
 
   return (
     <div className="min-h-screen w-full p-6" style={{ background: C.bg, fontFamily: FONT }}>
@@ -656,6 +722,13 @@ function ParticipantDetail({ code, rosterEntry, onBack }) {
 
         <div className="rounded-xl p-7 mb-5" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
           <div className="text-xl font-semibold" style={{ color: C.navy }}>{rosterEntry.name}</div>
+          {error && <div className="text-xs mt-2 break-words" style={{ color: C.red }}>{error}</div>}
+          {p && p.pinFailures >= PIN_LOCKOUT && (
+            <div className="rounded-lg p-3.5 mt-3 flex items-center justify-between gap-3" style={{ background: C.redSoft }}>
+              <div className="text-xs" style={{ color: C.red }}>Locked out after {p.pinFailures} wrong PINs in a row. If it was them mistyping, unlock and they can try again.</div>
+              <button onClick={unlockPin} className="text-xs font-semibold rounded-md px-2.5 py-1.5 shrink-0" style={{ background: C.red, color: "#fff" }}>Unlock</button>
+            </div>
+          )}
           {!p ? (
             <div className="text-sm mt-2" style={{ color: C.mutedLight }}>Loading…</div>
           ) : p.status === "unjoined" ? (
@@ -666,7 +739,7 @@ function ParticipantDetail({ code, rosterEntry, onBack }) {
             </>
           ) : (
             <>
-              <div className="mt-2 flex items-center gap-2"><StatusPill status={p.status} />{p.reopened && p.status === "writing" && (
+              <div className="mt-2 flex items-center gap-2"><StatusPill status={shownStatus} />{p.reopened && p.status === "writing" && (
                 <span className="text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: C.navySoft, color: C.navy }}>Reopened by you</span>
               )}</div>
               <div className="flex gap-6 mt-4">
@@ -714,7 +787,7 @@ function ParticipantDetail({ code, rosterEntry, onBack }) {
         <div className="rounded-xl p-6" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: C.muted }}>Submitted writing</div>
           {p && p.content
-            ? <div className="text-sm leading-relaxed" style={{ color: C.text }} dangerouslySetInnerHTML={{ __html: p.content }} />
+            ? <div className="text-sm leading-relaxed" style={{ color: C.text }} dangerouslySetInnerHTML={{ __html: safeHtml }} />
             : <div className="text-sm" style={{ color: C.mutedLight }}>Nothing written yet.</div>}
         </div>
       </div>
@@ -722,63 +795,45 @@ function ParticipantDetail({ code, rosterEntry, onBack }) {
   );
 }
 
-// ---------- Coach: history ----------
+// ---------- Coach: history (only this coach's own batches — enforced by the database) ----------
 function CoachHistory({ onOpen, onBack }) {
   const [items, setItems] = useState(null);
-  const [changing, setChanging] = useState(false);
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [nextConfirm, setNextConfirm] = useState("");
   const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => { (async () => setItems(await listBatches()))(); }, []);
-
-  const changePassphrase = async () => {
-    setError(null);
-    if (!current.trim() || !next.trim()) return;
-    if (next !== nextConfirm) { setError("The new passphrase doesn't match its confirmation."); return; }
-    setBusy(true);
-    const remoteHash = await getShared("coach-passphrase-hash");
-    const currentHash = await sha256(current.trim());
-    if (currentHash !== remoteHash) { setError("Current passphrase is wrong."); setBusy(false); return; }
-    const newHash = await sha256(next.trim());
-    await setShared("coach-passphrase-hash", newHash);
-    try { window.localStorage.setItem("law-coach-unlock", newHash); } catch { /* ignore */ }
-    setBusy(false); setChanging(false); setCurrent(""); setNext(""); setNextConfirm("");
-  };
+  useEffect(() => {
+    (async () => {
+      const { data, error: err } = await supabase.from("batches")
+        .select("id, code, assessment_type, prompt, status, created_at, participants(count)")
+        .order("created_at", { ascending: false });
+      if (err) { setError(dbErrorMessage(err)); setItems([]); return; }
+      setItems(data);
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen w-full p-6" style={{ background: C.bg, fontFamily: FONT }}>
       <div className="max-w-xl mx-auto">
         <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-medium mb-6" style={{ color: C.muted }}><ArrowLeft size={15} /> Back</button>
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-lg font-semibold" style={{ color: C.navy }}>Past batches</div>
-          <button onClick={() => setChanging((v) => !v)} className="text-xs font-medium" style={{ color: C.muted }}>Change coach passphrase</button>
-        </div>
-        {changing && (
-          <div className="rounded-lg p-4 mb-5" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-            <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className="w-full text-sm rounded-md px-3 py-2 outline-none mb-2" style={{ border: `1px solid ${C.border}` }} placeholder="Current passphrase" />
-            <input type="password" value={next} onChange={(e) => setNext(e.target.value)} className="w-full text-sm rounded-md px-3 py-2 outline-none mb-2" style={{ border: `1px solid ${C.border}` }} placeholder="New passphrase" />
-            <input type="password" value={nextConfirm} onChange={(e) => setNextConfirm(e.target.value)} className="w-full text-sm rounded-md px-3 py-2 outline-none mb-2" style={{ border: `1px solid ${C.border}` }} placeholder="Confirm new passphrase" />
-            {error && <div className="text-xs mb-2" style={{ color: C.amber }}>{error}</div>}
-            <button onClick={changePassphrase} disabled={busy} className="w-full text-sm font-semibold rounded-md py-2" style={{ background: C.navy, color: "#fff" }}>{busy ? "Updating…" : "Update passphrase"}</button>
-          </div>
-        )}
+        <div className="text-lg font-semibold mb-4" style={{ color: C.navy }}>My batches</div>
+        {error && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{error}</div>}
         {items === null && <Loader2 className="animate-spin" size={20} style={{ color: C.teal }} />}
-        {items && items.length === 0 && <div className="text-sm" style={{ color: C.muted }}>No batches yet.</div>}
+        {items && items.length === 0 && !error && <div className="text-sm" style={{ color: C.muted }}>No batches yet.</div>}
         <div className="space-y-2">
-          {items && items.map((b) => (
-            <button key={b.code} onClick={() => onOpen(b.code)} className="w-full flex items-center justify-between text-left rounded-lg p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-              <div>
-                <div className="text-sm font-semibold" style={{ color: C.navy }}>{ASSESSMENT_LABELS[b.assessmentType]}</div>
-                <div className="text-xs mt-0.5" style={{ color: C.muted }}>{b.participantCount} participants · {new Date(b.createdAt).toLocaleDateString()}</div>
-              </div>
-              <span className="text-xs font-medium rounded-full px-2.5 py-1" style={{ background: b.status === "ended" ? C.greenSoft : C.amberSoft, color: b.status === "ended" ? C.green : C.amber }}>
-                {b.status === "ended" ? "Completed" : "In progress"}
-              </span>
-            </button>
-          ))}
+          {items && items.map((b) => {
+            const count = b.participants && b.participants[0] ? b.participants[0].count : 0;
+            return (
+              <button key={b.id} onClick={() => onOpen(b.id)} className="w-full flex items-center justify-between gap-3 text-left rounded-lg p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold" style={{ color: C.navy }}>{ASSESSMENT_LABELS[b.assessment_type]} · <span className="font-mono">{b.code}</span></div>
+                  <div className="text-xs mt-0.5 truncate" style={{ color: C.muted }}>{b.prompt}</div>
+                  <div className="text-xs mt-0.5" style={{ color: C.mutedLight }}>{count} participants · {new Date(b.created_at).toLocaleDateString()}</div>
+                </div>
+                <span className="text-xs font-medium rounded-full px-2.5 py-1 shrink-0" style={{ background: b.status === "ended" ? C.greenSoft : C.amberSoft, color: b.status === "ended" ? C.green : C.amber }}>
+                  {b.status === "ended" ? "Completed" : "In progress"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -801,59 +856,50 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
     if (!c) return;
     if (c === "COACH" && onCoachKeyword) { onCoachKeyword(); return; }
     setLoading(true); setError(null);
-    const b = await getShared(batchKey(c));
-    if (!b) { setError("That code wasn't found. Double-check with your coach."); setLoading(false); return; }
-    if (b.status === "ended") { setError("This batch has already ended."); setLoading(false); return; }
-    const entries = await Promise.all(b.roster.map(async (r) => [r.slug, await getShared(participantKey(c, r.slug))]));
-    const t = {};
-    entries.forEach(([slug, p]) => { t[slug] = p ? p.status : "unjoined"; });
-    setBatch({ ...b, code: c });
-    setTaken(t);
+    try {
+      const r = await rpc("join_lookup", { p_code: c });
+      if (r.error === "not_found") setError("That code wasn't found. Double-check with your coach.");
+      else if (r.error === "ended") setError("This batch has already ended.");
+      else {
+        const t = {};
+        r.roster.forEach((x) => { t[x.slug] = x.status; });
+        setBatch({ code: c, assessmentType: r.assessment_type, roster: r.roster });
+        setTaken(t);
+      }
+    } catch (err) { setError(dbErrorMessage(err)); }
     setLoading(false);
   };
 
   const pickName = (slug, name) => { setSelected({ slug, name }); setPin(""); setError(null); };
 
-  const claim = async () => {
-    setClaiming(true); setError(null);
-    try { await doClaim(); }
-    catch (err) { setError(dbErrorMessage(err)); setClaiming(false); }
+  const CLAIM_ERRORS = {
+    not_found: "Something's off with that name — check with your coach.",
+    already_submitted: (name) => `${name} has already submitted for this batch. If that's not you, check with your coach.`,
+    ended: "This batch has already ended.",
+    bad_pin: "That PIN doesn't match. Check with your coach if you're not sure of it.",
+    locked_out: "Too many wrong PINs for this name, so it's been locked. Ask your coach to unlock it.",
   };
-  const doClaim = async () => {
+  const claim = async () => {
     const { slug, name } = selected;
-    const existing = await getShared(participantKey(batch.code, slug));
-    if (!existing) { setError("Something's off with that name — check with your coach."); setClaiming(false); return; }
-    if (existing.status === "submitted" || existing.status === "locked") {
-      setError(`${name} has already submitted for this batch. If that's not you, check with your coach.`);
-      setClaiming(false);
-      return;
-    }
-    if (pin.trim() !== String(existing.pin)) {
-      setError("That PIN doesn't match. Check with your coach if you're not sure of it.");
-      setClaiming(false);
-      return;
-    }
-    // Each device gets its own private token for this (batch, name) pair, so a refresh on the SAME
-    // device is a quiet resume, but a claim from a DIFFERENT device is detectable and logged.
+    setClaiming(true); setError(null);
+    // This device's private token for this (batch, name), if it joined before. Sending it back lets a
+    // refresh on the SAME device resume quietly; a DIFFERENT device gets a new token and it's logged.
     const storageKey = `law-device-${batch.code}-${slug}`;
     let myToken = null;
-    try { myToken = window.localStorage.getItem(storageKey); } catch { /* private-browsing etc. — fall through */ }
-    if (existing.status === "unjoined") {
-      myToken = myToken || Math.random().toString(36).slice(2, 10);
-      try { window.localStorage.setItem(storageKey, myToken); } catch { /* ignore */ }
-      await setShared(participantKey(batch.code, slug), { ...existing, status: "writing", claimedAt: Date.now(), activeDeviceToken: myToken });
-    } else if (!myToken || myToken !== existing.activeDeviceToken) {
-      myToken = Math.random().toString(36).slice(2, 10);
-      try { window.localStorage.setItem(storageKey, myToken); } catch { /* ignore */ }
-      await setShared(participantKey(batch.code, slug), {
-        ...existing, activeDeviceToken: myToken,
-        deviceSwitches: (existing.deviceSwitches || 0) + 1,
-        deviceSwitchLog: [...(existing.deviceSwitchLog || []), { at: Date.now() }],
-      });
-    }
-    window.__lawSlug = slug;
-    window.__lawDeviceToken = myToken;
-    onJoined(batch.code);
+    try { myToken = window.localStorage.getItem(storageKey); } catch { /* private browsing etc. */ }
+    try {
+      const r = await rpc("participant_claim", { p_code: batch.code, p_slug: slug, p_pin: pin.trim(), p_device_token: myToken });
+      if (r.error) {
+        const msg = CLAIM_ERRORS[r.error] || "Couldn't join — check with your coach.";
+        setError(typeof msg === "function" ? msg(name) : msg);
+        setClaiming(false);
+        return;
+      }
+      try { window.localStorage.setItem(storageKey, r.token); } catch { /* ignore */ }
+      window.__lawSlug = slug;
+      window.__lawDeviceToken = r.token;
+      onJoined(batch.code);
+    } catch (err) { setError(dbErrorMessage(err)); setClaiming(false); }
   };
 
   return (
@@ -919,7 +965,21 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
 }
 
 // ---------- Participant: write ----------
-const FONT_FAMILIES = ["Calibri", "Arial", "Times New Roman", "Georgia", "Verdana"];
+// Each font lists look-alikes to fall back on. Aptos, Calibri and Cambria come with Microsoft Office,
+// so people without Office (most Macs, phones) see the closest look-alike instead.
+const FONT_FAMILIES = [
+  { label: "Aptos", stack: "Aptos, Calibri, 'Segoe UI', Arial, sans-serif" },
+  { label: "Arial", stack: "Arial, Helvetica, sans-serif" },
+  { label: "Calibri", stack: "Calibri, Carlito, 'Segoe UI', Arial, sans-serif" },
+  { label: "Cambria", stack: "Cambria, Caladea, Georgia, serif" },
+  { label: "Garamond", stack: "Garamond, 'EB Garamond', Georgia, serif" },
+  { label: "Georgia", stack: "Georgia, serif" },
+  { label: "Tahoma", stack: "Tahoma, Verdana, sans-serif" },
+  { label: "Times New Roman", stack: "'Times New Roman', Times, serif" },
+  { label: "Verdana", stack: "Verdana, Geneva, sans-serif" },
+  { label: "Courier New", stack: "'Courier New', Courier, monospace" },
+];
+const DEFAULT_FONT = FONT_FAMILIES[0];
 const FONT_SIZES = [{ v: "2", l: "Small" }, { v: "3", l: "Normal" }, { v: "4", l: "Medium" }, { v: "5", l: "Large" }, { v: "6", l: "X-Large" }];
 const COLORS = ["#1F2937", "#B91C1C", "#1D4ED8", "#15803D", "#B45309"];
 const LINE_SPACINGS = [{ v: "1.15", l: "Single" }, { v: "1.5", l: "1.5 lines" }, { v: "2", l: "Double" }];
@@ -959,29 +1019,39 @@ function ParticipantWrite({ code, onLeave }) {
   const longestStreakWordsRef = useRef(0);
   const streakRef = useRef({ start: 0, last: 0, startWords: 0 });
 
+  // Load this participant's saved state from the server into the trackers above.
+  const applyServerState = (me) => {
+    claimedAtRef.current = me.claimed_at || Date.now();
+    activityLogRef.current = me.activity_log || [];
+    focusLogRef.current = me.focus_log || [];
+    backspaceCountRef.current = me.backspace_count || 0;
+    keyCountRef.current = me.key_count || 0;
+    pasteAttemptsRef.current = me.paste_attempts || 0;
+    pasteLogRef.current = me.paste_log || [];
+    copyAttemptsRef.current = me.copy_attempts || 0;
+    copyLogRef.current = me.copy_log || [];
+    longestStreakMsRef.current = Number(me.longest_streak_ms) || 0;
+    longestStreakWordsRef.current = me.longest_streak_words || 0;
+    setWordCount(me.word_count || 0);
+  };
+  const sync = (data, final, full) => rpc("participant_sync", {
+    p_code: code, p_slug: slug, p_token: myDeviceToken, p_data: data, p_final: final, p_full: full,
+  });
+  const [loadError, setLoadError] = useState(null);
+
   useEffect(() => {
     (async () => {
-      const b = await getShared(batchKey(code));
-      const p = await getShared(participantKey(code, slug));
-      if (p) {
-        claimedAtRef.current = p.claimedAt || Date.now();
-        activityLogRef.current = p.activityLog || [];
-        focusLogRef.current = p.focusLog || [];
-        backspaceCountRef.current = p.backspaceCount || 0;
-        keyCountRef.current = p.keyCount || 0;
-        pasteAttemptsRef.current = p.pasteAttempts || 0;
-        pasteLogRef.current = p.pasteLog || [];
-        copyAttemptsRef.current = p.copyAttempts || 0;
-        copyLogRef.current = p.copyLog || [];
-        longestStreakMsRef.current = p.longestStreakMs || 0;
-        longestStreakWordsRef.current = p.longestStreakWords || 0;
-        if (p.status === "submitted" || p.status === "locked") setSubmitted(true);
-        initialContentRef.current = p.content || "";
-        setWordCount(p.wordCount || 0);
-      }
-      setBatch(b); // only now does the editor appear on screen
+      let r;
+      try { r = await sync(null, null, true); }
+      catch (err) { setLoadError(dbErrorMessage(err)); return; }
+      if (r.superseded) { setSuperseded(true); setBatch({}); return; }
+      if (r.error) { setLoadError("This batch couldn't be found. Check with your coach."); return; }
+      applyServerState(r.me);
+      initialContentRef.current = r.me.content || "";
+      if (r.me.status === "submitted" || r.me.status === "locked") { setLocked(r.me.status === "locked"); setSubmitted(true); }
+      setBatch(r.batch); // only now does the editor appear on screen
     })();
-  }, [code, slug]);
+  }, [code, slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Put any saved draft back into the editor once it exists (e.g. after a refresh or rejoining).
   const initialContentRef = useRef(null);
@@ -1079,58 +1149,59 @@ function ParticipantWrite({ code, onLeave }) {
     };
   }, [submitted]);
 
+  // Save (if anything changed) and read back status. The server decides whether this answer is now
+  // submitted or locked (e.g. the coach ended the batch). Returns false if the save didn't go through.
   const doSync = useCallback(async (finalStatus) => {
-    if (!dirty.current && !finalStatus) return;
-    setSaveState("saving");
-    const html = editorRef.current ? editorRef.current.innerHTML : "";
-    const text = editorRef.current ? (editorRef.current.innerText || "") : "";
-    const words = (text.trim().match(/\S+/g) || []).length;
-    const now = Date.now();
-    if (now - lastActivityLogAt.current > ACTIVITY_LOG_GAP_MS) {
-      lastActivityLogAt.current = now;
-      activityLogRef.current = [...activityLogRef.current, { t: now, words }];
+    let payload = null;
+    if (dirty.current || finalStatus) {
+      const html = editorRef.current ? editorRef.current.innerHTML : "";
+      const text = editorRef.current ? (editorRef.current.innerText || "") : "";
+      const words = (text.trim().match(/\S+/g) || []).length;
+      const now = Date.now();
+      if (now - lastActivityLogAt.current > ACTIVITY_LOG_GAP_MS) {
+        lastActivityLogAt.current = now;
+        activityLogRef.current = [...activityLogRef.current, { t: now, words }];
+      }
+      payload = {
+        content: html, wordCount: words,
+        activityLog: activityLogRef.current, focusLog: focusLogRef.current,
+        backspaceCount: backspaceCountRef.current, keyCount: keyCountRef.current,
+        pasteAttempts: pasteAttemptsRef.current, pasteLog: pasteLogRef.current,
+        copyAttempts: copyAttemptsRef.current, copyLog: copyLogRef.current,
+        longestStreakMs: longestStreakMsRef.current, longestStreakWords: longestStreakWordsRef.current,
+      };
+      setWordCount(words);
+      setSaveState("saving");
+      dirty.current = false; // anything typed while this save is in flight marks it dirty again
     }
-    const payload = {
-      slug, content: html, wordCount: words,
-      activityLog: activityLogRef.current, focusLog: focusLogRef.current,
-      backspaceCount: backspaceCountRef.current, keyCount: keyCountRef.current,
-      claimedAt: claimedAtRef.current,
-      pasteAttempts: pasteAttemptsRef.current, pasteLog: pasteLogRef.current,
-      copyAttempts: copyAttemptsRef.current, copyLog: copyLogRef.current,
-      longestStreakMs: longestStreakMsRef.current, longestStreakWords: longestStreakWordsRef.current,
-    };
-    const existing = await getShared(participantKey(code, slug));
-    // If another device has since claimed this name, it's now authoritative — stop overwriting its work.
-    if (existing && existing.activeDeviceToken && myDeviceToken && existing.activeDeviceToken !== myDeviceToken) {
-      setSuperseded(true);
-      return;
+    let r;
+    try { r = await sync(payload, finalStatus || null, false); }
+    catch {
+      if (payload) { dirty.current = true; setSaveState("error"); }
+      return false;
     }
-    const merged = { ...existing, ...payload };
-    if (finalStatus) { merged.status = finalStatus; merged.submittedAt = now; merged.reopened = false; }
-    try { await setShared(participantKey(code, slug), merged); }
-    catch { setSaveState("error"); return; }
-    setWordCount(words);
-    dirty.current = false;
-    setSaveState("saved");
-  }, [code, slug, myDeviceToken]);
+    // Another device has since joined as this name — it's now the one being saved.
+    if (r.superseded) { setSuperseded(true); return false; }
+    if (r.error) { if (payload) { dirty.current = true; setSaveState("error"); } return false; }
+    if (payload) setSaveState("saved");
+    if (r.batch) batchRef.current = r.batch;
+    if (r.me.status === "submitted" || r.me.status === "locked") { setLocked(r.me.status === "locked"); setSubmitted(true); }
+    return true;
+  }, [code, slug, myDeviceToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onInput = () => { dirty.current = true; };
 
-  // Periodic sync + poll for batch end (skips the auto-lock if the coach has explicitly reopened this person)
+  // Periodic save + status check (the server locks the answer once the coach ends the batch,
+  // unless the coach has explicitly reopened this person), plus the gentle time reminders.
+  const batchRef = useRef(null);
+  useEffect(() => { if (batch && batch.created_at) batchRef.current = batch; }, [batch]);
   useEffect(() => {
-    if (submitted || superseded) return;
+    if (submitted || superseded || !batch) return;
     const iv = setInterval(async () => {
       await doSync();
-      const b = await getShared(batchKey(code));
-      if (b && b.status === "ended") {
-        const mine = await getShared(participantKey(code, slug));
-        if (!(mine && mine.reopened)) {
-          await doSync("locked");
-          setLocked(true); setSubmitted(true);
-        }
-      }
+      const b = batchRef.current;
       if (b) {
-        const elapsedMin = Math.floor((Date.now() - b.createdAt) / 60000);
+        const elapsedMin = Math.floor((Date.now() - b.created_at) / 60000);
         [10, 20].forEach((m) => {
           if (elapsedMin >= m && !shownNotices.current.has(m)) {
             shownNotices.current.add(m);
@@ -1144,34 +1215,25 @@ function ParticipantWrite({ code, onLeave }) {
       }
     }, SYNC_INTERVAL_MS);
     return () => clearInterval(iv);
-  }, [code, doSync, submitted, superseded, slug]);
+  }, [doSync, submitted, superseded, batch]);
 
   // While on the "submitted/locked" screen, watch for the coach reopening this document
   const pendingContentRef = useRef(null);
   useEffect(() => {
-    if (!submitted) return;
+    if (!submitted || superseded) return;
     const iv = setInterval(async () => {
-      const mine = await getShared(participantKey(code, slug));
-      if (mine && mine.status === "writing") {
-        claimedAtRef.current = mine.claimedAt || claimedAtRef.current;
-        activityLogRef.current = mine.activityLog || [];
-        focusLogRef.current = mine.focusLog || [];
-        backspaceCountRef.current = mine.backspaceCount || 0;
-        keyCountRef.current = mine.keyCount || 0;
-        pasteAttemptsRef.current = mine.pasteAttempts || 0;
-        pasteLogRef.current = mine.pasteLog || [];
-        copyAttemptsRef.current = mine.copyAttempts || 0;
-        copyLogRef.current = mine.copyLog || [];
-        longestStreakMsRef.current = mine.longestStreakMs || 0;
-        longestStreakWordsRef.current = mine.longestStreakWords || 0;
-        pendingContentRef.current = mine.content || "";
-        setWordCount(mine.wordCount || 0);
+      let r;
+      try { r = await sync(null, null, true); } catch { return; }
+      if (r.superseded) { setSuperseded(true); return; }
+      if (r.me && r.me.status === "writing") {
+        applyServerState(r.me);
+        pendingContentRef.current = r.me.content || "";
         setLocked(false);
         setSubmitted(false);
       }
     }, 5000);
     return () => clearInterval(iv);
-  }, [submitted, code, slug]);
+  }, [submitted, superseded, code, slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore the document content once the editor reappears after a reopen
   useEffect(() => {
@@ -1182,19 +1244,43 @@ function ParticipantWrite({ code, onLeave }) {
     }
   }, [submitted]);
 
+  const [submitError, setSubmitError] = useState(null);
   const submitNow = async () => {
-    await doSync("submitted");
-    setSubmitted(true);
+    setSubmitError(null);
+    const ok = await doSync("submitted");
+    if (ok) setSubmitted(true);
+    else setSubmitError("Couldn't submit — check your internet connection and try again. Your writing is still here.");
     setConfirmSubmit(false);
   };
 
+  // Remember where the cursor/selection was in the editor, so picking from a dropdown (which moves
+  // focus away) still applies the formatting to the text the writer had selected.
+  const savedRange = useRef(null);
+  useEffect(() => {
+    const onSel = () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount && editorRef.current && editorRef.current.contains(sel.anchorNode)) {
+        savedRange.current = sel.getRangeAt(0).cloneRange();
+      }
+    };
+    document.addEventListener("selectionchange", onSel);
+    return () => document.removeEventListener("selectionchange", onSel);
+  }, []);
+  const [font, setFont] = useState(DEFAULT_FONT.label);
+
   const exec = (cmd, val = null) => {
     editorRef.current.focus();
+    if (savedRange.current) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange.current);
+    }
     document.execCommand(cmd, false, val);
     onInput();
   };
 
-  if (!batch) return <div className="flex items-center justify-center h-screen" style={{ background: C.bg }}><Loader2 className="animate-spin" size={22} style={{ color: C.teal }} /></div>;
+  if (loadError) return <Card onBack={onLeave}><div className="text-sm break-words" style={{ color: C.red }}>{loadError}</div></Card>;
+  if (!batch) return <Spinner />;
 
   if (superseded) {
     return (
@@ -1230,7 +1316,7 @@ function ParticipantWrite({ code, onLeave }) {
     <div className="min-h-screen w-full flex flex-col" style={{ background: C.bg, fontFamily: FONT }}>
       <div className="px-6 py-4" style={{ background: C.navy }}>
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="text-sm font-semibold" style={{ color: "#fff" }}>{ASSESSMENT_LABELS[batch.assessmentType]}</div>
+          <div className="text-sm font-semibold" style={{ color: "#fff" }}>{ASSESSMENT_LABELS[batch.assessment_type]}</div>
           <div className="text-xs" style={{ color: "#9DB3D1" }}>{wordCount} words</div>
         </div>
       </div>
@@ -1252,8 +1338,9 @@ function ParticipantWrite({ code, onLeave }) {
 
       <div className="max-w-3xl mx-auto w-full px-6 flex-1 flex flex-col pb-6">
         <div className="rounded-t-xl px-3 py-2 flex flex-wrap items-center gap-1.5" style={{ background: C.panel, border: `1px solid ${C.border}`, borderBottom: "none" }}>
-          <select onChange={(e) => exec("fontName", e.target.value)} defaultValue="Calibri" className="text-xs rounded px-2 py-1.5 outline-none" style={{ border: `1px solid ${C.border}` }}>
-            {FONT_FAMILIES.map((f) => <option key={f} value={f}>{f}</option>)}
+          <select value={font} onChange={(e) => { setFont(e.target.value); exec("fontName", FONT_FAMILIES.find((f) => f.label === e.target.value).stack); }}
+            aria-label="Font" className="text-xs rounded px-2 py-1.5 outline-none" style={{ border: `1px solid ${C.border}` }}>
+            {FONT_FAMILIES.map((f) => <option key={f.label} value={f.label} style={{ fontFamily: f.stack }}>{f.label}</option>)}
           </select>
           <select onChange={(e) => exec("fontSize", e.target.value)} defaultValue="3" className="text-xs rounded px-2 py-1.5 outline-none" style={{ border: `1px solid ${C.border}` }}>
             {FONT_SIZES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
@@ -1294,12 +1381,13 @@ function ParticipantWrite({ code, onLeave }) {
           suppressContentEditableWarning
           onInput={onInput}
           className="flex-1 rounded-b-xl px-5 py-4 text-sm outline-none overflow-y-auto"
-          style={{ background: "#fff", border: `1px solid ${C.border}`, minHeight: 280, lineHeight: lineSpacing, color: C.text }}
+          style={{ background: "#fff", border: `1px solid ${C.border}`, minHeight: 280, lineHeight: lineSpacing, color: C.text, fontFamily: DEFAULT_FONT.stack, fontSize: 15 }}
         />
         <style>{`
           [contenteditable] div, [contenteditable] p { margin-bottom: ${paraSpaced ? "10px" : "0px"}; }
         `}</style>
 
+        {submitError && <div className="text-xs mt-3" style={{ color: C.red }}>{submitError}</div>}
         {confirmSubmit ? (
           <div className="rounded-lg p-4 mt-3 flex items-center justify-between gap-4" style={{ background: C.amberSoft }}>
             <div className="text-sm" style={{ color: C.amber }}><AlertTriangle size={14} className="inline mr-1.5 -mt-0.5" />Once you submit, you can't go back and edit. Ready?</div>

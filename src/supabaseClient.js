@@ -18,4 +18,21 @@ if (!url || !anonKey) {
   console.error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. See README.md, step 3.");
 }
 
-export const supabase = createClient(url || "http://missing", anonKey || "missing");
+// Read the address bar BEFORE the Supabase library tidies it up. Password-reset and invite emails
+// bring coaches back with "#access_token=…&type=recovery" (or an error) on the end of the link.
+const initialHash = typeof window !== "undefined" ? window.location.hash : "";
+const initialSearch = typeof window !== "undefined" ? window.location.search : "";
+
+export const isAuthRedirect = /access_token=|error_description=/.test(initialHash);
+export const needsNewPassword = /type=(recovery|invite)/.test(initialHash);
+export const authLinkError = (() => {
+  const m = initialHash.match(/error_description=([^&]*)/);
+  return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : null;
+})();
+// The coach side opens from "/#coach", "/?coach", or a login link coming back from an email.
+export const isCoachLink =
+  initialHash.replace(/^#/, "").toLowerCase() === "coach" || /(^\?|&)coach(=|&|$)/i.test(initialSearch) || isAuthRedirect;
+
+export const supabase = createClient(url || "http://missing", anonKey || "missing", {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" },
+});

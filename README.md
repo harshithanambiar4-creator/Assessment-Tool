@@ -1,6 +1,6 @@
 # Live Assessment Writer
 
-A writing assessment tool for groups who all write at the same time. Participants type their answers into a box that blocks pasting. The coach sees a live dashboard with flags for possible cheating.
+A writing assessment tool for groups who all write at the same time. Participants type their answers into a box that blocks pasting. Each coach signs in with their own account and sees a live dashboard of their own batches, with flags for possible cheating.
 
 - **Website**: hosted on **Render** (free). This is the part people open in their browser.
 - **Database**: hosted on **Supabase** (free). This is where batches, answers and flags are saved.
@@ -27,12 +27,12 @@ Coach's browser ────────┘
    - Region: pick the one closest to your participants.
 3. Wait about 2 minutes while the project is created.
 
-### Step 2: Create the table
+### Step 2: Create the database tables
 
 1. In your Supabase project, open **SQL Editor** in the left sidebar and click **New query**.
 2. Open the file [`supabase/schema.sql`](supabase/schema.sql) in this repository. Copy everything in it and paste it into the query box.
-3. Click **Run**. You should see "Success. No rows returned".
-4. To check it worked, open **Table Editor** in the left sidebar. You should see a table called `kv`.
+3. Click **Run**. If Supabase warns about a "destructive operation", click **Run this query**. You should see "Success. No rows returned".
+4. To check it worked, open **Table Editor** in the left sidebar. You should see two tables, `batches` and `participants`.
 
 ### Step 3: Copy your two Supabase keys
 
@@ -74,10 +74,27 @@ From now on, new work arrives on other branches as **pull requests**. Clicking *
 
 > If you add or change environment variables later, click **Manual Deploy → Deploy latest commit**. The keys are built into the site at deploy time, so changes only take effect after a new deploy.
 
-### Step 6: Try it yourself before using it with a group
+### Step 6: Set up coach logins (in Supabase)
 
-1. **Coach side**: open `https://YOUR-SITE.onrender.com/#coach`. Note the `#coach` at the end.
-   - The first time, it asks you to **set a coach passphrase**. Choose one and don't share it with participants.
+**A) Stop strangers from signing up**
+1. In Supabase, open **Authentication** in the left sidebar, then **Sign In / Providers**. On some versions it's under **Settings**.
+2. Turn **off** "Allow new users to sign up", then click **Save**.
+
+**B) Tell Supabase your website's address.** Password-reset emails link back to this address.
+1. In **Authentication**, open **URL Configuration**.
+2. Set **Site URL** to your Render address, for example `https://assessment-tool-hn.onrender.com`. Click **Save**.
+3. Under **Redirect URLs**, click **Add URL** and enter the same address with `/**` on the end, for example `https://assessment-tool-hn.onrender.com/**`. Click **Save**.
+
+**C) Add each coach.** Repeat this for every coach.
+1. In **Authentication**, open **Users**, then click **Add user** and **Create new user**.
+2. Enter the coach's **email** and a **temporary password**. Tick **Auto Confirm User**, then click **Create user**.
+3. Send the coach the link `https://YOUR-SITE.onrender.com/#coach`, their email and the temporary password. They should click **Change password** after their first sign-in.
+
+To remove a coach later, find them in **Users**, click **⋯** and choose **Delete user**. Their batches are deleted with them.
+
+### Step 7: Try it yourself before using it with a group
+
+1. **Coach side**: open `https://YOUR-SITE.onrender.com/#coach` (note the `#coach` at the end) and sign in.
    - Click **New batch**. Enter a prompt and a few test names, one per line. Click **Create batch**.
    - You'll see each person's **PIN** and a 6-letter **batch code**.
 2. **Participant side**: open `https://YOUR-SITE.onrender.com` (no `#coach`) in a **different browser or a private window**, ideally on your phone too.
@@ -87,11 +104,12 @@ From now on, new work arrives on other branches as **pull requests**. Clicking *
 3. On the coach dashboard, click a person's tile to see their writing, a words-over-time chart and their flags.
 4. Click **End batch now** to lock everyone's answers.
 
-### Step 7: Use it with a real group
+### Step 8: Use it with a real group
 
 - Send everyone the plain link and the batch code (the group chat is fine for these).
 - Send each person their **PIN privately**.
 - Keep the dashboard open while they write.
+- If someone types a wrong PIN 10 times, their name is locked. Click their tile on the dashboard and choose **Unlock**.
 
 ---
 
@@ -124,16 +142,21 @@ const TARGET_MINUTES = 30;         // the soft time target shown to everyone
 
 ---
 
-## Security: please read
+## Security
 
-This version keeps the security level of the original prototype, which suits **low-stakes internal assessments** only.
+- **Coaches** each have their own email and password. A coach can only see and change their **own** batches. The database enforces this, not just the website.
+- **Participants** never sign in and can't read the database directly. They can only:
+  - look up the list of names for a batch code,
+  - join with the right PIN,
+  - save and read **their own** writing, using a private token their browser gets when they join.
+- Other people's PINs and answers are never sent to participants.
+- **10 wrong PINs** in a row lock that name until the coach unlocks it. This stops someone guessing PINs.
+- Participants can't lower their own flag counts or erase their own activity logs. The database only ever keeps the higher number.
+- Participants' writing is cleaned before it's shown to the coach, so text typed into an answer can't run code in the coach's browser.
 
-- The passphrase keeps casual participants out of the coach screens. It is **not** real security.
-- A participant with technical skills could use their browser's developer tools to query the database directly. They could read other people's PINs and answers, or change records.
-
-**Before using this for anything high-stakes or with outside people**, the next step is to add:
-1. a proper coach login using Supabase Auth, and
-2. database rules so participants can only read and write their own record and PINs are checked on the server.
+What it still **can't** do:
+- It can't see what happens off-screen, such as a phone next to the keyboard or a second monitor.
+- A very technical participant could make their browser report fewer paste or copy attempts than really happened. Pasting itself is still blocked.
 
 ---
 
@@ -157,12 +180,15 @@ You only need this if you want to make changes and preview them before they go l
 |---|---|
 | `src/App.jsx` | The whole app (participant screens, coach screens, flags) |
 | `src/supabaseClient.js` | Connects the app to Supabase |
-| `supabase/schema.sql` | Creates the database table (run once in Supabase) |
+| `supabase/schema.sql` | Creates the database tables and security rules (run in Supabase; safe to run again) |
 | `render.yaml` | Optional automatic Render setup ("New → Blueprint") |
 | `index.html`, `src/main.jsx`, `vite.config.js`, `package.json` | Standard setup files; you won't need to touch these |
 
 ## Troubleshooting
 
-- **The coach page spins forever, or "That code wasn't found"**: the Supabase keys are probably missing or wrong. Check both environment variables in Render (Step 5), redeploy, and confirm you ran `schema.sql` (Step 2).
+- **A red "Can't reach the database" message**: the Supabase address or key in Render is missing or wrong. Check both environment variables (Step 5), then click **Manual Deploy → Deploy latest commit**.
+- **"The database isn't set up yet"**: run `supabase/schema.sql` again (Step 2).
+- **A coach can't sign in**: in Supabase **Authentication → Users**, check their email is listed and confirmed. If they forgot their password, they can click **Forgot password?** on the sign-in page. Supabase's free plan only sends a few emails per hour. If the email doesn't arrive, delete the user and create them again with a new temporary password.
+- **A participant is "locked out: too many wrong PINs"**: open their tile on the dashboard and click **Unlock**.
 - **Nothing happens after a while on Supabase's free plan**: Supabase pauses free projects after about a week with no activity. Open your Supabase dashboard and click **Restore project** before a session.
-- **To see actual errors**: in Chrome, press F12 and open the **Console** tab. Errors mentioning `getShared` or `setShared` are database problems.
+- **To see actual errors**: in Chrome, press F12 and open the **Console** tab.
