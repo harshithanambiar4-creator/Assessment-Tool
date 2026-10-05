@@ -123,6 +123,7 @@ function computeFlags(p) {
     lowRevision: rate !== null && (p.wordCount || 0) >= LOW_REVISION_MIN_WORDS && rate < LOW_REVISION_RATE,
     deviceSwitches: p.deviceSwitches || 0,
     pasteAttempts: (p.pasteAttempts || 0) >= PASTE_FLAG_MIN_ATTEMPTS ? p.pasteAttempts : 0,
+    copyAttempts: p.copyAttempts || 0,
     nonStop: (p.longestStreakMs || 0) >= NONSTOP_FLAG_MIN * 60000
       ? { min: Math.round((p.longestStreakMs / 60000) * 10) / 10, words: p.longestStreakWords || 0 } : null,
   };
@@ -334,7 +335,7 @@ function CoachNewBatch({ onCreated, onBack }) {
       name: r.name, slug: r.slug, pin: r.pin, status: "unjoined", claimedAt: null, submittedAt: null,
       content: "", wordCount: 0, activityLog: [], focusLog: [], backspaceCount: 0, keyCount: 0,
       reopened: false, reopenLog: [], activeDeviceToken: null, deviceSwitches: 0, deviceSwitchLog: [],
-      pasteAttempts: 0, pasteLog: [], longestStreakMs: 0, longestStreakWords: 0,
+      pasteAttempts: 0, pasteLog: [], copyAttempts: 0, copyLog: [], longestStreakMs: 0, longestStreakWords: 0,
     })));
     await addBatchToIndex({ code, assessmentType: type, createdAt: batch.createdAt, status: "active", participantCount: roster.length });
     setCreated({ code, roster });
@@ -416,12 +417,17 @@ function CoachNewBatch({ onCreated, onBack }) {
 
 // ---------- Small shared bits ----------
 function FlagBadges({ flags }) {
-  if (!flags.pauseBurst && !flags.tabSwitches && !flags.lowRevision && !flags.deviceSwitches && !flags.pasteAttempts && !flags.nonStop) return null;
+  if (!flags.pauseBurst && !flags.tabSwitches && !flags.lowRevision && !flags.deviceSwitches && !flags.pasteAttempts && !flags.copyAttempts && !flags.nonStop) return null;
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
       {flags.pasteAttempts > 0 && (
         <span className="text-[11px] font-medium rounded-full px-2 py-0.5" style={{ background: C.redSoft, color: C.red }} title="Tried to paste or drag text in (it was blocked)">
           Paste attempt ×{flags.pasteAttempts}
+        </span>
+      )}
+      {flags.copyAttempts > 0 && (
+        <span className="text-[11px] font-medium rounded-full px-2 py-0.5" style={{ background: C.redSoft, color: C.red }} title="Tried to copy or cut text from the prompt or their answer (it was blocked)">
+          Copy attempt ×{flags.copyAttempts}
         </span>
       )}
       {flags.nonStop && (
@@ -458,7 +464,7 @@ function FlagLegend() {
     <div className="rounded-lg px-3.5 py-2.5 flex items-start gap-2 text-xs" style={{ background: C.navySoft, color: C.navy }}>
       <Info size={14} className="mt-0.5 shrink-0" />
       <div>
-        Flags are signals worth a follow-up conversation, not proof of anything. "Paste attempt" means they tried to paste or drag text in — it was blocked, but the attempt is recorded. "Non-stop" means a long stretch of typing with no pause over a few seconds, which can suggest copying from another source by hand. "Idle → burst" catches a long pause followed by a lot of text appearing at once. "Left window" catches switching away from this tab or app — it won't catch a second monitor that stays in view, and on a Zoom call it can just as easily mean they clicked over to Zoom itself. "Few corrections" is the softest signal; some people genuinely write clean. "New device" means this name was opened on a second device or browser mid-session — sometimes as simple as a laptop dying, sometimes worth a direct question. Ask before you conclude.
+        Flags are signals worth a follow-up conversation, not proof of anything. "Paste attempt" means they tried to paste or drag text in, and "Copy attempt" that they tried to copy the prompt or their answer out — both were blocked, but the attempts are recorded. "Non-stop" means a long stretch of typing with no pause over a few seconds, which can suggest copying from another source by hand. "Idle → burst" catches a long pause followed by a lot of text appearing at once. "Left window" catches switching away from this tab or app — it won't catch a second monitor that stays in view, and on a Zoom call it can just as easily mean they clicked over to Zoom itself. "Few corrections" is the softest signal; some people genuinely write clean. "New device" means this name was opened on a second device or browser mid-session — sometimes as simple as a laptop dying, sometimes worth a direct question. Ask before you conclude.
       </div>
     </div>
   );
@@ -942,6 +948,13 @@ function ParticipantWrite({ code, onLeave }) {
   const claimedAtRef = useRef(Date.now());
   const pasteAttemptsRef = useRef(0);
   const pasteLogRef = useRef([]);
+  const copyAttemptsRef = useRef(0);
+  const copyLogRef = useRef([]);
+  const logCopy = (kind) => {
+    copyAttemptsRef.current += 1;
+    copyLogRef.current = [...copyLogRef.current, { t: Date.now(), kind }];
+    dirty.current = true;
+  };
   const longestStreakMsRef = useRef(0);
   const longestStreakWordsRef = useRef(0);
   const streakRef = useRef({ start: 0, last: 0, startWords: 0 });
@@ -958,6 +971,8 @@ function ParticipantWrite({ code, onLeave }) {
         keyCountRef.current = p.keyCount || 0;
         pasteAttemptsRef.current = p.pasteAttempts || 0;
         pasteLogRef.current = p.pasteLog || [];
+        copyAttemptsRef.current = p.copyAttempts || 0;
+        copyLogRef.current = p.copyLog || [];
         longestStreakMsRef.current = p.longestStreakMs || 0;
         longestStreakWordsRef.current = p.longestStreakWords || 0;
         if (p.status === "submitted" || p.status === "locked") setSubmitted(true);
@@ -992,7 +1007,7 @@ function ParticipantWrite({ code, onLeave }) {
     };
     const blockPaste = (e) => { e.preventDefault(); logPaste("paste"); flashBanner("Pasting isn't allowed here — please type your answer."); };
     const blockDrop = (e) => { e.preventDefault(); logPaste("drop"); flashBanner("Dragging text in isn't allowed here."); };
-    const blockCopy = (e) => { e.preventDefault(); flashBanner("Copying out of this isn't allowed here."); };
+    const blockCopy = (e) => { e.preventDefault(); logCopy(e.type === "cut" ? "cut-answer" : "copy-answer"); flashBanner("Copying out of this isn't allowed here."); };
     const blockContext = (e) => e.preventDefault();
     // Safety net for paste routes that skip the "paste" event (some mobile keyboards' clipboard buttons).
     const onBeforeInput = (e) => {
@@ -1081,6 +1096,7 @@ function ParticipantWrite({ code, onLeave }) {
       backspaceCount: backspaceCountRef.current, keyCount: keyCountRef.current,
       claimedAt: claimedAtRef.current,
       pasteAttempts: pasteAttemptsRef.current, pasteLog: pasteLogRef.current,
+      copyAttempts: copyAttemptsRef.current, copyLog: copyLogRef.current,
       longestStreakMs: longestStreakMsRef.current, longestStreakWords: longestStreakWordsRef.current,
     };
     const existing = await getShared(participantKey(code, slug));
@@ -1144,6 +1160,8 @@ function ParticipantWrite({ code, onLeave }) {
         keyCountRef.current = mine.keyCount || 0;
         pasteAttemptsRef.current = mine.pasteAttempts || 0;
         pasteLogRef.current = mine.pasteLog || [];
+        copyAttemptsRef.current = mine.copyAttempts || 0;
+        copyLogRef.current = mine.copyLog || [];
         longestStreakMsRef.current = mine.longestStreakMs || 0;
         longestStreakWordsRef.current = mine.longestStreakWords || 0;
         pendingContentRef.current = mine.content || "";
@@ -1225,7 +1243,7 @@ function ParticipantWrite({ code, onLeave }) {
 
       <div className="max-w-3xl mx-auto w-full px-6 pt-6">
         <div className="rounded-xl p-5 mb-5" style={{ background: C.tealSoft, border: `1px solid ${C.teal}` }}
-          onCopy={(e) => { e.preventDefault(); flashBanner("Copying the prompt out isn't allowed here."); }}
+          onCopy={(e) => { e.preventDefault(); logCopy("copy-prompt"); flashBanner("Copying the prompt out isn't allowed here."); }}
           onContextMenu={(e) => e.preventDefault()}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.teal }}>Prompt</div>
           <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: C.text }}>{batch.prompt}</div>

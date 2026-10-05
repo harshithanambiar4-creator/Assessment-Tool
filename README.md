@@ -100,6 +100,7 @@ From now on, new work arrives on other branches as **pull requests**. Clicking *
 | Flag | What it means |
 |---|---|
 | **Paste attempt ×N** | Tried to paste or drag text in. The paste was blocked, but the attempt was recorded. |
+| **Copy attempt ×N** | Tried to copy or cut text out of the prompt or their own answer. The copy was blocked, but the attempt was recorded. |
 | **Non-stop N min** | Typed for N minutes without pausing more than 5 seconds. This can suggest copying from another source by hand. |
 | **Idle → burst** | Paused for 2+ minutes, then added 25+ words very quickly. |
 | **Left window ×N** | Switched to another tab or app. Being on a Zoom call can also trigger this. |
