@@ -51,10 +51,28 @@ function fmtMinSec(ms) {
 }
 
 // ---------- Storage (Supabase table "kv": one row per key, value stored as JSON) ----------
-async function getShared(key) {
+// Like getShared, but throws when the database can't be reached instead of pretending the key is empty.
+async function getSharedStrict(key) {
   const { data, error } = await supabase.from("kv").select("value").eq("key", key).maybeSingle();
-  if (error) { console.error("getShared", key, error.message); return null; }
+  if (error) throw error;
   return data ? data.value : null;
+}
+async function getShared(key) {
+  try { return await getSharedStrict(key); }
+  catch (err) { console.error("getShared", key, err.message); return null; }
+}
+// Turns a database error into a message a coach can act on.
+function dbErrorMessage(err) {
+  const msg = (err && err.message) || String(err);
+  if (/failed to fetch|networkerror|load failed|invalid url|missing/i.test(msg))
+    return `Can't reach the database. The Supabase address or key on Render is probably wrong or missing. (${msg})`;
+  if (/permission denied|row-level security|42501/i.test(msg))
+    return `The database refused to save. The table permissions need fixing in Supabase. (${msg})`;
+  if (/invalid api key|jwt|apikey|no api key/i.test(msg))
+    return `The Supabase key on Render isn't accepted. Check VITE_SUPABASE_ANON_KEY. (${msg})`;
+  if (/relation .* does not exist|could not find the table/i.test(msg))
+    return `The "kv" table wasn't found. Run supabase/schema.sql in Supabase's SQL Editor. (${msg})`;
+  return `Database error: ${msg}`;
 }
 async function setShared(key, value) {
   const { error } = await supabase.from("kv").upsert({ key, value, updated_at: new Date().toISOString() });
@@ -161,7 +179,9 @@ function CoachGate({ onUnlocked, onBack }) {
 
   useEffect(() => {
     (async () => {
-      const h = await getShared("coach-passphrase-hash");
+      let h;
+      try { h = await getSharedStrict("coach-passphrase-hash"); }
+      catch (err) { setError(dbErrorMessage(err)); setPhase("broken"); return; }
       setRemoteHash(h);
       if (!h) { setPhase("set"); return; }
       let local = null;
@@ -176,7 +196,8 @@ function CoachGate({ onUnlocked, onBack }) {
     if (value !== confirmValue) { setError("Those two don't match."); return; }
     setBusy(true); setError(null);
     const h = await sha256(value.trim());
-    await setShared("coach-passphrase-hash", h);
+    try { await setShared("coach-passphrase-hash", h); }
+    catch (err) { setError(dbErrorMessage(err)); setBusy(false); return; }
     try { window.localStorage.setItem("law-coach-unlock", h); } catch { /* ignore */ }
     setBusy(false);
     onUnlocked();
@@ -196,6 +217,16 @@ function CoachGate({ onUnlocked, onBack }) {
   };
 
   if (phase === "loading") return <div className="flex items-center justify-center h-screen" style={{ background: C.bg }}><Loader2 className="animate-spin" size={22} style={{ color: C.teal }} /></div>;
+  if (phase === "broken") {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-6" style={{ background: C.bg, fontFamily: FONT }}>
+        <div className="w-full max-w-md rounded-xl p-7" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+          <div className="text-lg font-semibold mb-2" style={{ color: C.red }}>Can't connect to the database</div>
+          <div className="text-sm break-words" style={{ color: C.text }}>{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6" style={{ background: C.bg, fontFamily: FONT }}>
@@ -210,7 +241,7 @@ function CoachGate({ onUnlocked, onBack }) {
               <div className="text-sm mb-5" style={{ color: C.muted }}>No one's set one yet. Anyone who knows it can create batches and open live dashboards — share it only with other coaches, never in the group chat.</div>
               <input type="password" value={value} onChange={(e) => setValue(e.target.value)} className="w-full text-sm rounded-md px-3 py-2.5 outline-none mb-3" style={{ border: `1px solid ${C.border}` }} placeholder="New passphrase" />
               <input type="password" value={confirmValue} onChange={(e) => setConfirmValue(e.target.value)} className="w-full text-sm rounded-md px-3 py-2.5 outline-none mb-3" style={{ border: `1px solid ${C.border}` }} placeholder="Confirm passphrase" />
-              {error && <div className="text-xs mb-3" style={{ color: C.amber }}>{error}</div>}
+              {error && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{error}</div>}
               <button onClick={submitSet} disabled={busy || !value.trim()} className="w-full text-sm font-semibold rounded-md py-2.5" style={{ background: C.navy, color: "#fff", opacity: (busy || !value.trim()) ? 0.5 : 1 }}>
                 {busy ? "Setting…" : "Set passphrase & continue"}
               </button>
@@ -280,9 +311,15 @@ function CoachNewBatch({ onCreated, onBack }) {
 
   const parsed = rosterText.split("\n").map((l) => l.trim()).filter(Boolean).map(parseRosterLine);
 
+  const [createError, setCreateError] = useState(null);
   const create = async () => {
     if (!prompt.trim() || parsed.length === 0) return;
-    setCreating(true);
+    setCreating(true); setCreateError(null);
+    try { await createBatch(); }
+    catch (err) { setCreateError(dbErrorMessage(err)); }
+    setCreating(false);
+  };
+  const createBatch = async () => {
     const code = makeCode();
     const taken = new Set();
     const roster = parsed.map(({ name, pin }) => ({ name, slug: slugify(name, taken), pin: pin || genPin() }));
@@ -300,7 +337,6 @@ function CoachNewBatch({ onCreated, onBack }) {
       pasteAttempts: 0, pasteLog: [], longestStreakMs: 0, longestStreakWords: 0,
     })));
     await addBatchToIndex({ code, assessmentType: type, createdAt: batch.createdAt, status: "active", participantCount: roster.length });
-    setCreating(false);
     setCreated({ code, roster });
   };
 
@@ -365,6 +401,7 @@ function CoachNewBatch({ onCreated, onBack }) {
           <textarea value={rosterText} onChange={(e) => setRosterText(e.target.value)} rows={8} className="w-full text-sm rounded-md px-3 py-2.5 outline-none resize-none mb-1" style={{ border: `1px solid ${C.border}` }} placeholder={"Ananya Nair, 4821\nRohith Maraiah\nShrinivas Chippada, 1190\n…"} />
           <div className="text-xs mb-5" style={{ color: C.mutedLight }}>{parsed.length} participant{parsed.length === 1 ? "" : "s"}</div>
 
+          {createError && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{createError}</div>}
           <button onClick={create} disabled={creating || !prompt.trim() || parsed.length === 0}
             className="w-full flex items-center justify-center gap-2 text-sm font-semibold rounded-md py-2.5"
             style={{ background: C.navy, color: "#fff", opacity: (creating || !prompt.trim() || parsed.length === 0) ? 0.5 : 1 }}>
@@ -772,8 +809,12 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
   const pickName = (slug, name) => { setSelected({ slug, name }); setPin(""); setError(null); };
 
   const claim = async () => {
-    const { slug, name } = selected;
     setClaiming(true); setError(null);
+    try { await doClaim(); }
+    catch (err) { setError(dbErrorMessage(err)); setClaiming(false); }
+  };
+  const doClaim = async () => {
+    const { slug, name } = selected;
     const existing = await getShared(participantKey(batch.code, slug));
     if (!existing) { setError("Something's off with that name — check with your coach."); setClaiming(false); return; }
     if (existing.status === "submitted" || existing.status === "locked") {
@@ -1030,7 +1071,8 @@ function ParticipantWrite({ code, onLeave }) {
     }
     const merged = { ...existing, ...payload };
     if (finalStatus) { merged.status = finalStatus; merged.submittedAt = now; merged.reopened = false; }
-    await setShared(participantKey(code, slug), merged);
+    try { await setShared(participantKey(code, slug), merged); }
+    catch { setSaveState("error"); return; }
     setWordCount(words);
     dirty.current = false;
     setSaveState("saved");
@@ -1202,7 +1244,9 @@ function ParticipantWrite({ code, onLeave }) {
             <input type="checkbox" checked={paraSpaced} onChange={(e) => setParaSpaced(e.target.checked)} /> Para spacing
           </label>
           <div className="ml-auto text-xs flex items-center gap-1" style={{ color: C.mutedLight }}>
-            {saveState === "saving" ? <><Loader2 size={11} className="animate-spin" /> Saving</> : <><CheckCircle2 size={11} /> Saved</>}
+            {saveState === "saving" ? <><Loader2 size={11} className="animate-spin" /> Saving</>
+              : saveState === "error" ? <span style={{ color: C.red }}><AlertTriangle size={11} className="inline -mt-0.5" /> Not saved — retrying</span>
+              : <><CheckCircle2 size={11} /> Saved</>}
           </div>
         </div>
 

@@ -19,3 +19,7 @@ create policy "app can read"   on public.kv for select to anon using (true);
 create policy "app can insert" on public.kv for insert to anon with check (true);
 create policy "app can update" on public.kv for update to anon using (true) with check (true);
 -- No delete policy: nobody can delete records from the app.
+
+-- Newer Supabase projects don't always give the app's public key access to new tables automatically.
+grant usage on schema public to anon;
+grant select, insert, update on public.kv to anon;
