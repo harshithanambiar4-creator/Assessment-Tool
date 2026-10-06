@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
+    "docx": "^9.8.1",
     "dompurify": "^3.4.16",
+    "jszip": "^3.10.2",
     "lucide-react": "^1.52.0",
+    "pdfmake": "^0.3.11",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "recharts": "^3.10.1"

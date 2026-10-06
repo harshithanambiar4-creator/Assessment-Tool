@@ -62,7 +62,7 @@ export const COMMON_FONTS = ["Aptos", "Arial", "Calibri", "Cambria", "Garamond",
 
 const q = (name) => (/^[\w-]+$/.test(name) ? name : `'${name}'`);
 export const FONTS = LIST.map(([name, alt, generic]) => ({
-  name, alt,
+  name, alt, generic,
   stack: [q(name), alt && q(alt), generic].filter(Boolean).join(", "),
 }));
 export const fontByName = (name) => FONTS.find((f) => f.name === name);

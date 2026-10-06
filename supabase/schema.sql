@@ -196,7 +196,8 @@ begin
   return jsonb_build_object(
     'batch', jsonb_build_object('assessment_type', b.assessment_type, 'prompt', b.prompt,
                                 'status', b.status, 'created_at', public.ms(b.created_at)),
-    'me', jsonb_build_object('status', p.status, 'reopened', p.reopened, 'word_count', p.word_count)
+    'me', jsonb_build_object('status', p.status, 'reopened', p.reopened, 'word_count', p.word_count,
+                             'name', p.name, 'submitted_at', public.ms(p.submitted_at))
           || case when p_full then jsonb_build_object(
                'content', p.content, 'claimed_at', public.ms(p.claimed_at),
                'activity_log', p.activity_log, 'focus_log', p.focus_log,

@@ -3,12 +3,13 @@ import {
   ShieldOff, Lock, Clock, Users, LogIn, PlusCircle, ArrowLeft,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Loader2, CheckCircle2, History, Copy, AlertTriangle,
-  Send, ChevronRight, Info, Square, LogOut, KeyRound
+  Send, ChevronRight, Info, Square, LogOut, KeyRound, Download, FileText, Printer
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import DOMPurify from "dompurify";
 import { supabase, isCoachLink, needsNewPassword, authLinkError } from "./supabaseClient";
 import { availableFonts, defaultFont, fontByName, COMMON_FONTS } from "./fonts";
+import { downloadRecord, openPrintView, downloadBatchZip, flagLines, attemptList } from "./exporters";
 
 // ---------- Design tokens (ReSource Pro palette, consistent with the earlier 1:1 version) ----------
 const C = {
@@ -31,7 +32,25 @@ const LOW_REVISION_RATE = 0.02;
 const STREAK_BREAK_SEC = 5;
 const NONSTOP_FLAG_MIN = 4;
 const PASTE_FLAG_MIN_ATTEMPTS = 1; // flag on the first blocked paste/drop attempt
-const PIN_LOCKOUT = 10;            // wrong PINs before a name is locked (must match supabase/schema.sql)
+const PIN_LOCKOUT = 10;
+const ATTEMPT_TEXT_MAX = 5000;      // characters kept from each blocked paste/copy attempt
+const ATTEMPT_LOG_TEXT_BUDGET = 100000; // after this many characters in one log, later attempts are recorded without text
+
+// One blocked paste/copy attempt, with (up to ATTEMPT_TEXT_MAX characters of) the text involved.
+function attemptEntry(kind, text, existing, hasFiles = false) {
+  const entry = { t: Date.now(), kind };
+  const full = text || "";
+  const used = existing.reduce((n, a) => n + (a.text ? a.text.length : 0), 0);
+  if (used >= ATTEMPT_LOG_TEXT_BUDGET) {
+    entry.note = "(text not kept — the limit for recorded text was reached after many attempts)";
+  } else {
+    entry.text = full.slice(0, ATTEMPT_TEXT_MAX);
+    entry.length = full.length;
+    if (full.length > ATTEMPT_TEXT_MAX) entry.truncated = true;
+  }
+  if (hasFiles) entry.note = (entry.note ? entry.note + " " : "") + "(also contained an image or file — its content isn't recorded)";
+  return entry;
+}            // wrong PINs before a name is locked (must match supabase/schema.sql)
 
 const ASSESSMENT_LABELS = { baseline: "Baseline Assessment", mid: "Mid Assessment", final: "Final Assessment" };
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
@@ -92,6 +111,7 @@ function participantFromRow(r) {
     longestStreakMs: Number(r.longest_streak_ms), longestStreakWords: r.longest_streak_words,
     deviceSwitches: r.device_switches, reopened: r.reopened, reopenLog: r.reopen_log,
     pinFailures: r.pin_failures,
+    pasteLog: r.paste_log || [], copyLog: r.copy_log || [],
   };
 }
 function batchFromRow(r) {
@@ -451,6 +471,48 @@ function CoachNewBatch({ onCreated, onBack }) {
   );
 }
 
+// ---------- Downloads ----------
+const batchLabelOf = (assessmentType, code) => `${ASSESSMENT_LABELS[assessmentType] || "Assessment"} · Batch ${code}`;
+// Everything a downloaded file needs about one participant (see src/exporters.js).
+function recordFor(p, batch) {
+  return {
+    name: p.name, batchLabel: batchLabelOf(batch.assessmentType, batch.code), prompt: batch.prompt,
+    // Someone locked when the batch ended without their device saving the lock gets the batch's end time.
+    submittedAt: p.submittedAt || batch.endedAt, wordCount: p.wordCount || 0, contentHtml: p.content || "",
+    flagLines: flagLines(computeFlags(p), { reopenCount: (p.reopenLog || []).length }),
+    pasteLog: p.pasteLog, copyLog: p.copyLog,
+  };
+}
+function DownloadButtons({ record, variant, nameSuffix = "", label }) {
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+  const run = async (format) => {
+    setBusy(format); setError(null);
+    try { await downloadRecord(record, variant, format, nameSuffix); }
+    catch (err) { setError(`Couldn't create the file: ${err.message || err}`); }
+    setBusy(null);
+  };
+  const btn = "flex items-center gap-1.5 text-xs font-semibold rounded-md px-3 py-2";
+  return (
+    <div>
+      {label && <div className="text-xs font-medium mb-1.5" style={{ color: C.navy }}>{label}</div>}
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => run("docx")} disabled={!!busy} className={btn} style={{ background: C.navy, color: "#fff", opacity: busy ? 0.6 : 1 }}>
+          {busy === "docx" ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />} Word
+        </button>
+        <button onClick={() => run("pdf")} disabled={!!busy} className={btn} style={{ background: C.navy, color: "#fff", opacity: busy ? 0.6 : 1 }}>
+          {busy === "pdf" ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} PDF
+        </button>
+        <button onClick={() => openPrintView(record, variant)} className={btn} style={{ border: `1px solid ${C.border}`, color: C.navy }}
+          title="Opens a print view that looks exactly like the screen. Choose 'Save as PDF' as the printer.">
+          <Printer size={13} /> Print / save as PDF
+        </button>
+      </div>
+      {error && <div className="text-xs mt-1.5" style={{ color: C.red }}>{error}</div>}
+    </div>
+  );
+}
+
 // ---------- Small shared bits ----------
 function FlagBadges({ flags }) {
   if (!flags.pauseBurst && !flags.tabSwitches && !flags.lowRevision && !flags.deviceSwitches && !flags.pasteAttempts && !flags.copyAttempts && !flags.nonStop) return null;
@@ -527,6 +589,7 @@ function CoachDashboard({ batchId, onBack }) {
   const [ending, setEnding] = useState(false);
   const [openSlug, setOpenSlug] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [zipState, setZipState] = useState(null);
 
   useEffect(() => {
     let stop = false;
@@ -573,12 +636,23 @@ function CoachDashboard({ batchId, onBack }) {
 
   if (openSlug) {
     const r = batch.roster.find((x) => x.slug === openSlug);
-    return <ParticipantDetail batchId={batchId} batchStatus={batch.status} rosterEntry={r} onBack={() => setOpenSlug(null)} />;
+    return <ParticipantDetail batch={batch} rosterEntry={r} onBack={() => setOpenSlug(null)} />;
   }
 
   const elapsedMs = now - batch.createdAt;
   const joined = Object.values(rows).filter((p) => p && p.status !== "unjoined").length;
   const submitted = Object.values(rows).filter((p) => p && (p.status === "submitted" || p.status === "locked")).length;
+  // Finished answers: submitted, or locked when the batch ended.
+  const finished = batch.roster.map((r) => rows[r.slug]).filter((p) => p && (p.status === "submitted" || p.status === "locked"
+    || (batch.status === "ended" && p.status === "writing" && !p.reopened)));
+  const downloadAll = async () => {
+    setZipState({ busy: true, done: 0, total: finished.length });
+    try {
+      await downloadBatchZip(finished.map((p) => recordFor(p, batch)),
+        `${ASSESSMENT_LABELS[batch.assessmentType] || "Assessment"} - Batch ${batch.code} - coach copies`, (done, total) => setZipState({ busy: true, done, total }));
+      setZipState(null);
+    } catch (err) { setZipState({ error: `Couldn't create the ZIP: ${err.message || err}` }); }
+  };
   const words = Object.values(rows).filter(Boolean).map((p) => p.wordCount || 0);
   const avgWords = words.length ? Math.round(words.reduce((a, b) => a + b, 0) / words.length) : 0;
 
@@ -662,13 +736,28 @@ function CoachDashboard({ batchId, onBack }) {
         ) : (
           <div className="text-center text-sm rounded-lg py-3" style={{ background: C.greenSoft, color: C.green }}>Batch ended — this view is a record of the final submissions.</div>
         )}
+
+        {finished.length > 0 && (
+          <div className="rounded-lg p-4 mt-4 flex items-center justify-between gap-4 flex-wrap" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+            <div className="text-xs" style={{ color: C.muted }}>
+              <div className="font-semibold text-sm" style={{ color: C.navy }}>Download all finished answers</div>
+              One ZIP with a Word and a PDF coach copy for each of the {finished.length} finished participant{finished.length === 1 ? "" : "s"}.
+              {zipState && zipState.error && <div className="mt-1" style={{ color: C.red }}>{zipState.error}</div>}
+            </div>
+            <button onClick={downloadAll} disabled={zipState && zipState.busy} className="flex items-center gap-1.5 text-xs font-semibold rounded-md px-3 py-2 shrink-0"
+              style={{ background: C.navy, color: "#fff", opacity: zipState && zipState.busy ? 0.6 : 1 }}>
+              {zipState && zipState.busy ? <><Loader2 size={13} className="animate-spin" /> Preparing {zipState.done}/{zipState.total}…</> : <><Download size={13} /> Download all (ZIP)</>}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ---------- Coach: one participant's detail (live or after the fact) ----------
-function ParticipantDetail({ batchId, batchStatus, rosterEntry, onBack }) {
+function ParticipantDetail({ batch, rosterEntry, onBack }) {
+  const batchId = batch.id, batchStatus = batch.status;
   const [p, setP] = useState(null);
   const [confirmReopen, setConfirmReopen] = useState(false);
   const [reopening, setReopening] = useState(false);
@@ -769,6 +858,37 @@ function ParticipantDetail({ batchId, batchStatus, rosterEntry, onBack }) {
             </>
           )}
         </div>
+
+        {p && canReopen && (
+          <div className="rounded-xl p-6 mb-5 space-y-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+            <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.muted }}>Download</div>
+            <DownloadButtons record={recordFor(p, batch)} variant="coach"
+              label="Coach copy — prompt, response, flags summary and paste/copy log" />
+            <DownloadButtons record={recordFor(p, batch)} variant="participant" nameSuffix=" (participant copy)"
+              label="Participant copy — what they can download themselves (response and word count only)" />
+          </div>
+        )}
+
+        {p && p.status !== "unjoined" && (
+          <div className="rounded-xl p-6 mb-5" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+            <div className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: C.muted }}>Paste and copy attempts</div>
+            {attemptList(p).length === 0
+              ? <div className="text-sm" style={{ color: C.mutedLight }}>None.</div>
+              : <div className="space-y-3">{attemptList(p).map((a, i) => (
+                  <div key={i}>
+                    <div className="text-xs font-semibold" style={{ color: C.navy }}>{new Date(a.t).toLocaleTimeString()} — {a.label}</div>
+                    {a.text ? <div className="text-xs mt-1 rounded px-3 py-2 whitespace-pre-wrap break-words max-h-48 overflow-y-auto"
+                        style={{ background: C.bg, borderLeft: `3px solid ${C.red}`, color: C.text }}>{a.text}</div> : null}
+                    {(a.note || a.truncated || a.text === undefined || a.text === "") && (
+                      <div className="text-[11px] mt-1 italic" style={{ color: C.muted }}>
+                        {a.note || (a.truncated ? `Showing the first 5,000 of ${a.length.toLocaleString()} characters.`
+                          : a.text === undefined ? "Text not recorded (this attempt was made before text recording was added)." : "No text.")}
+                      </div>
+                    )}
+                  </div>
+                ))}</div>}
+          </div>
+        )}
 
         {p && chartData.length > 1 && (
           <div className="rounded-xl p-6 mb-5" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
@@ -899,6 +1019,7 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
       try { window.localStorage.setItem(storageKey, r.token); } catch { /* ignore */ }
       window.__lawSlug = slug;
       window.__lawDeviceToken = r.token;
+      window.__lawName = name;
       onJoined(batch.code);
     } catch (err) { setError(dbErrorMessage(err)); setClaiming(false); }
   };
@@ -948,7 +1069,11 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
             <>
               <button onClick={() => setSelected(null)} className="text-xs font-medium mb-4" style={{ color: C.muted }}>← Not {selected.name}?</button>
               <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>Enter your PIN</div>
-              <div className="text-sm mb-5" style={{ color: C.muted }}>Joining as {selected.name}.</div>
+              <div className="text-sm mb-4" style={{ color: C.muted }}>Joining as {selected.name}.</div>
+              <div className="rounded-lg px-3 py-2.5 mb-4 flex items-start gap-2 text-xs" style={{ background: C.navySoft, color: C.navy }}>
+                <Info size={14} className="mt-0.5 shrink-0" />
+                <div>Pasting and copying are blocked in the writing area. If you try, the attempt is recorded, including the text you tried to paste or copy, and your coach can see it.</div>
+              </div>
               <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} maxLength={8} inputMode="numeric"
                 className="w-full text-center text-2xl font-bold tracking-widest rounded-md px-3 py-3 outline-none mb-3"
                 style={{ border: `1px solid ${C.border}`, letterSpacing: "0.2em" }} placeholder="PIN" autoFocus />
@@ -996,9 +1121,9 @@ function ParticipantWrite({ code, onLeave }) {
   const pasteLogRef = useRef([]);
   const copyAttemptsRef = useRef(0);
   const copyLogRef = useRef([]);
-  const logCopy = (kind) => {
+  const logCopy = (kind, text) => {
     copyAttemptsRef.current += 1;
-    copyLogRef.current = [...copyLogRef.current, { t: Date.now(), kind }];
+    copyLogRef.current = [...copyLogRef.current, attemptEntry(kind, text, copyLogRef.current)];
     dirty.current = true;
   };
   const longestStreakMsRef = useRef(0);
@@ -1056,27 +1181,46 @@ function ParticipantWrite({ code, onLeave }) {
     const el = editorRef.current;
     if (!el || submitted) return;
     const currentWords = () => ((el.innerText || "").trim().match(/\S+/g) || []).length;
-    const logPaste = (kind) => {
+    const logPaste = (kind, text, hasFiles) => {
       pasteAttemptsRef.current += 1;
-      pasteLogRef.current = [...pasteLogRef.current, { t: Date.now(), kind }];
+      pasteLogRef.current = [...pasteLogRef.current, attemptEntry(kind, text, pasteLogRef.current, hasFiles)];
       dirty.current = true;
     };
-    const blockPaste = (e) => { e.preventDefault(); logPaste("paste"); flashBanner("Pasting isn't allowed here — please type your answer."); };
-    const blockDrop = (e) => { e.preventDefault(); logPaste("drop"); flashBanner("Dragging text in isn't allowed here."); };
-    const blockCopy = (e) => { e.preventDefault(); logCopy(e.type === "cut" ? "cut-answer" : "copy-answer"); flashBanner("Copying out of this isn't allowed here."); };
+    // What was being pasted or dropped: the plain text, plus whether an image or file came with it.
+    const transferText = (dt) => (dt ? dt.getData("text/plain") || "" : "");
+    const transferHasFiles = (dt) => !!dt && ((dt.files && dt.files.length > 0) || Array.from(dt.types || []).includes("Files"));
+    const blockPaste = (e) => {
+      e.preventDefault();
+      logPaste("paste", transferText(e.clipboardData), transferHasFiles(e.clipboardData));
+      flashBanner("Pasting isn't allowed here — please type your answer.");
+    };
+    const blockDrop = (e) => {
+      e.preventDefault();
+      logPaste("drop", transferText(e.dataTransfer), transferHasFiles(e.dataTransfer));
+      flashBanner("Dragging text in isn't allowed here.");
+    };
+    const blockCopy = (e) => {
+      e.preventDefault();
+      logCopy(e.type === "cut" ? "cut-answer" : "copy-answer", window.getSelection().toString());
+      flashBanner("Copying out of this isn't allowed here.");
+    };
     const blockContext = (e) => e.preventDefault();
     // Safety net for paste routes that skip the "paste" event (some mobile keyboards' clipboard buttons).
     const onBeforeInput = (e) => {
       if (e.inputType === "insertFromPaste" || e.inputType === "insertFromPasteAsQuotation") {
-        e.preventDefault(); logPaste("paste"); flashBanner("Pasting isn't allowed here — please type your answer.");
+        e.preventDefault(); logPaste("paste-keyboard", transferText(e.dataTransfer) || e.data || "", transferHasFiles(e.dataTransfer));
+        flashBanner("Pasting isn't allowed here — please type your answer.");
       } else if (e.inputType === "insertFromDrop") {
-        e.preventDefault(); logPaste("drop"); flashBanner("Dragging text in isn't allowed here.");
+        e.preventDefault(); logPaste("drop", transferText(e.dataTransfer) || e.data || "", transferHasFiles(e.dataTransfer));
+        flashBanner("Dragging text in isn't allowed here.");
       }
     };
     const onKeydown = (e) => {
       const k = e.key.toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && k === "v") { e.preventDefault(); logPaste("shortcut"); flashBanner("Pasting isn't allowed here — please type your answer."); return; }
-      if (e.shiftKey && k === "insert") { e.preventDefault(); logPaste("shortcut"); flashBanner("Pasting isn't allowed here — please type your answer."); return; }
+      // Ctrl+V and Shift+Insert aren't stopped here: they go on to the "paste" event above, which blocks
+      // the paste and is the only place the browser lets us read what was being pasted.
+      if ((e.ctrlKey || e.metaKey) && k === "v") return;
+      if (e.shiftKey && k === "insert") return;
       if (k.length === 1 || k === "backspace" || k === "delete" || k === "enter" || k === " ") {
         // Track the current unbroken typing streak; a gap of STREAK_BREAK_SEC or more starts a new one.
         const now = Date.now();
@@ -1203,21 +1347,27 @@ function ParticipantWrite({ code, onLeave }) {
     return () => clearInterval(iv);
   }, [doSync, submitted, superseded, batch]);
 
-  // While on the "submitted/locked" screen, watch for the coach reopening this document
+  // While on the "submitted/locked" screen, watch for the coach reopening this document,
+  // and keep the final saved answer at hand for the participant's own download.
   const pendingContentRef = useRef(null);
+  const [finalMe, setFinalMe] = useState(null);
   useEffect(() => {
     if (!submitted || superseded) return;
-    const iv = setInterval(async () => {
+    const check = async () => {
       let r;
       try { r = await sync(null, null, true); } catch { return; }
       if (r.superseded) { setSuperseded(true); return; }
+      if (r.me && r.me.status !== "writing") setFinalMe({ ...r.me, fetchedAt: Date.now() });
       if (r.me && r.me.status === "writing") {
         applyServerState(r.me);
         pendingContentRef.current = r.me.content || "";
         setLocked(false);
         setSubmitted(false);
+        setFinalMe(null);
       }
-    }, 5000);
+    };
+    check();
+    const iv = setInterval(check, 5000);
     return () => clearInterval(iv);
   }, [submitted, superseded, code, slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1259,13 +1409,22 @@ function ParticipantWrite({ code, onLeave }) {
   const commonFonts = COMMON_FONTS.map((n) => fonts.find((f) => f.name === n)).filter(Boolean);
 
   const exec = (cmd, val = null) => {
+    // Only put the remembered selection back if it has actually left the editor. Toolbar buttons keep
+    // it in place, and restoring an older copy there would move the cursor to the wrong spot.
+    const sel = window.getSelection();
+    const inEditor = sel && sel.rangeCount > 0 && editorRef.current.contains(sel.anchorNode);
     editorRef.current.focus();
-    if (savedRange.current) {
-      const sel = window.getSelection();
+    if (!inEditor && savedRange.current) {
       sel.removeAllRanges();
       sel.addRange(savedRange.current);
     }
+    // Chrome's list and alignment commands can drop the cursor at the start of the line, so the next
+    // words land in front of what was already written. Remember where the cursor was in the text and put it back.
+    // (Only when the cursor is inside text: on an empty line Chrome already gets it right.)
+    const caretAt = /^(insert(Un)?orderedList|justify)/i.test(cmd) && sel.rangeCount > 0 && sel.isCollapsed
+      && sel.anchorNode.nodeType === Node.TEXT_NODE ? textOffsetOf(editorRef.current, sel.getRangeAt(0)) : null;
     document.execCommand(cmd, false, val);
+    if (caretAt !== null) placeCaretAtTextOffset(editorRef.current, caretAt);
     onInput();
   };
 
@@ -1290,12 +1449,26 @@ function ParticipantWrite({ code, onLeave }) {
   if (submitted) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-6" style={{ background: C.bg, fontFamily: FONT }}>
-        <div className="text-center max-w-sm">
+        <div className="text-center max-w-md w-full">
           <Lock size={28} style={{ color: C.navy }} className="mx-auto mb-3" />
           <div className="text-lg font-semibold" style={{ color: C.navy }}>{locked ? "Batch ended" : "Submitted"}</div>
           <div className="text-sm mt-2" style={{ color: C.muted }}>
-            {locked ? "The coach ended this batch. Your last saved draft was submitted." : "Your response has been submitted and can't be edited. You can close this window."}
+            {locked ? "The coach ended this batch. Your last saved draft was submitted." : "Your response has been submitted and can't be edited."}
           </div>
+          {finalMe ? (
+            <div className="rounded-xl p-5 mt-5 text-left" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
+              <div className="text-sm font-semibold mb-1" style={{ color: C.navy }}>Keep a copy of your answer</div>
+              <div className="text-xs mb-3" style={{ color: C.muted }}>Download it now. Once you close this page you can't come back to it.</div>
+              <DownloadButtons variant="participant" record={{
+                name: finalMe.name || window.__lawName || "Participant",
+                batchLabel: batchLabelOf(batch.assessment_type, code),
+                submittedAt: finalMe.submitted_at || finalMe.fetchedAt,
+                wordCount: finalMe.word_count || 0, contentHtml: finalMe.content || "",
+              }} />
+            </div>
+          ) : (
+            <div className="text-xs mt-5 flex items-center justify-center gap-1.5" style={{ color: C.mutedLight }}><Loader2 size={12} className="animate-spin" /> Preparing your copy…</div>
+          )}
           <button onClick={onLeave} className="text-sm font-medium mt-5" style={{ color: C.teal }}>Done</button>
         </div>
       </div>
@@ -1319,7 +1492,7 @@ function ParticipantWrite({ code, onLeave }) {
 
       <div className="max-w-3xl mx-auto w-full px-6 pt-6">
         <div className="rounded-xl p-5 mb-5" style={{ background: C.tealSoft, border: `1px solid ${C.teal}` }}
-          onCopy={(e) => { e.preventDefault(); logCopy("copy-prompt"); flashBanner("Copying the prompt out isn't allowed here."); }}
+          onCopy={(e) => { e.preventDefault(); logCopy("copy-prompt", window.getSelection().toString()); flashBanner("Copying the prompt out isn't allowed here."); }}
           onContextMenu={(e) => e.preventDefault()}>
           <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: C.teal }}>Prompt</div>
           <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: C.text }}>{batch.prompt}</div>
@@ -1405,6 +1578,30 @@ function ParticipantWrite({ code, onLeave }) {
       </div>
     </div>
   );
+}
+
+// Cursor position as "number of characters of text before it" inside the editor, and back again.
+function textOffsetOf(root, range) {
+  const r = document.createRange();
+  r.selectNodeContents(root);
+  r.setEnd(range.startContainer, range.startOffset);
+  return r.toString().length;
+}
+function placeCaretAtTextOffset(root, offset) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node, left = offset;
+  while ((node = walker.nextNode())) {
+    if (left <= node.data.length) {
+      const r = document.createRange();
+      r.setStart(node, left);
+      r.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      return;
+    }
+    left -= node.data.length;
+  }
 }
 
 function ToolbarBtn({ onClick, children }) {

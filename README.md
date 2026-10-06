@@ -142,6 +142,33 @@ const TARGET_MINUTES = 30;         // the soft time target shown to everyone
 
 ---
 
+## What participants tried to paste or copy
+
+When a paste or copy is blocked, the tool also records **the text involved**. The coach sees it on the participant's page under **Paste and copy attempts**, and in the coach copy of their file.
+
+- **Recorded:** text they tried to paste or drag into the writing area, and text they selected and tried to copy from the prompt or their own answer. Up to 5,000 characters are kept from each attempt; longer text is cut off with a note. After about 100,000 characters in total, further attempts are still counted but their text isn't kept.
+- **Not recorded:** anything copied elsewhere (another tab or app), and the content of pasted images or files (only the fact that one was included). On some phone keyboards (e.g. Gboard's clipboard suggestions), a paste can look like ordinary typing and may not be detected at all.
+- **Privacy:** people sometimes have unrelated private text on their clipboard. Participants see a notice on the PIN screen, before they join, saying that attempts and their text are recorded and visible to the coach. Check this fits your organisation's data policy.
+
+## Downloading answers (Word and PDF)
+
+Files are named with the participant's name and the date and time of submission, e.g. `Ann Lee - 2026-10-06 14.32.docx`. Times are in the downloading computer's time zone.
+
+| Copy | Contains | Who can download it |
+|---|---|---|
+| **Participant copy** | Name, batch, submission date and time, word count, and their answer | The participant, on their "Submitted" / "Batch ended" screen. The coach can also download it from the participant's page (named "… (participant copy)"). |
+| **Coach copy** | The same, plus the prompt, a flags summary, and the paste/copy log on its own page | The coach only, from the participant's page, or **Download all (ZIP)** on the dashboard for every finished participant. |
+
+Each copy is available as:
+- **Word**, with bold, italics, underline, colours, fonts, alignment and lists kept.
+- **PDF**, created automatically. Fonts are drawn with free look-alikes (Calibri-, Arial-, Times- and Courier-style). English and other Latin-alphabet text works; other scripts (e.g. Hindi) and emoji may not show.
+- **Print / save as PDF**, which opens a print view that looks exactly like the screen and shows every language. Choose "Save as PDF" as the printer.
+
+Good to know:
+- Participants can only download right after they finish. Once they close that page they can't get back in. If someone misses it, the coach can download their participant copy and send it to them.
+- Someone who was still writing when the batch ended gets the batch's end time as their submission time.
+- Everything is made in the browser: no extra cost, and no extra copies are stored anywhere.
+
 ## Spelling
 
 The writing area has **no spell-checking and no autocorrect**: no red underlines, and nothing is changed automatically. What participants type is saved exactly as typed. Phone keyboards are asked not to autocorrect either. Most respect this, but a few keyboard apps may still suggest words. Grammar tools such as Grammarly are switched off in the writing area.
