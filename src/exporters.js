@@ -75,7 +75,7 @@ export function htmlToBlocks(html) {
 
   const walk = (node, style, blockProps) => {
     if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.data.replace(/ /g, " ").replace(/[\r\n]+/g, " ");
+      const text = node.data.replace(/\u00a0/g, " ").replace(/[\r\n]+/g, " ");
       if (!text || (!cur && !text.trim())) return; // ignore stray whitespace between paragraphs/list items
       if (!cur) open(blockProps);
       cur.runs.push({ text, ...style });
@@ -326,7 +326,12 @@ export async function buildPdf(record, variant) {
 
 async function buildPdfInner(record, variant) {
   const pdfMake = await loadPdfMake();
+  // Every piece added to the PDF remembers which part of the document it belongs to, so that if
+  // the PDF can't be made, the failing part can be found and simplified (see makePdfWithRepairs).
   const content = [];
+  const parts = [];
+  let part = "Header";
+  content.push = (...nodes) => { for (const n of nodes) { Array.prototype.push.call(content, n); parts.push(part); } return content.length; };
   const NAVY = "#1C2E4A", MUTED = "#6B7280";
   const heading = (text, extra = {}) => content.push({ text, bold: true, fontSize: 13, color: NAVY, margin: [0, 14, 0, 6], ...extra });
 
@@ -337,10 +342,12 @@ async function buildPdfInner(record, variant) {
   content.push({ canvas: [{ type: "line", x1: 0, y1: 4, x2: 515, y2: 4, lineWidth: 0.75, lineColor: "#BBBBBB" }], margin: [0, 4, 0, 12] });
 
   if (variant === "coach") {
+    part = "Prompt";
     heading("Prompt", { margin: [0, 0, 0, 6] });
     content.push({ text: record.prompt || "", margin: [0, 0, 0, 6] });
     heading("Response");
   }
+  part = "Answer";
 
   // The answer: consecutive list items are grouped into one list.
   const runToPdf = (r) => ({
@@ -365,14 +372,17 @@ async function buildPdfInner(record, variant) {
   }
 
   if (variant === "coach") {
+    part = "Flags summary";
     heading("Flags summary");
     content.push({ text: "Flags are signals worth a follow-up conversation, not proof of anything.", italics: true, color: MUTED, fontSize: 9, margin: [0, 0, 0, 6] });
     content.push({ ul: record.flagLines });
 
+    part = "Paste/copy log heading";
     heading("Paste and copy attempts", { pageBreak: "before", margin: [0, 0, 0, 8] });
     const attempts = attemptList(record);
     if (!attempts.length) content.push({ text: "None." });
     for (const a of attempts) {
+      part = `${a.label} at ${formatTime(a.t)}`;
       content.push({ text: `${formatTime(a.t)} — ${a.label}`, bold: true, margin: [0, 10, 0, 4] });
       if (a.text) {
         content.push({
@@ -386,15 +396,93 @@ async function buildPdfInner(record, variant) {
     }
   }
 
-  const doc = pdfMake.createPdf({
+  const docProps = {
     info: { title: fileBaseName(record), creator: "Live Assessment Writer" },
     pageSize: "A4", pageMargins: [40, 40, 40, 48],
     defaultStyle: { font: "Carlito", fontSize: BASE_PT, lineHeight: 1.2 },
     footer: (page, pages) => ({ text: `${record.name} · page ${page} of ${pages}`, alignment: "center", fontSize: 8, color: MUTED, margin: [0, 16, 0, 0] }),
-    content,
-  });
-  return doc.getBlob();
+  };
+  return makePdfWithRepairs(pdfMake, docProps, [...content], parts);
 }
+
+// ---------- Making the PDF, and repairing it if something in it won't draw ----------
+// Notes about any parts that had to be simplified in the last PDF made (shown to the coach).
+export let lastPdfRepairs = [];
+
+const describeChars = (str) => [...new Set(String(str).match(/[^\x20-\x7E\n]/g) || [])].slice(0, 12)
+  .map((c) => `U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`).join(" ");
+// Text from a piece of the PDF, however it's nested.
+function nodeText(n) {
+  if (n == null) return "";
+  if (typeof n === "string") return n;
+  if (Array.isArray(n)) return n.map(nodeText).join(" ");
+  if (n.text !== undefined) return nodeText(n.text);
+  if (n.ul || n.ol) return nodeText(n.ul || n.ol);
+  if (n.table) return nodeText(n.table.body);
+  return "";
+}
+// Remove invisible and control characters, and normalise accents.
+const cleanText = (t) => String(t).normalize("NFC")
+  .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFE00-\uFE0F\uFEFF]/g, "")
+  .replace(/[\uD800-\uDFFF]/g, "");
+function mapText(n, fn, extra = {}) {
+  if (n == null) return n;
+  if (typeof n === "string") return fn(n);
+  if (Array.isArray(n)) return n.map((x) => mapText(x, fn, extra));
+  const out = { ...n, ...extra };
+  if (n.text !== undefined) out.text = mapText(n.text, fn, extra);
+  if (n.ul) out.ul = mapText(n.ul, fn, extra);
+  if (n.ol) out.ol = mapText(n.ol, fn, extra);
+  if (n.table) out.table = { ...n.table, body: n.table.body.map((row) => row.map((cell) => mapText(cell, fn, extra))) };
+  return out;
+}
+const NO_FONT_TRICKS = { fontFeatures: { liga: false, clig: false, calt: false, dlig: false, kern: false, ccmp: false, locl: false } };
+
+async function makePdfWithRepairs(pdfMake, docProps, content, parts) {
+  lastPdfRepairs = [];
+  const make = (c, props = docProps) => pdfMake.createPdf({ ...props, content: c }).getBlob();
+  let firstError;
+  try { return await make(content); } catch (err) { firstError = err; }
+  console.warn("PDF failed; looking for the part that causes it", firstError);
+
+  // Try each piece on its own, and simplify only the pieces that fail.
+  const fixed = [];
+  const repairs = new Map();
+  for (let i = 0; i < content.length; i++) {
+    const node = content[i];
+    const versions = [
+      ["", node],
+      ["invisible characters removed", mapText(node, cleanText)],
+      ["drawn without joined letters", mapText(node, cleanText, NO_FONT_TRICKS)],
+      ["shown as plain text", { text: cleanText(nodeText(node)).replace(/[^\x20-\x7E\n\u00A0-\u024F]/g, "?") || " ", margin: node.margin, pageBreak: node.pageBreak }],
+    ];
+    let done = false;
+    for (const [how, candidate] of versions) {
+      try {
+        await make([candidate]);
+        fixed.push(candidate);
+        if (how && !repairs.has(parts[i])) repairs.set(parts[i], { part: parts[i], how, chars: describeChars(nodeText(node)) });
+        done = true;
+        break;
+      } catch { /* try the next, simpler version */ }
+    }
+    if (!done) {
+      fixed.push({ text: `[${parts[i]}: this part couldn't be drawn in the PDF — it's in the Word file]`, italics: true, color: "#B45309" });
+      repairs.set(parts[i], { part: parts[i], how: "left out (it's in the Word file)", chars: describeChars(nodeText(node)) });
+    }
+  }
+  for (const props of [docProps, { ...docProps, footer: undefined }]) {
+    try {
+      const blob = await make(fixed, props);
+      lastPdfRepairs = [...repairs.values()];
+      if (!props.footer) lastPdfRepairs.push({ part: "Page numbers", how: "left out", chars: "" });
+      if (!lastPdfRepairs.length) lastPdfRepairs.push({ part: "Whole document", how: "only worked when rebuilt piece by piece", chars: "" });
+      return blob;
+    } catch { /* try once more without the page footer */ }
+  }
+  throw firstError;
+}
+
 
 // ---------- Print view (exact on-screen look; "Save as PDF" from the print window) ----------
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -444,19 +532,25 @@ export async function downloadBatchZip(records, zipName, onProgress) {
   const zip = new JSZip();
   const used = new Set();
   const pdfFailures = [];
+  let pdfMissing = 0;
   let done = 0;
   for (const r of records) {
     let base = fileBaseName(r), n = 2;
     while (used.has(base)) base = `${fileBaseName(r)} (${n++})`;
     used.add(base);
     zip.file(`${base}.docx`, await buildDocx(r, "coach"));
-    try { zip.file(`${base}.pdf`, await buildPdf(r, "coach")); }
-    catch (err) { pdfFailures.push(`${base}: ${err.message || err}`); }
+    try {
+      zip.file(`${base}.pdf`, await buildPdf(r, "coach"));
+      if (lastPdfRepairs.length) {
+        pdfFailures.push(`${base}: the PDF was created, but these parts were simplified (complete in the Word file): `
+          + lastPdfRepairs.map((x) => `${x.part} - ${x.how}${x.chars ? ` (unusual characters: ${x.chars})` : ""}`).join("; "));
+      }
+    } catch (err) { pdfFailures.push(`${base}: ${err.message || err}`); pdfMissing++; }
     done++;
     if (onProgress) onProgress(done, records.length);
   }
   // If some PDFs couldn't be made, the Word files are still there, plus a note saying which PDFs are missing.
-  if (pdfFailures.length) zip.file("PDFs that could not be created.txt", pdfFailures.join("\r\n\r\n"));
+  if (pdfFailures.length) zip.file("Notes about the PDFs.txt", pdfFailures.join("\r\n\r\n"));
   downloadBlob(await zip.generateAsync({ type: "blob" }), `${zipName.replace(/[\\/:*?"<>|]+/g, "-")}.zip`);
-  return pdfFailures.length;
+  return pdfMissing;
 }

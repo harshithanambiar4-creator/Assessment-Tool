@@ -9,7 +9,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import DOMPurify from "dompurify";
 import { supabase, isCoachLink, needsNewPassword, authLinkError } from "./supabaseClient";
 import { availableFonts, defaultFont, fontByName, COMMON_FONTS } from "./fonts";
-import { downloadRecord, openPrintView, downloadBatchZip, flagLines, attemptList } from "./exporters";
+import { downloadRecord, openPrintView, downloadBatchZip, flagLines, attemptList, lastPdfRepairs } from "./exporters";
 
 // ---------- Design tokens (ReSource Pro palette, consistent with the earlier 1:1 version) ----------
 const C = {
@@ -487,9 +487,13 @@ function recordFor(p, batch) {
 function DownloadButtons({ record, variant, nameSuffix = "", label, word = true }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
+  const [repairs, setRepairs] = useState(null);
   const run = async (format) => {
-    setBusy(format); setError(null);
-    try { await downloadRecord(record, variant, format, nameSuffix); }
+    setBusy(format); setError(null); setRepairs(null);
+    try {
+      await downloadRecord(record, variant, format, nameSuffix);
+      if (format === "pdf" && lastPdfRepairs.length) setRepairs(lastPdfRepairs);
+    }
     catch (err) { setError(`Couldn't create the file: ${err.message || err}`); }
     setBusy(null);
   };
@@ -512,6 +516,14 @@ function DownloadButtons({ record, variant, nameSuffix = "", label, word = true 
         </button>
       </div>
       {error && <div className="text-xs mt-1.5 break-words" style={{ color: C.red }}>{error}</div>}
+      {repairs && (
+        <div className="text-xs mt-1.5 break-words rounded-md px-3 py-2" style={{ background: C.amberSoft, color: C.amber }}>
+          The PDF was created, but some parts had to be simplified to fit in it (everything is complete in the Word file):
+          <ul className="list-disc ml-4 mt-1">
+            {repairs.map((r, i) => <li key={i}>{r.part}: {r.how}{r.chars ? ` (unusual characters: ${r.chars})` : ""}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
