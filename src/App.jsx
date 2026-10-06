@@ -83,6 +83,7 @@ function dbErrorMessage(err) {
   if (/failed to fetch|networkerror|load failed|invalid url|missing/i.test(msg))
     return `Can't reach the database. The Supabase address or key on Render is probably wrong or missing. (${msg})`;
   if (/invalid login credentials/i.test(msg)) return "That email and password don't match a coach account.";
+  if (/jwt expired/i.test(msg)) return "Your sign-in has expired. Please refresh the page and sign in again.";
   if (/email not confirmed/i.test(msg)) return "This coach account hasn't been confirmed yet. Ask whoever set it up to tick \"Auto Confirm User\".";
   if (/permission denied|row-level security|42501/i.test(msg))
     return `The database refused this. Check that supabase/schema.sql has been run. (${msg})`;

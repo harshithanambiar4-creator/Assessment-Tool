@@ -33,6 +33,28 @@ export const authLinkError = (() => {
 export const isCoachLink =
   initialHash.replace(/^#/, "").toLowerCase() === "coach" || /(^\?|&)coach(=|&|$)/i.test(initialSearch) || isAuthRedirect;
 
+// A coach's sign-in pass lasts an hour and renews itself shortly before it runs out. If the computer's
+// clock is behind, or the laptop was asleep, it can expire before renewing; the database then answers
+// "JWT expired". When that happens, renew the pass once and repeat the request, so the coach never sees it.
+let renewing = null;
+async function fetchWithRenewal(input, init = {}) {
+  const res = await fetch(input, init);
+  const target = typeof input === "string" ? input : input.url;
+  if (res.status !== 401 || !target.includes("/rest/v1/")) return res;
+  if (!/jwt expired/i.test(await res.clone().text())) return res;
+  if (!renewing) renewing = supabase.auth.refreshSession().finally(() => setTimeout(() => { renewing = null; }, 1000));
+  const { data, error } = await renewing;
+  if (error || !data || !data.session) {
+    // The pass can't be renewed (e.g. signed out elsewhere): go back to the sign-in page.
+    await supabase.auth.signOut({ scope: "local" });
+    return res;
+  }
+  const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+  headers.set("Authorization", `Bearer ${data.session.access_token}`);
+  return fetch(input, { ...init, headers });
+}
+
 export const supabase = createClient(url || "http://missing", anonKey || "missing", {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" },
+  global: { fetch: fetchWithRenewal },
 });
