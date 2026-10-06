@@ -179,6 +179,33 @@ export default function App() {
     onBack={isCoachLink ? null : () => { setCoachMode(false); setRole("participant-join"); }} />;
 }
 
+// Runs `load` now and then again after `delayMs()` each time, but not while this browser tab is in the
+// background (it catches up the moment the tab is visible again). Keeps data transfer low when a
+// dashboard is left open.
+function usePolling(load, delayMs, deps) {
+  useEffect(() => {
+    let stopped = false, timer = null, running = false;
+    const tick = async () => {
+      clearTimeout(timer);
+      if (stopped || running) return;
+      if (document.hidden) return; // resumes from onVisible
+      running = true;
+      try { await load(); } catch { /* the load function shows its own errors */ }
+      running = false;
+      if (!stopped) timer = setTimeout(tick, delayMs());
+    };
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    tick();
+    return () => { stopped = true; clearTimeout(timer); document.removeEventListener("visibilitychange", onVisible); };
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+// What the dashboard tiles need: no answers, no paste/copy text (those are loaded when a participant's
+// page is opened, or for downloads), which keeps each refresh small.
+const TILE_COLUMNS = "id,name,slug,position,status,submitted_at,claimed_at,word_count,activity_log,focus_log,key_count,"
+  + "backspace_count,paste_attempts,copy_attempts,longest_streak_ms,longest_streak_words,device_switches,reopened,pin_failures";
+
 function Spinner() {
   return <div className="flex items-center justify-center h-screen" style={{ background: C.bg }}><Loader2 className="animate-spin" size={22} style={{ color: C.teal }} /></div>;
 }
@@ -657,14 +684,16 @@ function CoachDashboard({ batchId, onBack }) {
     rpc("server_now", {}).then((t) => { if (typeof t === "number") setClockOffset(t - Date.now()); }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    let stop = false;
-    const poll = async () => {
+  // Refresh every 5 s while the batch is running; once it has ended (and nobody is reopened), once a minute.
+  const liveRef = useRef(true);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  usePolling(async () => {
+    if (openSlug) return; // a participant's page is open; it refreshes itself
+    {
       const [b, ps] = await Promise.all([
         supabase.from("batches").select("*").eq("id", batchId).single(),
-        supabase.from("participants").select("*").eq("batch_id", batchId).order("position"),
+        supabase.from("participants").select(TILE_COLUMNS).eq("batch_id", batchId).order("position"),
       ]);
-      if (stop) return;
       if (b.error || ps.error) { setLoadError(dbErrorMessage(b.error || ps.error)); return; }
       setLoadError(null);
       const participants = ps.data.map(participantFromRow);
@@ -672,12 +701,9 @@ function CoachDashboard({ batchId, onBack }) {
       const next = {};
       participants.forEach((p) => { next[p.slug] = p; });
       setRows(next);
-    };
-    poll();
-    const iv = setInterval(poll, 5000);
-    const clock = setInterval(() => setNow(Date.now()), 1000);
-    return () => { stop = true; clearInterval(iv); clearInterval(clock); };
-  }, [batchId, openSlug]);
+      liveRef.current = b.data.status !== "ended" || participants.some((p) => p.reopened && p.status === "writing");
+    }
+  }, () => (liveRef.current ? 5000 : 60000), [batchId, openSlug]);
 
   const code = batch ? batch.code : "";
   const copyCode = () => {
@@ -714,7 +740,12 @@ function CoachDashboard({ batchId, onBack }) {
   const downloadAll = async () => {
     setZipState({ busy: true, done: 0, total: finished.length });
     try {
-      const pdfFailed = await downloadBatchZip(finished.map((p) => recordFor(p, batch)),
+      // The dashboard only holds summaries, so fetch the full answers and logs now.
+      const { data, error } = await supabase.from("participants").select("*").eq("batch_id", batchId).order("position");
+      if (error) throw error;
+      const wanted = new Set(finished.map((p) => p.slug));
+      const full = data.map(participantFromRow).filter((p) => wanted.has(p.slug));
+      const pdfFailed = await downloadBatchZip(full.map((p) => recordFor(p, batch)),
         `${batchName(batch.wave, batch.year) || "Batch " + batch.code} - ${(ASSESSMENT_LABELS[batch.assessmentType] || "Assessment").replace(" Assessment", "")} - coach copies`, (done, total) => setZipState({ busy: true, done, total }));
       setZipState(pdfFailed ? { error: `The ZIP was downloaded, but ${pdfFailed} PDF${pdfFailed === 1 ? "" : "s"} couldn't be created. The Word files are all there, and a note inside the ZIP explains what went wrong.` } : null);
     } catch (err) { setZipState({ error: `Couldn't create the ZIP: ${err.message || err}` }); }
@@ -856,11 +887,10 @@ function ParticipantDetail({ batch, rosterEntry, onBack }) {
     return v;
   }, [batchId, rosterEntry.slug]);
 
-  useEffect(() => {
-    load();
-    const iv = setInterval(load, 5000);
-    return () => clearInterval(iv);
-  }, [load]);
+  // Every 5 s while they're writing; once a minute after they've finished.
+  const finishedRef = useRef(false);
+  useEffect(() => { finishedRef.current = !!p && (p.status === "submitted" || p.status === "locked"); }, [p]);
+  usePolling(load, () => (finishedRef.current ? 60000 : 5000), [load]);
 
   const flags = p ? computeFlags(p) : {};
   const chartData = p ? (p.activityLog || []).map((e) => ({ min: Math.round((e.t - (p.claimedAt || e.t)) / 60000), words: e.words })) : [];

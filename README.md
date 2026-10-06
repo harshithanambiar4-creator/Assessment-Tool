@@ -189,6 +189,15 @@ Popular Office fonts have free look-alikes that load automatically, so they appe
 
 Aptos (Word's newest default) only appears where the computer has it installed. The writing area starts in Aptos if it's available, otherwise in Calibri.
 
+## Capacity and data use
+
+**Load test** (on a copy of the same database software Supabase uses, limited to one processor core): 80, 160 and 240 people writing at the same time, with coach dashboards open, gave no errors and no lost or changed answers. The typical save took about 5 ms. Even at 240 people, the database was at most a quarter busy. A separate test with 80 real browser windows typing into the app saved every word exactly. The expected peak of 60–80 people at once is well within capacity. Do a practice session on the live site before the first large assessment.
+
+**Keeping data transfer low** (the free Supabase plan has a monthly allowance):
+- Dashboard refreshes only load what the tiles show (status, word count, flags), about 1 KB per participant. Full answers and paste text are loaded only when you open a participant's page or download files.
+- Dashboards refresh every 5 seconds while a batch is running, and once a minute after it has ended (unless someone has been reopened).
+- Nothing refreshes while the tab is in the background; it catches up as soon as you switch back.
+
 ## Security
 
 - **Coaches** each have their own email and password. A coach can only see and change their **own** batches. The database enforces this, not just the website.
