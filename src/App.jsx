@@ -117,8 +117,12 @@ function participantFromRow(r) {
 }
 function batchFromRow(r) {
   return { id: r.id, code: r.code, assessmentType: r.assessment_type, prompt: r.prompt,
-    status: r.status, createdAt: toMs(r.created_at), endedAt: toMs(r.ended_at) };
+    wave: r.wave, year: r.year, status: r.status, createdAt: toMs(r.created_at), endedAt: toMs(r.ended_at) };
 }
+// Batch names follow the standard format "Wave 8, 2026" / "Wave 4.2, 2026". Older batches have none.
+const batchName = (wave, year) => (wave && year ? `Wave ${wave}, ${year}` : null);
+const WAVE_FORMAT = /^[0-9]+(\.[0-9]+)?$/;
+const validWaveYear = (wave, year) => WAVE_FORMAT.test(String(wave).trim()) && /^20[0-9]{2}$/.test(String(year).trim());
 
 // ---------- Flag computation (shared by dashboard tiles and the detail view) ----------
 function computeFlags(p) {
@@ -363,6 +367,9 @@ function genPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
 
 function CoachNewBatch({ onCreated, onBack }) {
   const [type, setType] = useState("baseline");
+  const [wave, setWave] = useState("");
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const nameOk = validWaveYear(wave, year);
   const [prompt, setPrompt] = useState("");
   const [rosterText, setRosterText] = useState("");
   const [creating, setCreating] = useState(false);
@@ -373,7 +380,7 @@ function CoachNewBatch({ onCreated, onBack }) {
 
   const [createError, setCreateError] = useState(null);
   const create = async () => {
-    if (!prompt.trim() || parsed.length === 0) return;
+    if (!prompt.trim() || parsed.length === 0 || !nameOk) return;
     setCreating(true); setCreateError(null);
     try { await createBatch(); }
     catch (err) { setCreateError(dbErrorMessage(err)); }
@@ -386,7 +393,7 @@ function CoachNewBatch({ onCreated, onBack }) {
     let batch = null;
     for (let attempt = 0; attempt < 5 && !batch; attempt++) {
       const { data, error } = await supabase.from("batches")
-        .insert({ code: makeCode(), assessment_type: type, prompt: prompt.trim() })
+        .insert({ code: makeCode(), assessment_type: type, prompt: prompt.trim(), wave: wave.trim(), year: Number(year) })
         .select().single();
       if (error && error.code !== "23505") throw error;
       batch = data;
@@ -440,6 +447,13 @@ function CoachNewBatch({ onCreated, onBack }) {
         <div className="rounded-xl p-7" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
           <div className="text-lg font-semibold mb-5" style={{ color: C.navy }}>New assessment batch</div>
 
+          <label className="text-sm font-medium block mb-1.5" style={{ color: C.navy }}>Batch name</label>
+          <WaveYearInputs wave={wave} year={year} onWave={setWave} onYear={setYear} />
+          <div className="text-xs mt-1.5 mb-4" style={{ color: wave && !nameOk ? C.red : C.muted }}>
+            {wave && !nameOk ? "Use a wave number like 8 or 4.2, and a 4-digit year."
+              : nameOk ? <>This batch will be called <strong style={{ color: C.navy }}>{batchName(wave.trim(), year)}</strong>.</> : "e.g. Wave 8, 2026 or Wave 4.2, 2026"}
+          </div>
+
           <label className="text-sm font-medium block mb-1.5" style={{ color: C.navy }}>Assessment</label>
           <div className="grid grid-cols-3 gap-2 mb-4">
             {Object.entries(ASSESSMENT_LABELS).map(([k, label]) => (
@@ -460,9 +474,9 @@ function CoachNewBatch({ onCreated, onBack }) {
           <div className="text-xs mb-5" style={{ color: C.mutedLight }}>{parsed.length} participant{parsed.length === 1 ? "" : "s"}</div>
 
           {createError && <div className="text-xs mb-3 break-words" style={{ color: C.red }}>{createError}</div>}
-          <button onClick={create} disabled={creating || !prompt.trim() || parsed.length === 0}
+          <button onClick={create} disabled={creating || !prompt.trim() || parsed.length === 0 || !nameOk}
             className="w-full flex items-center justify-center gap-2 text-sm font-semibold rounded-md py-2.5"
-            style={{ background: C.navy, color: "#fff", opacity: (creating || !prompt.trim() || parsed.length === 0) ? 0.5 : 1 }}>
+            style={{ background: C.navy, color: "#fff", opacity: (creating || !prompt.trim() || parsed.length === 0 || !nameOk) ? 0.5 : 1 }}>
             {creating ? <Loader2 size={15} className="animate-spin" /> : <PlusCircle size={15} />}
             {creating ? "Creating…" : "Create batch & get code"}
           </button>
@@ -473,11 +487,13 @@ function CoachNewBatch({ onCreated, onBack }) {
 }
 
 // ---------- Downloads ----------
-const batchLabelOf = (assessmentType, code) => `${ASSESSMENT_LABELS[assessmentType] || "Assessment"} · Batch ${code}`;
+const batchLabelOf = (assessmentType, code, name) => name
+  ? `${name} · ${ASSESSMENT_LABELS[assessmentType] || "Assessment"}`
+  : `${ASSESSMENT_LABELS[assessmentType] || "Assessment"} · Batch ${code}`;
 // Everything a downloaded file needs about one participant (see src/exporters.js).
 function recordFor(p, batch) {
   return {
-    name: p.name, batchLabel: batchLabelOf(batch.assessmentType, batch.code), prompt: batch.prompt,
+    name: p.name, batchLabel: batchLabelOf(batch.assessmentType, batch.code, batchName(batch.wave, batch.year)), prompt: batch.prompt,
     // Someone locked when the batch ended without their device saving the lock gets the batch's end time.
     submittedAt: p.submittedAt || batch.endedAt, wordCount: p.wordCount || 0, contentHtml: p.content || "",
     flagLines: flagLines(computeFlags(p), { reopenCount: (p.reopenLog || []).length }),
@@ -529,6 +545,22 @@ function DownloadButtons({ record, variant, nameSuffix = "", label, word = true 
 }
 
 // ---------- Small shared bits ----------
+// The two boxes for a batch name: Wave [8 or 4.2] and Year [2026].
+function WaveYearInputs({ wave, year, onWave, onYear, dark = false }) {
+  const box = { border: `1px solid ${dark ? "rgba(255,255,255,0.3)" : C.border}`, background: dark ? "rgba(255,255,255,0.08)" : "#fff", color: dark ? "#fff" : C.text };
+  const label = { color: dark ? "#9DB3D1" : C.navy };
+  return (
+    <div className="flex items-end gap-2 flex-wrap">
+      <span className="text-sm font-medium pb-2" style={label}>Wave</span>
+      <input value={wave} onChange={(e) => onWave(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal" aria-label="Wave number"
+        className="w-20 text-sm rounded-md px-2.5 py-2 outline-none" style={box} placeholder="8" />
+      <span className="text-sm font-medium pb-2" style={label}>, Year</span>
+      <input value={year} onChange={(e) => onYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))} inputMode="numeric" aria-label="Year"
+        className="w-20 text-sm rounded-md px-2.5 py-2 outline-none" style={box} />
+    </div>
+  );
+}
+
 function FlagBadges({ flags }) {
   if (!flags.pauseBurst && !flags.tabSwitches && !flags.lowRevision && !flags.deviceSwitches && !flags.pasteAttempts && !flags.copyAttempts && !flags.nonStop) return null;
   return (
@@ -605,6 +637,20 @@ function CoachDashboard({ batchId, onBack }) {
   const [openSlug, setOpenSlug] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [zipState, setZipState] = useState(null);
+  const [renaming, setRenaming] = useState(false);
+  const [newWave, setNewWave] = useState("");
+  const [newYear, setNewYear] = useState("");
+  const startRename = () => {
+    setNewWave(batch.wave || "");
+    setNewYear(String(batch.year || new Date().getFullYear()));
+    setRenaming(true);
+  };
+  const saveName = async () => {
+    const { data, error } = await supabase.from("batches").update({ wave: newWave.trim(), year: Number(newYear) }).eq("id", batchId).select().single();
+    if (error) { setLoadError(dbErrorMessage(error)); return; }
+    setBatch((cur) => ({ ...cur, ...batchFromRow(data) }));
+    setRenaming(false);
+  };
   // How far this computer's clock is from the database's, so "Elapsed" is right even if the computer's clock is off.
   const [clockOffset, setClockOffset] = useState(0);
   useEffect(() => {
@@ -669,7 +715,7 @@ function CoachDashboard({ batchId, onBack }) {
     setZipState({ busy: true, done: 0, total: finished.length });
     try {
       const pdfFailed = await downloadBatchZip(finished.map((p) => recordFor(p, batch)),
-        `${ASSESSMENT_LABELS[batch.assessmentType] || "Assessment"} - Batch ${batch.code} - coach copies`, (done, total) => setZipState({ busy: true, done, total }));
+        `${batchName(batch.wave, batch.year) || "Batch " + batch.code} - ${(ASSESSMENT_LABELS[batch.assessmentType] || "Assessment").replace(" Assessment", "")} - coach copies`, (done, total) => setZipState({ busy: true, done, total }));
       setZipState(pdfFailed ? { error: `The ZIP was downloaded, but ${pdfFailed} PDF${pdfFailed === 1 ? "" : "s"} couldn't be created. The Word files are all there, and a note inside the ZIP explains what went wrong.` } : null);
     } catch (err) { setZipState({ error: `Couldn't create the ZIP: ${err.message || err}` }); }
   };
@@ -684,6 +730,24 @@ function CoachDashboard({ batchId, onBack }) {
         <div className="rounded-xl p-6 mb-5" style={{ background: C.navy }}>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
+              {renaming ? (
+                <div className="mb-4">
+                  <WaveYearInputs dark wave={newWave} year={newYear} onWave={setNewWave} onYear={setNewYear} />
+                  <div className="flex items-center gap-2 mt-2">
+                    <button onClick={saveName} disabled={!validWaveYear(newWave, newYear)} className="text-xs font-semibold rounded-md px-3 py-1.5"
+                      style={{ background: "#fff", color: C.navy, opacity: validWaveYear(newWave, newYear) ? 1 : 0.5 }}>Save name</button>
+                    <button onClick={() => setRenaming(false)} className="text-xs font-medium px-2 py-1.5" style={{ color: "#9DB3D1" }}>Cancel</button>
+                    {newWave && !validWaveYear(newWave, newYear) && <span className="text-xs" style={{ color: "#FBBF6A" }}>Use a wave like 8 or 4.2 and a 4-digit year.</span>}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="text-lg font-semibold" style={{ color: "#fff" }}>{batchName(batch.wave, batch.year) || "Unnamed batch"}</div>
+                  <button onClick={startRename} className="text-xs rounded-md px-2 py-0.5" style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}>
+                    {batchName(batch.wave, batch.year) ? "Rename" : "Add name"}
+                  </button>
+                </div>
+              )}
               <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#9DB3D1" }}>Batch code — share with the group</div>
               <div className="flex items-center gap-3">
                 <div className="text-4xl font-bold tracking-widest" style={{ color: "#fff" }}>{code}</div>
@@ -944,7 +1008,7 @@ function CoachHistory({ onOpen, onBack }) {
   useEffect(() => {
     (async () => {
       const { data, error: err } = await supabase.from("batches")
-        .select("id, code, assessment_type, prompt, status, created_at, participants(count)")
+        .select("id, code, assessment_type, prompt, wave, year, status, created_at, participants(count)")
         .order("created_at", { ascending: false });
       if (err) { setError(dbErrorMessage(err)); setItems([]); return; }
       setItems(data);
@@ -965,7 +1029,8 @@ function CoachHistory({ onOpen, onBack }) {
             return (
               <button key={b.id} onClick={() => onOpen(b.id)} className="w-full flex items-center justify-between gap-3 text-left rounded-lg p-4" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold" style={{ color: C.navy }}>{ASSESSMENT_LABELS[b.assessment_type]} · <span className="font-mono">{b.code}</span></div>
+                  <div className="text-sm font-semibold" style={{ color: C.navy }}>{batchName(b.wave, b.year) || "Unnamed batch"}</div>
+                  <div className="text-xs mt-0.5" style={{ color: C.navy }}>{ASSESSMENT_LABELS[b.assessment_type]} · <span className="font-mono">{b.code}</span></div>
                   <div className="text-xs mt-0.5 truncate" style={{ color: C.muted }}>{b.prompt}</div>
                   <div className="text-xs mt-0.5" style={{ color: C.mutedLight }}>{count} participants · {new Date(b.created_at).toLocaleDateString()}</div>
                 </div>
@@ -1004,7 +1069,7 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
       else {
         const t = {};
         r.roster.forEach((x) => { t[x.slug] = x.status; });
-        setBatch({ code: c, assessmentType: r.assessment_type, roster: r.roster });
+        setBatch({ code: c, assessmentType: r.assessment_type, name: batchName(r.wave, r.year), roster: r.roster });
         setTaken(t);
       }
     } catch (err) { setError(dbErrorMessage(err)); }
@@ -1067,7 +1132,7 @@ function ParticipantJoin({ onJoined, onBack = null, onCoachKeyword = null }) {
           ) : !selected ? (
             <>
               <div className="text-lg font-semibold mb-1" style={{ color: C.navy }}>Which name is yours?</div>
-              <div className="text-sm mb-4" style={{ color: C.muted }}>{ASSESSMENT_LABELS[batch.assessmentType]}</div>
+              <div className="text-sm mb-4" style={{ color: C.muted }}>{batch.name ? `${batch.name} · ` : ""}{ASSESSMENT_LABELS[batch.assessmentType]}</div>
               {error && <div className="text-xs mb-3" style={{ color: C.amber }}>{error}</div>}
               <div className="space-y-1.5 max-h-80 overflow-y-auto">
                 {batch.roster.map((r) => {
@@ -1334,7 +1399,7 @@ function ParticipantWrite({ code, onLeave }) {
     if (r.superseded) { setSuperseded(true); return false; }
     if (r.error) { if (payload) { dirty.current = true; setSaveState("error"); } return false; }
     if (payload) setSaveState("saved");
-    if (r.batch) batchRef.current = { ...r.batch, clockOffset: r.batch.server_now ? r.batch.server_now - Date.now() : 0 };
+    if (r.batch) noteBatch(r.batch);
     if (r.me.status === "submitted" || r.me.status === "locked") { setLocked(r.me.status === "locked"); setSubmitted(true); }
     return true;
   }, [code, slug, myDeviceToken]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1344,6 +1409,12 @@ function ParticipantWrite({ code, onLeave }) {
   // Periodic save + status check (the server locks the answer once the coach ends the batch,
   // unless the coach has explicitly reopened this person), plus the gentle time reminders.
   const batchRef = useRef(null);
+  // Keep the latest batch details from the server; if the coach renamed the batch, show the new name.
+  const noteBatch = (rb) => {
+    const prev = batchRef.current;
+    batchRef.current = { ...rb, clockOffset: rb.server_now ? rb.server_now - Date.now() : 0 };
+    if (prev && (prev.wave !== rb.wave || prev.year !== rb.year)) setBatch((b) => ({ ...b, wave: rb.wave, year: rb.year }));
+  };
   useEffect(() => { if (batch && batch.created_at) batchRef.current = batch; }, [batch]);
   useEffect(() => {
     if (submitted || superseded || !batch) return;
@@ -1377,6 +1448,7 @@ function ParticipantWrite({ code, onLeave }) {
       let r;
       try { r = await sync(null, null, true); } catch { return; }
       if (r.superseded) { setSuperseded(true); return; }
+      if (r.batch) noteBatch(r.batch);
       if (r.me && r.me.status !== "writing") setFinalMe({ ...r.me, fetchedAt: Date.now() });
       if (r.me && r.me.status === "writing") {
         applyServerState(r.me);
@@ -1481,7 +1553,7 @@ function ParticipantWrite({ code, onLeave }) {
               <div className="text-xs mb-3" style={{ color: C.muted }}>Download it now. Once you close this page you can't come back to it.</div>
               <DownloadButtons variant="participant" word={false} record={{
                 name: finalMe.name || window.__lawName || "Participant",
-                batchLabel: batchLabelOf(batch.assessment_type, code),
+                batchLabel: batchLabelOf(batch.assessment_type, code, batchName(batch.wave, batch.year)),
                 submittedAt: finalMe.submitted_at || finalMe.fetchedAt,
                 wordCount: finalMe.word_count || 0, contentHtml: finalMe.content || "",
               }} />
@@ -1499,7 +1571,7 @@ function ParticipantWrite({ code, onLeave }) {
     <div className="min-h-screen w-full flex flex-col" style={{ background: C.bg, fontFamily: FONT }}>
       <div className="px-6 py-4" style={{ background: C.navy }}>
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="text-sm font-semibold" style={{ color: "#fff" }}>{ASSESSMENT_LABELS[batch.assessment_type]}</div>
+          <div className="text-sm font-semibold" style={{ color: "#fff" }}>{batchName(batch.wave, batch.year) ? `${batchName(batch.wave, batch.year)} · ` : ""}{ASSESSMENT_LABELS[batch.assessment_type]}</div>
           <div className="text-xs" style={{ color: "#9DB3D1" }}>{wordCount} words</div>
         </div>
       </div>

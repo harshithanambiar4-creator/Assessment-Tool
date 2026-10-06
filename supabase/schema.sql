@@ -57,6 +57,15 @@ create table if not exists public.participants (
 );
 create index if not exists participants_batch_idx on public.participants (batch_id);
 
+-- Batch names, e.g. "Wave 8, 2026" or "Wave 4.2, 2026" (added later; safe to re-run).
+-- Older batches have no name and show only their code.
+alter table public.batches add column if not exists wave text;
+alter table public.batches add column if not exists year int;
+alter table public.batches drop constraint if exists batches_wave_format;
+alter table public.batches add constraint batches_wave_format check (wave is null or wave ~ '^[0-9]+(\.[0-9]+)?$');
+alter table public.batches drop constraint if exists batches_year_range;
+alter table public.batches add constraint batches_year_range check (year is null or year between 2000 and 2100);
+
 -- ---------- Coach access (row-level security) ----------
 alter table public.batches      enable row level security;
 alter table public.participants enable row level security;
@@ -108,7 +117,7 @@ begin
   if not found then return jsonb_build_object('error', 'not_found'); end if;
   if b.status = 'ended' then return jsonb_build_object('error', 'ended'); end if;
   return jsonb_build_object(
-    'assessment_type', b.assessment_type,
+    'assessment_type', b.assessment_type, 'wave', b.wave, 'year', b.year,
     'roster', coalesce((select jsonb_agg(jsonb_build_object('slug', slug, 'name', name, 'status', status) order by position)
                         from public.participants where batch_id = b.id), '[]'::jsonb));
 end $$;
@@ -194,7 +203,7 @@ begin
 
   select * into p from public.participants where id = p.id;
   return jsonb_build_object(
-    'batch', jsonb_build_object('assessment_type', b.assessment_type, 'prompt', b.prompt,
+    'batch', jsonb_build_object('assessment_type', b.assessment_type, 'prompt', b.prompt, 'wave', b.wave, 'year', b.year,
                                 'status', b.status, 'created_at', public.ms(b.created_at),
                                 'server_now', public.ms(now())),
     'me', jsonb_build_object('status', p.status, 'reopened', p.reopened, 'word_count', p.word_count,

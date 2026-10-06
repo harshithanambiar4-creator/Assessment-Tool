@@ -142,6 +142,14 @@ const TARGET_MINUTES = 30;         // the soft time target shown to everyone
 
 ---
 
+## Batch names
+
+Every new batch needs a name in the standard format, **Wave 8, 2026** or **Wave 4.2, 2026**. Coaches fill in two boxes, **Wave** (e.g. `8` or `4.2`) and **Year** (filled in with the current year), and the tool writes the name itself, so it's always consistent.
+
+- The name appears on the dashboard, in **My batches**, on the participant's screens (after they enter the code, and at the top while writing), and in the "Batch" line of downloaded files. The **Download all** ZIP is named after it, e.g. `Wave 8, 2026 - Baseline - coach copies.zip`.
+- To change it, click **Rename** next to the name on the dashboard. Participants who are already writing see the new name within a few seconds. Batches created before names existed show "Unnamed batch" with an **Add name** button.
+- Names don't have to be unique. Several coaches can each run "Wave 8, 2026"; every batch still has its own 6-letter code.
+
 ## What participants tried to paste or copy
 
 When a paste or copy is blocked, the tool also records **the text involved**. The coach sees it on the participant's page under **Paste and copy attempts**, and in the coach copy of their file.
