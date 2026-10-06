@@ -231,27 +231,82 @@ function pdfFamilyFor(fontName) {
   return "Carlito";
 }
 
+// Exact sizes of the font files in public/pdf-fonts, so a damaged or half-finished download is caught.
+const FONT_FILE_SIZES = {
+  "Arimo-Bold.ttf": 318844, "Arimo-BoldItalic.ttf": 342368, "Arimo-Italic.ttf": 340984, "Arimo-Regular.ttf": 318320,
+  "Carlito-Bold.ttf": 648128, "Carlito-BoldItalic.ttf": 745192, "Carlito-Italic.ttf": 580792, "Carlito-Regular.ttf": 593908,
+  "Cousine-Bold.ttf": 290500, "Cousine-BoldItalic.ttf": 300160, "Cousine-Italic.ttf": 298680, "Cousine-Regular.ttf": 289556,
+  "Tinos-Bold.ttf": 583484, "Tinos-BoldItalic.ttf": 563688, "Tinos-Italic.ttf": 549824, "Tinos-Regular.ttf": 508752,
+};
+const STYLES = [["normal", "Regular"], ["bold", "Bold"], ["italics", "Italic"], ["bolditalics", "BoldItalic"]];
+// If one style of a font won't work, use the closest one that does.
+const STYLE_FALLBACKS = { normal: ["bold", "italics"], bold: ["normal"], italics: ["normal", "bolditalics"], bolditalics: ["bold", "italics", "normal"] };
+// Problems found while preparing the PDF fonts (shown in the error message if a PDF still can't be made).
+export const pdfFontIssues = [];
+
 let pdfMakePromise = null;
 function loadPdfMake() {
   if (!pdfMakePromise) {
     pdfMakePromise = (async () => {
       const { default: pdfMake } = await import("pdfmake/build/pdfmake");
+      pdfFontIssues.length = 0;
       const toB64 = (buf) => {
         const bytes = new Uint8Array(buf); let s = "";
         for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
         return btoa(s);
       };
-      const vfs = {}, fonts = {};
-      await Promise.all(PDF_FAMILIES.flatMap((fam) => ["Regular", "Bold", "Italic", "BoldItalic"].map(async (v) => {
-        const res = await fetch(`/pdf-fonts/${fam}-${v}.ttf`);
-        if (!res.ok) throw new Error(`Couldn't load the PDF font ${fam}-${v}`);
-        vfs[`${fam}-${v}.ttf`] = toB64(await res.arrayBuffer());
+      // Download one font file and check it's complete and really a font; try once more if not.
+      const fetchFont = async (file) => {
+        let problem = "";
+        for (const cache of ["default", "reload"]) {
+          try {
+            const res = await fetch(`/pdf-fonts/${file}`, { cache });
+            if (!res.ok) { problem = `HTTP ${res.status}`; continue; }
+            const buf = await res.arrayBuffer();
+            const head = new Uint8Array(buf.slice(0, 4));
+            const isFont = (head[0] === 0 && head[1] === 1 && head[2] === 0 && head[3] === 0) || String.fromCharCode(...head) === "true";
+            if (!isFont) { problem = `not a font file (starts with "${String.fromCharCode(...head).replace(/[^\x20-\x7e]/g, "?")}")`; continue; }
+            if (buf.byteLength !== FONT_FILE_SIZES[file]) { problem = `incomplete (${buf.byteLength} of ${FONT_FILE_SIZES[file]} bytes)`; continue; }
+            return buf;
+          } catch (err) { problem = err.message || String(err); }
+        }
+        pdfFontIssues.push(`${file}: ${problem}`);
+        return null;
+      };
+
+      const vfs = {};
+      await Promise.all(PDF_FAMILIES.flatMap((fam) => STYLES.map(async ([, v]) => {
+        const buf = await fetchFont(`${fam}-${v}.ttf`);
+        if (buf) vfs[`${fam}-${v}.ttf`] = toB64(buf);
       })));
-      for (const fam of PDF_FAMILIES) {
-        fonts[fam] = { normal: `${fam}-Regular.ttf`, bold: `${fam}-Bold.ttf`, italics: `${fam}-Italic.ttf`, bolditalics: `${fam}-BoldItalic.ttf` };
-      }
       pdfMake.addVirtualFileSystem(vfs);
+
+      // Try each downloaded font on its own with a tiny test PDF, so one bad file can't break every PDF.
+      const works = {};
+      for (const fam of PDF_FAMILIES) {
+        works[fam] = {};
+        for (const [style, v] of STYLES) {
+          const file = `${fam}-${v}.ttf`;
+          if (!vfs[file]) continue;
+          pdfMake.setFonts({ T: { normal: file, bold: file, italics: file, bolditalics: file } });
+          try {
+            await pdfMake.createPdf({ content: [{ text: "Aa Bb 0123456789 ×—·•’ éü" }], defaultStyle: { font: "T" } }).getBlob();
+            works[fam][style] = file;
+          } catch (err) { pdfFontIssues.push(`${file}: can't be used (${err.message || err})`); }
+        }
+      }
+      const fonts = {};
+      for (const fam of PDF_FAMILIES) {
+        const w = works[fam];
+        const pick = (style) => w[style] || STYLE_FALLBACKS[style].map((s) => w[s]).find(Boolean);
+        if (STYLES.some(([style]) => pick(style))) fonts[fam] = Object.fromEntries(STYLES.map(([style]) => [style, pick(style) || Object.values(w)[0]]));
+      }
+      // A family with no working files borrows another family's fonts.
+      const spare = fonts.Carlito || fonts.Arimo || fonts.Tinos || fonts.Cousine;
+      if (!spare) throw new Error("none of the PDF fonts could be loaded");
+      for (const fam of PDF_FAMILIES) if (!fonts[fam]) fonts[fam] = spare;
       pdfMake.setFonts(fonts);
+      if (pdfFontIssues.length) console.warn("PDF font problems (worked around):", pdfFontIssues);
       return pdfMake;
     })();
     pdfMakePromise.catch(() => { pdfMakePromise = null; });
@@ -259,7 +314,17 @@ function loadPdfMake() {
   return pdfMakePromise;
 }
 
+// Wraps buildPdfInner so any failure explains itself and points to the print option.
 export async function buildPdf(record, variant) {
+  try { return await buildPdfInner(record, variant); }
+  catch (err) {
+    console.error("PDF creation failed", err, pdfFontIssues);
+    const extra = pdfFontIssues.length ? ` Font problems: ${pdfFontIssues.join("; ")}.` : "";
+    throw new Error(`${err.message || err}.${extra} You can use "Print / save as PDF" instead.`);
+  }
+}
+
+async function buildPdfInner(record, variant) {
   const pdfMake = await loadPdfMake();
   const content = [];
   const NAVY = "#1C2E4A", MUTED = "#6B7280";
@@ -378,15 +443,20 @@ export async function downloadBatchZip(records, zipName, onProgress) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const used = new Set();
+  const pdfFailures = [];
   let done = 0;
   for (const r of records) {
     let base = fileBaseName(r), n = 2;
     while (used.has(base)) base = `${fileBaseName(r)} (${n++})`;
     used.add(base);
     zip.file(`${base}.docx`, await buildDocx(r, "coach"));
-    zip.file(`${base}.pdf`, await buildPdf(r, "coach"));
+    try { zip.file(`${base}.pdf`, await buildPdf(r, "coach")); }
+    catch (err) { pdfFailures.push(`${base}: ${err.message || err}`); }
     done++;
     if (onProgress) onProgress(done, records.length);
   }
+  // If some PDFs couldn't be made, the Word files are still there, plus a note saying which PDFs are missing.
+  if (pdfFailures.length) zip.file("PDFs that could not be created.txt", pdfFailures.join("\r\n\r\n"));
   downloadBlob(await zip.generateAsync({ type: "blob" }), `${zipName.replace(/[\\/:*?"<>|]+/g, "-")}.zip`);
+  return pdfFailures.length;
 }

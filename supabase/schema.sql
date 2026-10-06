@@ -195,7 +195,8 @@ begin
   select * into p from public.participants where id = p.id;
   return jsonb_build_object(
     'batch', jsonb_build_object('assessment_type', b.assessment_type, 'prompt', b.prompt,
-                                'status', b.status, 'created_at', public.ms(b.created_at)),
+                                'status', b.status, 'created_at', public.ms(b.created_at),
+                                'server_now', public.ms(now())),
     'me', jsonb_build_object('status', p.status, 'reopened', p.reopened, 'word_count', p.word_count,
                              'name', p.name, 'submitted_at', public.ms(p.submitted_at))
           || case when p_full then jsonb_build_object(
@@ -208,9 +209,14 @@ begin
              else '{}'::jsonb end);
 end $$;
 
+-- The database's clock (milliseconds), so timers are right even when a computer's clock is off.
+create or replace function public.server_now() returns bigint
+language sql stable as $$ select public.ms(now()) $$;
+
 revoke all on function public.join_lookup(text)                                      from public;
 revoke all on function public.participant_claim(text, text, text, text)              from public;
 revoke all on function public.participant_sync(text, text, text, jsonb, text, boolean) from public;
 grant execute on function public.join_lookup(text)                                      to anon, authenticated;
+grant execute on function public.server_now()                                           to anon, authenticated;
 grant execute on function public.participant_claim(text, text, text, text)              to anon, authenticated;
 grant execute on function public.participant_sync(text, text, text, jsonb, text, boolean) to anon, authenticated;

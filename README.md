@@ -156,12 +156,12 @@ Files are named with the participant's name and the date and time of submission,
 
 | Copy | Contains | Who can download it |
 |---|---|---|
-| **Participant copy** | Name, batch, submission date and time, word count, and their answer | The participant, on their "Submitted" / "Batch ended" screen. The coach can also download it from the participant's page (named "… (participant copy)"). |
+| **Participant copy** | Name, batch, submission date and time, word count, and their answer | The participant, as **PDF or Print only** (no Word), on their "Submitted" / "Batch ended" screen. The coach can also download it in any format from the participant's page (named "… (participant copy)"). |
 | **Coach copy** | The same, plus the prompt, a flags summary, and the paste/copy log on its own page | The coach only, from the participant's page, or **Download all (ZIP)** on the dashboard for every finished participant. |
 
 Each copy is available as:
 - **Word**, with bold, italics, underline, colours, fonts, alignment and lists kept.
-- **PDF**, created automatically. Fonts are drawn with free look-alikes (Calibri-, Arial-, Times- and Courier-style). English and other Latin-alphabet text works; other scripts (e.g. Hindi) and emoji may not show.
+- **PDF**, created automatically. The font files are checked as they load; a damaged one is re-downloaded or replaced with a similar style, and if a PDF still can't be made, the message says why (use Print / save as PDF instead). In "Download all", the Word files are always included even if a PDF fails. Fonts are drawn with free look-alikes (Calibri-, Arial-, Times- and Courier-style). English and other Latin-alphabet text works; other scripts (e.g. Hindi) and emoji may not show.
 - **Print / save as PDF**, which opens a print view that looks exactly like the screen and shows every language. Choose "Save as PDF" as the printer.
 
 Good to know:

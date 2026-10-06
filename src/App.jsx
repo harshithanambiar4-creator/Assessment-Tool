@@ -483,7 +483,7 @@ function recordFor(p, batch) {
     pasteLog: p.pasteLog, copyLog: p.copyLog,
   };
 }
-function DownloadButtons({ record, variant, nameSuffix = "", label }) {
+function DownloadButtons({ record, variant, nameSuffix = "", label, word = true }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   const run = async (format) => {
@@ -497,9 +497,11 @@ function DownloadButtons({ record, variant, nameSuffix = "", label }) {
     <div>
       {label && <div className="text-xs font-medium mb-1.5" style={{ color: C.navy }}>{label}</div>}
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => run("docx")} disabled={!!busy} className={btn} style={{ background: C.navy, color: "#fff", opacity: busy ? 0.6 : 1 }}>
-          {busy === "docx" ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />} Word
-        </button>
+        {word && (
+          <button onClick={() => run("docx")} disabled={!!busy} className={btn} style={{ background: C.navy, color: "#fff", opacity: busy ? 0.6 : 1 }}>
+            {busy === "docx" ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />} Word
+          </button>
+        )}
         <button onClick={() => run("pdf")} disabled={!!busy} className={btn} style={{ background: C.navy, color: "#fff", opacity: busy ? 0.6 : 1 }}>
           {busy === "pdf" ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} PDF
         </button>
@@ -508,7 +510,7 @@ function DownloadButtons({ record, variant, nameSuffix = "", label }) {
           <Printer size={13} /> Print / save as PDF
         </button>
       </div>
-      {error && <div className="text-xs mt-1.5" style={{ color: C.red }}>{error}</div>}
+      {error && <div className="text-xs mt-1.5 break-words" style={{ color: C.red }}>{error}</div>}
     </div>
   );
 }
@@ -590,6 +592,11 @@ function CoachDashboard({ batchId, onBack }) {
   const [openSlug, setOpenSlug] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [zipState, setZipState] = useState(null);
+  // How far this computer's clock is from the database's, so "Elapsed" is right even if the computer's clock is off.
+  const [clockOffset, setClockOffset] = useState(0);
+  useEffect(() => {
+    rpc("server_now", {}).then((t) => { if (typeof t === "number") setClockOffset(t - Date.now()); }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let stop = false;
@@ -639,7 +646,7 @@ function CoachDashboard({ batchId, onBack }) {
     return <ParticipantDetail batch={batch} rosterEntry={r} onBack={() => setOpenSlug(null)} />;
   }
 
-  const elapsedMs = now - batch.createdAt;
+  const elapsedMs = Math.max(0, (batch.status === "ended" && batch.endedAt ? batch.endedAt : now + clockOffset) - batch.createdAt);
   const joined = Object.values(rows).filter((p) => p && p.status !== "unjoined").length;
   const submitted = Object.values(rows).filter((p) => p && (p.status === "submitted" || p.status === "locked")).length;
   // Finished answers: submitted, or locked when the batch ended.
@@ -648,9 +655,9 @@ function CoachDashboard({ batchId, onBack }) {
   const downloadAll = async () => {
     setZipState({ busy: true, done: 0, total: finished.length });
     try {
-      await downloadBatchZip(finished.map((p) => recordFor(p, batch)),
+      const pdfFailed = await downloadBatchZip(finished.map((p) => recordFor(p, batch)),
         `${ASSESSMENT_LABELS[batch.assessmentType] || "Assessment"} - Batch ${batch.code} - coach copies`, (done, total) => setZipState({ busy: true, done, total }));
-      setZipState(null);
+      setZipState(pdfFailed ? { error: `The ZIP was downloaded, but ${pdfFailed} PDF${pdfFailed === 1 ? "" : "s"} couldn't be created. The Word files are all there, and a note inside the ZIP explains what went wrong.` } : null);
     } catch (err) { setZipState({ error: `Couldn't create the ZIP: ${err.message || err}` }); }
   };
   const words = Object.values(rows).filter(Boolean).map((p) => p.wordCount || 0);
@@ -1314,7 +1321,7 @@ function ParticipantWrite({ code, onLeave }) {
     if (r.superseded) { setSuperseded(true); return false; }
     if (r.error) { if (payload) { dirty.current = true; setSaveState("error"); } return false; }
     if (payload) setSaveState("saved");
-    if (r.batch) batchRef.current = r.batch;
+    if (r.batch) batchRef.current = { ...r.batch, clockOffset: r.batch.server_now ? r.batch.server_now - Date.now() : 0 };
     if (r.me.status === "submitted" || r.me.status === "locked") { setLocked(r.me.status === "locked"); setSubmitted(true); }
     return true;
   }, [code, slug, myDeviceToken]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1331,7 +1338,7 @@ function ParticipantWrite({ code, onLeave }) {
       await doSync();
       const b = batchRef.current;
       if (b) {
-        const elapsedMin = Math.floor((Date.now() - b.created_at) / 60000);
+        const elapsedMin = Math.floor((Date.now() + (b.clockOffset || 0) - b.created_at) / 60000);
         [10, 20].forEach((m) => {
           if (elapsedMin >= m && !shownNotices.current.has(m)) {
             shownNotices.current.add(m);
@@ -1459,7 +1466,7 @@ function ParticipantWrite({ code, onLeave }) {
             <div className="rounded-xl p-5 mt-5 text-left" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
               <div className="text-sm font-semibold mb-1" style={{ color: C.navy }}>Keep a copy of your answer</div>
               <div className="text-xs mb-3" style={{ color: C.muted }}>Download it now. Once you close this page you can't come back to it.</div>
-              <DownloadButtons variant="participant" record={{
+              <DownloadButtons variant="participant" word={false} record={{
                 name: finalMe.name || window.__lawName || "Participant",
                 batchLabel: batchLabelOf(batch.assessment_type, code),
                 submittedAt: finalMe.submitted_at || finalMe.fetchedAt,
