@@ -9,7 +9,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import DOMPurify from "dompurify";
 import { supabase, isCoachLink, needsNewPassword, authLinkError } from "./supabaseClient";
 import { availableFonts, defaultFont, fontByName, COMMON_FONTS } from "./fonts";
-import { autocorrectWord, SPELLING_MODES } from "./autocorrect";
 
 // ---------- Design tokens (ReSource Pro palette, consistent with the earlier 1:1 version) ----------
 const C = {
@@ -93,11 +92,10 @@ function participantFromRow(r) {
     longestStreakMs: Number(r.longest_streak_ms), longestStreakWords: r.longest_streak_words,
     deviceSwitches: r.device_switches, reopened: r.reopened, reopenLog: r.reopen_log,
     pinFailures: r.pin_failures,
-    autocorrectCount: r.autocorrect_count || 0, autocorrectLog: r.autocorrect_log || [],
   };
 }
 function batchFromRow(r) {
-  return { id: r.id, code: r.code, assessmentType: r.assessment_type, prompt: r.prompt, spellingMode: r.spelling_mode,
+  return { id: r.id, code: r.code, assessmentType: r.assessment_type, prompt: r.prompt,
     status: r.status, createdAt: toMs(r.created_at), endedAt: toMs(r.ended_at) };
 }
 
@@ -122,8 +120,7 @@ function computeFlags(p) {
       if (next && next.type === "focus") awayMs += next.t - focus[i].t;
     }
   }
-  // Autocorrected words count as corrections too, so spelling help never makes "Few corrections" more likely.
-  const rate = p.keyCount > 20 ? ((p.backspaceCount || 0) + (p.autocorrectCount || 0)) / p.keyCount : null;
+  const rate = p.keyCount > 20 ? (p.backspaceCount || 0) / p.keyCount : null;
   return {
     pauseBurst,
     tabSwitches: switches,
@@ -345,7 +342,6 @@ function genPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
 
 function CoachNewBatch({ onCreated, onBack }) {
   const [type, setType] = useState("baseline");
-  const [spelling, setSpelling] = useState("autocorrect");
   const [prompt, setPrompt] = useState("");
   const [rosterText, setRosterText] = useState("");
   const [creating, setCreating] = useState(false);
@@ -369,7 +365,7 @@ function CoachNewBatch({ onCreated, onBack }) {
     let batch = null;
     for (let attempt = 0; attempt < 5 && !batch; attempt++) {
       const { data, error } = await supabase.from("batches")
-        .insert({ code: makeCode(), assessment_type: type, prompt: prompt.trim(), spelling_mode: spelling })
+        .insert({ code: makeCode(), assessment_type: type, prompt: prompt.trim() })
         .select().single();
       if (error && error.code !== "23505") throw error;
       batch = data;
@@ -433,9 +429,6 @@ function CoachNewBatch({ onCreated, onBack }) {
             ))}
           </div>
 
-          <label className="text-sm font-medium block mb-1.5" style={{ color: C.navy }}>Spelling help</label>
-          <SpellingPicker value={spelling} onChange={setSpelling} />
-
           <label className="text-sm font-medium block mb-1.5" style={{ color: C.navy }}>Prompt for this batch</label>
           <div className="text-xs mb-2" style={{ color: C.muted }}>Everyone in this batch sees the same prompt at the top of their screen.</div>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} className="w-full text-sm rounded-md px-3 py-2.5 outline-none resize-none mb-5" style={{ border: `1px solid ${C.border}` }} placeholder="Paste the assessment prompt here…" />
@@ -459,22 +452,6 @@ function CoachNewBatch({ onCreated, onBack }) {
 }
 
 // ---------- Small shared bits ----------
-function SpellingPicker({ value, onChange, compact = false }) {
-  return (
-    <div className={compact ? "" : "mb-4"}>
-      <div className="grid grid-cols-3 gap-2">
-        {Object.entries(SPELLING_MODES).map(([k, m]) => (
-          <button key={k} type="button" onClick={() => onChange(k)} className="text-xs font-medium rounded-md py-2 px-1"
-            style={{ border: `1px solid ${value === k ? C.teal : C.border}`, background: value === k ? C.tealSoft : C.panel, color: value === k ? C.navy : C.muted }}>
-            {m.label}
-          </button>
-        ))}
-      </div>
-      <div className="text-xs mt-1.5" style={{ color: C.muted }}>{SPELLING_MODES[value].help}</div>
-    </div>
-  );
-}
-
 function FlagBadges({ flags }) {
   if (!flags.pauseBurst && !flags.tabSwitches && !flags.lowRevision && !flags.deviceSwitches && !flags.pasteAttempts && !flags.copyAttempts && !flags.nonStop) return null;
   return (
@@ -589,12 +566,6 @@ function CoachDashboard({ batchId, onBack }) {
     setConfirmEnd(false);
   };
 
-  const changeSpelling = async (mode) => {
-    setBatch((cur) => ({ ...cur, spellingMode: mode }));
-    const { error } = await supabase.from("batches").update({ spelling_mode: mode }).eq("id", batchId);
-    if (error) setLoadError(dbErrorMessage(error));
-  };
-
   if (!batch) {
     if (loadError) return <Card onBack={onBack} width="max-w-md"><div className="text-sm" style={{ color: C.red }}>{loadError}</div></Card>;
     return <Spinner />;
@@ -644,13 +615,6 @@ function CoachDashboard({ batchId, onBack }) {
             </div>
           ))}
         </div>
-
-        {batch.status === "active" && (
-          <div className="rounded-lg p-4 mb-5" style={{ background: C.panel, border: `1px solid ${C.border}` }}>
-            <div className="text-xs font-semibold mb-2" style={{ color: C.navy }}>Spelling help for this batch <span className="font-normal" style={{ color: C.muted }}>· changes reach participants within a few seconds</span></div>
-            <SpellingPicker compact value={batch.spellingMode || "autocorrect"} onChange={changeSpelling} />
-          </div>
-        )}
 
         <div className="mb-5"><FlagLegend /></div>
 
@@ -784,12 +748,6 @@ function ParticipantDetail({ batchId, batchStatus, rosterEntry, onBack }) {
                 <div><div className="text-xs" style={{ color: C.muted }}>Submitted</div><div className="text-lg font-semibold" style={{ color: C.navy }}>{p.submittedAt ? new Date(p.submittedAt).toLocaleTimeString() : "—"}</div></div>
               </div>
               <FlagBadges flags={flags} />
-              {p.autocorrectCount > 0 && (
-                <div className="text-xs mt-3" style={{ color: C.muted }} title="Spelling help, not a flag">
-                  Autocorrected {p.autocorrectCount} word{p.autocorrectCount === 1 ? "" : "s"}
-                  {p.autocorrectLog.length > 0 && `: ${p.autocorrectLog.slice(-8).map((a) => `${a.from} → ${a.to}`).join(", ")}${p.autocorrectLog.length > 8 ? ", …" : ""}`}
-                </div>
-              )}
               {p.reopenLog && p.reopenLog.length > 0 && (
                 <div className="text-xs mt-3" style={{ color: C.mutedLight }}>
                   Reopened {p.reopenLog.length} time{p.reopenLog.length === 1 ? "" : "s"} — last at {new Date(p.reopenLog[p.reopenLog.length - 1].reopenedAt).toLocaleTimeString()}
@@ -1016,7 +974,6 @@ function ParticipantWrite({ code, onLeave }) {
   const slug = window.__lawSlug;
   const myDeviceToken = window.__lawDeviceToken;
   const [batch, setBatch] = useState(null);
-  const spellingMode = (batch && batch.spelling_mode) || "autocorrect";
   const [locked, setLocked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [superseded, setSuperseded] = useState(false);
@@ -1046,8 +1003,6 @@ function ParticipantWrite({ code, onLeave }) {
   };
   const longestStreakMsRef = useRef(0);
   const longestStreakWordsRef = useRef(0);
-  const autocorrectCountRef = useRef(0);
-  const autocorrectLogRef = useRef([]);
   const streakRef = useRef({ start: 0, last: 0, startWords: 0 });
 
   // Load this participant's saved state from the server into the trackers above.
@@ -1063,8 +1018,6 @@ function ParticipantWrite({ code, onLeave }) {
     copyLogRef.current = me.copy_log || [];
     longestStreakMsRef.current = Number(me.longest_streak_ms) || 0;
     longestStreakWordsRef.current = me.longest_streak_words || 0;
-    autocorrectCountRef.current = me.autocorrect_count || 0;
-    autocorrectLogRef.current = me.autocorrect_log || [];
     setWordCount(me.word_count || 0);
   };
   const sync = (data, final, full) => rpc("participant_sync", {
@@ -1111,9 +1064,7 @@ function ParticipantWrite({ code, onLeave }) {
     const blockPaste = (e) => { e.preventDefault(); logPaste("paste"); flashBanner("Pasting isn't allowed here — please type your answer."); };
     const blockDrop = (e) => { e.preventDefault(); logPaste("drop"); flashBanner("Dragging text in isn't allowed here."); };
     const blockCopy = (e) => { e.preventDefault(); logCopy(e.type === "cut" ? "cut-answer" : "copy-answer"); flashBanner("Copying out of this isn't allowed here."); };
-    // With spelling help on, right-click stays available for spelling suggestions. Paste/Copy/Cut
-    // chosen from that menu still fire the events above, so they're still blocked and counted.
-    const blockContext = (e) => { if (spellingMode === "off") e.preventDefault(); };
+    const blockContext = (e) => e.preventDefault();
     // Safety net for paste routes that skip the "paste" event (some mobile keyboards' clipboard buttons).
     const onBeforeInput = (e) => {
       if (e.inputType === "insertFromPaste" || e.inputType === "insertFromPasteAsQuotation") {
@@ -1162,39 +1113,7 @@ function ParticipantWrite({ code, onLeave }) {
       el.removeEventListener("keydown", onKeydown);
     };
     // `batch` matters: the editor only exists once the batch has loaded, so the listeners must attach then.
-  }, [submitted, batch, spellingMode]);
-
-  // Word-style autocorrect: when a space or punctuation mark is typed, fix the word just before it if it's
-  // on the list in src/autocorrect.js. Uses the browser's own text insertion, so Ctrl+Z undoes it like in Word.
-  useEffect(() => {
-    const el = editorRef.current;
-    if (!el || submitted || spellingMode !== "autocorrect") return;
-    const onTyped = (e) => {
-      if (e.inputType !== "insertText" || !e.data || !/^[\s.,;:!?)"\]]$/.test(e.data)) return;
-      const sel = window.getSelection();
-      if (!sel || !sel.isCollapsed || !sel.anchorNode || sel.anchorNode.nodeType !== Node.TEXT_NODE) return;
-      const node = sel.anchorNode;
-      const before = node.data.slice(0, sel.anchorOffset - e.data.length);
-      const m = before.match(/(^|[^A-Za-z'])([A-Za-z']+)$/);
-      if (!m) return;
-      const word = m[2];
-      const fix = autocorrectWord(word);
-      if (!fix) return;
-      const start = before.length - word.length;
-      const range = document.createRange();
-      range.setStart(node, start);
-      range.setEnd(node, start + word.length);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      document.execCommand("insertText", false, fix);
-      for (let i = 0; i < e.data.length; i++) sel.modify("move", "forward", "character"); // back past the space
-      autocorrectCountRef.current += 1;
-      autocorrectLogRef.current = [...autocorrectLogRef.current, { t: Date.now(), from: word, to: fix }];
-      dirty.current = true;
-    };
-    el.addEventListener("input", onTyped);
-    return () => el.removeEventListener("input", onTyped);
-  }, [submitted, batch, spellingMode]);
+  }, [submitted, batch]);
 
   // Focus/away tracking — window blur/focus catches switching to a separate app or window;
   // document.visibilitychange additionally catches switching to a NEW TAB in the same browser
@@ -1236,7 +1155,6 @@ function ParticipantWrite({ code, onLeave }) {
         pasteAttempts: pasteAttemptsRef.current, pasteLog: pasteLogRef.current,
         copyAttempts: copyAttemptsRef.current, copyLog: copyLogRef.current,
         longestStreakMs: longestStreakMsRef.current, longestStreakWords: longestStreakWordsRef.current,
-        autocorrectCount: autocorrectCountRef.current, autocorrectLog: autocorrectLogRef.current,
       };
       setWordCount(words);
       setSaveState("saving");
@@ -1252,11 +1170,7 @@ function ParticipantWrite({ code, onLeave }) {
     if (r.superseded) { setSuperseded(true); return false; }
     if (r.error) { if (payload) { dirty.current = true; setSaveState("error"); } return false; }
     if (payload) setSaveState("saved");
-    if (r.batch) {
-      // Pick up the coach changing the spelling setting mid-batch.
-      if (batchRef.current && r.batch.spelling_mode !== batchRef.current.spelling_mode) setBatch(r.batch);
-      batchRef.current = r.batch;
-    }
+    if (r.batch) batchRef.current = r.batch;
     if (r.me.status === "submitted" || r.me.status === "locked") { setLocked(r.me.status === "locked"); setSubmitted(true); }
     return true;
   }, [code, slug, myDeviceToken]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1461,9 +1375,11 @@ function ParticipantWrite({ code, onLeave }) {
           contentEditable
           suppressContentEditableWarning
           onInput={onInput}
-          spellCheck={spellingMode !== "off"}
-          autoCorrect={spellingMode === "off" ? "off" : "on"}
-          autoCapitalize={spellingMode === "off" ? "off" : "sentences"}
+          // No spelling help: no red underlines, and phone keyboards are asked not to autocorrect or
+          // auto-capitalise, so what's saved is exactly what the participant typed. Grammarly is switched off too.
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
           data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
           className="flex-1 rounded-b-xl px-5 py-4 text-sm outline-none overflow-y-auto"
           style={{ background: "#fff", border: `1px solid ${C.border}`, minHeight: 280, lineHeight: lineSpacing, color: C.text, fontFamily: startFont.stack, fontSize: 15 }}

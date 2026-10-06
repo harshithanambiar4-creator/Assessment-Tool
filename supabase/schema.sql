@@ -57,13 +57,6 @@ create table if not exists public.participants (
 );
 create index if not exists participants_batch_idx on public.participants (batch_id);
 
--- Added later (safe to re-run): per-batch spelling help, and a record of autocorrected words.
-alter table public.batches add column if not exists spelling_mode text not null default 'autocorrect';
-alter table public.batches drop constraint if exists batches_spelling_mode_check;
-alter table public.batches add constraint batches_spelling_mode_check check (spelling_mode in ('off', 'underline', 'autocorrect'));
-alter table public.participants add column if not exists autocorrect_count int not null default 0;
-alter table public.participants add column if not exists autocorrect_log jsonb not null default '[]';
-
 -- ---------- Coach access (row-level security) ----------
 alter table public.batches      enable row level security;
 alter table public.participants enable row level security;
@@ -181,8 +174,6 @@ begin
         focus_log            = public.longer_log(focus_log,    p_data->'focusLog'),
         paste_log            = public.longer_log(paste_log,    p_data->'pasteLog'),
         copy_log             = public.longer_log(copy_log,     p_data->'copyLog'),
-        autocorrect_log      = public.longer_log(autocorrect_log, p_data->'autocorrectLog'),
-        autocorrect_count    = greatest(autocorrect_count, coalesce((p_data->>'autocorrectCount')::int, 0)),
         key_count            = greatest(key_count,       coalesce((p_data->>'keyCount')::int, 0)),
         backspace_count      = greatest(backspace_count, coalesce((p_data->>'backspaceCount')::int, 0)),
         paste_attempts       = greatest(paste_attempts,  coalesce((p_data->>'pasteAttempts')::int, 0)),
@@ -204,8 +195,7 @@ begin
   select * into p from public.participants where id = p.id;
   return jsonb_build_object(
     'batch', jsonb_build_object('assessment_type', b.assessment_type, 'prompt', b.prompt,
-                                'status', b.status, 'created_at', public.ms(b.created_at),
-                                'spelling_mode', b.spelling_mode),
+                                'status', b.status, 'created_at', public.ms(b.created_at)),
     'me', jsonb_build_object('status', p.status, 'reopened', p.reopened, 'word_count', p.word_count)
           || case when p_full then jsonb_build_object(
                'content', p.content, 'claimed_at', public.ms(p.claimed_at),
@@ -213,8 +203,7 @@ begin
                'paste_log', p.paste_log, 'copy_log', p.copy_log,
                'key_count', p.key_count, 'backspace_count', p.backspace_count,
                'paste_attempts', p.paste_attempts, 'copy_attempts', p.copy_attempts,
-               'longest_streak_ms', p.longest_streak_ms, 'longest_streak_words', p.longest_streak_words,
-               'autocorrect_count', p.autocorrect_count, 'autocorrect_log', p.autocorrect_log)
+               'longest_streak_ms', p.longest_streak_ms, 'longest_streak_words', p.longest_streak_words)
              else '{}'::jsonb end);
 end $$;
 

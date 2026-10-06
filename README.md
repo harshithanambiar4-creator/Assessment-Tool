@@ -142,21 +142,9 @@ const TARGET_MINUTES = 30;         // the soft time target shown to everyone
 
 ---
 
-## Spelling help and autocorrect
+## Spelling
 
-When creating a batch, each coach picks how much spelling help participants get. It can also be changed on the dashboard while the batch is running.
-
-| Setting | What participants get |
-|---|---|
-| **Off** | No red underlines and no autocorrect. Phone keyboards are asked not to correct either. |
-| **Underline mistakes** | Misspelled words get a red underline, and right-clicking shows suggestions. Nothing changes automatically. |
-| **Underline + autocorrect** (default) | As above, and common misspellings are fixed as they type, like in Word: "teh" becomes "the", "recieve" becomes "receive", "i" becomes "I", "dont" becomes "don't". Ctrl+Z undoes a correction. |
-
-Autocorrect is **never counted as pasting**. The coach sees a note on the participant's page, such as "Autocorrected 3 words: teh → the, …", but it isn't a flag. Autocorrected words also count as corrections, so they don't trigger "Few corrections".
-
-To add words to the autocorrect list, edit [`src/autocorrect.js`](src/autocorrect.js) on GitHub. Each line is `misspelling: "correction",`. Only add misspellings that aren't real words.
-
-Grammar tools such as Grammarly are switched off in the writing area.
+The writing area has **no spell-checking and no autocorrect**: no red underlines, and nothing is changed automatically. What participants type is saved exactly as typed. Phone keyboards are asked not to autocorrect either. Most respect this, but a few keyboard apps may still suggest words. Grammar tools such as Grammarly are switched off in the writing area.
 
 ## Fonts
 
