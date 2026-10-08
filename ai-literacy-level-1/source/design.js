@@ -161,7 +161,7 @@ S.push({ n: [24], layout: 'pair', section: 2,
 S.push({ n: [25], layout: 'twoCol', section: 2,
   left: ['AI', 'AI can suggest, generate, organize, and assist.'],
   right: ['HUMAN', 'The person still provides context, judgment, verification, and decisions.'],
-  storyline: 'Two columns. AI side uses the cool AI colour and outline style; human side uses the warm human colour and solid style. This colour rule is used across the whole course.' });
+  storyline: 'Two columns. AI side uses Process blue (#4278BC) with a dashed outline; human side uses Talent teal (#00B6BD) with a solid outline. This colour rule is used across the whole course.' });
 
 S.push({ n: [26], layout: 'handoff', section: 2,
   ai: ['Generate', 'Suggest', 'Organize'], human: ['Judge', 'Verify', 'Decide', 'Own'],

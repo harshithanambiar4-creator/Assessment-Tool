@@ -26,8 +26,8 @@ ${css}
     <div><div class="stage-wrap"><div class="stage" id="stage"></div></div>
       <div class="ccbar"><div class="cc" id="cc" hidden></div></div>
       <div class="legend" style="margin-top:10px">
-        <span><i style="background:#2a6f97"></i>AI: cool blue, dashed outline, mono type</span>
-        <span><i style="background:#d9952b"></i>Human: warm marigold, solid</span>
+        <span><i style="background:#4278bc"></i>AI: Process blue, dashed outline, mono type</span>
+        <span><i style="background:#00b6bd"></i>People: Talent teal, solid</span>
         <span><i style="background:#7a3cc8"></i>NEW: needs your approval</span>
         <span>Arrow keys move between screens.</span>
       </div></div>

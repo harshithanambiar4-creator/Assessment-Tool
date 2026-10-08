@@ -8,28 +8,28 @@
 
   // ---------- icons (same shapes ship in the asset pack) ----------
   const I = {
-    warn: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linejoin="round"><path d="M24 6 44 41H4Z"/><path d="M24 19v11M24 35v1" stroke-linecap="round"/></svg>',
-    balance: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v36M12 42h24M8 14h32"/><path d="M8 14 3 28h10ZM40 14l-5 14h10Z"/></svg>',
-    agent: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="32" height="24" rx="6"/><path d="M24 6v8M18 26h.01M30 26h.01M4 24v6M44 24v6"/></svg>',
-    idea: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 30a12 12 0 1 1 14 0v6H17Z"/><path d="M19 42h10"/></svg>',
-    draft: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M16 22h16M16 29h16M16 36h9"/></svg>',
-    doc: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M30 6v8h8M16 24h16M16 31h12"/></svg>',
-    search: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round"><circle cx="21" cy="21" r="12"/><path d="m30 30 12 12"/></svg>',
+    warn: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linejoin="round"><path d="M24 6 44 41H4Z"/><path d="M24 19v11M24 35v1" stroke-linecap="round"/></svg>',
+    balance: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v36M12 42h24M8 14h32"/><path d="M8 14 3 28h10ZM40 14l-5 14h10Z"/></svg>',
+    agent: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="32" height="24" rx="6"/><path d="M24 6v8M18 26h.01M30 26h.01M4 24v6M44 24v6"/></svg>',
+    idea: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 30a12 12 0 1 1 14 0v6H17Z"/><path d="M19 42h10"/></svg>',
+    draft: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M16 22h16M16 29h16M16 36h9"/></svg>',
+    doc: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M30 6v8h8M16 24h16M16 31h12"/></svg>',
+    search: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round"><circle cx="21" cy="21" r="12"/><path d="m30 30 12 12"/></svg>',
     lock: c => `<svg viewBox="0 0 48 48" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 18 0v6M24 30v4"/></svg>`,
-    open: '<svg viewBox="0 0 48 48" fill="none" stroke="#2f8a5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 17-4"/><path d="m18 31 4 4 8-8"/></svg>',
-    play: '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7Z" fill="#172036"/></svg>',
-    sys: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3"><rect x="8" y="8" width="32" height="32" rx="8"/><circle cx="24" cy="24" r="6"/></svg>',
+    open: '<svg viewBox="0 0 48 48" fill="none" stroke="#4f7a1c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 17-4"/><path d="m18 31 4 4 8-8"/></svg>',
+    play: '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7Z" fill="#192952"/></svg>',
+    sys: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3"><rect x="8" y="8" width="32" height="32" rx="8"/><circle cx="24" cy="24" r="6"/></svg>',
   };
   const MEERA = `<svg viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Meera">
-    <circle cx="80" cy="80" r="78" fill="#fbf0dc"/>
-    <path d="M30 150c4-30 24-46 50-46s46 16 50 46Z" fill="#2a6f97"/>
+    <circle cx="80" cy="80" r="78" fill="#d9f4f5"/>
+    <path d="M30 150c4-30 24-46 50-46s46 16 50 46Z" fill="#00b6bd"/>
     <path d="M66 100h28v14c-4 6-24 6-28 0Z" fill="#9c6b4a"/>
     <circle cx="80" cy="70" r="30" fill="#b07a55"/>
     <path d="M48 70c0-24 14-38 33-38s31 14 31 34c-10-2-22-10-28-20-6 12-20 22-36 24Z" fill="#1e1a22"/>
     <circle cx="104" cy="42" r="12" fill="#1e1a22"/>
     <circle cx="70" cy="74" r="2.6" fill="#1e1a22"/><circle cx="91" cy="74" r="2.6" fill="#1e1a22"/>
     <path d="M72 86c5 4 11 4 16 0" stroke="#5a3826" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <circle cx="80.5" cy="60" r="2" fill="#c4523b"/>
+    <circle cx="80.5" cy="60" r="2" fill="#c63b6a"/>
   </svg>`;
 
   // ---------- parsing helpers for signed-off text ----------
@@ -79,10 +79,10 @@
   const L = {};
   L.title = s => ({ dark: true, chrome: false, html: `
     <svg class="title-art" viewBox="0 0 560 560" aria-hidden="true">
-      <circle cx="300" cy="280" r="220" fill="none" stroke="#2a6f97" stroke-width="2" stroke-dasharray="6 10"/>
-      <circle cx="300" cy="280" r="150" fill="none" stroke="#2a6f97" stroke-width="2" stroke-dasharray="6 10"/>
-      <circle cx="300" cy="280" r="80" fill="#d9952b"/>
-      <circle cx="520" cy="280" r="10" fill="#7fb6d8"/><circle cx="150" cy="170" r="10" fill="#7fb6d8"/><circle cx="300" cy="430" r="10" fill="#7fb6d8"/>
+      <circle cx="300" cy="280" r="220" fill="none" stroke="#4278bc" stroke-width="2" stroke-dasharray="6 10"/>
+      <circle cx="300" cy="280" r="150" fill="none" stroke="#4278bc" stroke-width="2" stroke-dasharray="6 10"/>
+      <circle cx="300" cy="280" r="80" fill="#00b6bd"/>
+      <circle cx="520" cy="280" r="10" fill="#8fb0e0"/><circle cx="150" cy="170" r="10" fill="#8fb0e0"/><circle cx="300" cy="430" r="10" fill="#8fb0e0"/>
     </svg>
     <div class="content title-slide" style="justify-content:center">
       <div class="level in">${esc(sb(1).onscreen.split('\n')[0].toUpperCase())}</div>
@@ -175,8 +175,8 @@
     const grp = [0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 1, 0];
     const cen = [[110, 90], [250, 240], [360, 100]];
     return { html: `<div class="content">${head(17)}<div class="pattern">
-      <svg viewBox="0 0 440 330" aria-hidden="true">${cen.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="62" fill="#e3eef5" stroke="#2a6f97" stroke-width="2" stroke-dasharray="5 6" class="in" style="animation-delay:1.4s"/>`).join('')}
-        ${pts.map(([x, y], k) => { const [cx, cy] = cen[grp[k]]; const tx = cx + ((k * 37) % 50) - 25, ty = cy + ((k * 23) % 50) - 25; return `<circle r="9" fill="#2a6f97" cx="${tx}" cy="${ty}"><animate attributeName="cx" from="${x}" to="${tx}" dur="1.2s" begin="0.2s" fill="freeze"/><animate attributeName="cy" from="${y}" to="${ty}" dur="1.2s" begin="0.2s" fill="freeze"/></circle>`; }).join('')}
+      <svg viewBox="0 0 440 330" aria-hidden="true">${cen.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="62" fill="#e6eef8" stroke="#4278bc" stroke-width="2" stroke-dasharray="5 6" class="in" style="animation-delay:1.4s"/>`).join('')}
+        ${pts.map(([x, y], k) => { const [cx, cy] = cen[grp[k]]; const tx = cx + ((k * 37) % 50) - 25, ty = cy + ((k * 23) % 50) - 25; return `<circle r="9" fill="#4278bc" cx="${tx}" cy="${ty}"><animate attributeName="cx" from="${x}" to="${tx}" dur="1.2s" begin="0.2s" fill="freeze"/><animate attributeName="cy" from="${y}" to="${ty}" dur="1.2s" begin="0.2s" fill="freeze"/></circle>`; }).join('')}
       </svg>
       <div class="card ai in" ${st(0, 1.6)}><span class="term" style="font-size:20px">${esc(s.card[0])}</span><p style="font-size:26px">${esc(s.card[1])}</p></div></div></div>` };
   };
@@ -233,21 +233,21 @@
 
   L.warning = s => ({ html: `<div class="content">${head(31)}<div class="row" style="align-items:center;gap:60px;margin-top:10px">
     <div class="warncard in"><div class="lines-skel"><i></i><i></i><i style="width:85%"></i><i></i><i style="width:60%"></i><i></i><i style="width:75%"></i></div><span class="mark">≠</span></div>
-    <div><p class="lead in" ${st(0, .6)} style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1.4)} style="margin-top:20px;color:#c4523b;font-weight:600">${esc(s.sub)}</p></div></div></div>` });
+    <div><p class="lead in" ${st(0, .6)} style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1.4)} style="margin-top:20px;color:#c63b6a;font-weight:600">${esc(s.sub)}</p></div></div></div>` });
 
   L.balance = s => ({ html: `<div class="content">${head(32)}<div class="row" style="align-items:center;gap:40px">
     <div class="in" style="width:200px;flex:none">${I.balance.replace('<svg', '<svg width="200" height="200"')}</div>
     <div class="twocol" style="flex:1;margin:0">${s.cards.map(([t, d], k) => `<div class="card ${k ? 'human' : 'ai'} in" ${st(k, .5, .9)}><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div></div></div>` });
 
   L.checks3 = s => ({ html: `<div class="content">${head(33)}<p class="lead in">${esc(s.intro)}</p>
-    <div class="steps" style="grid-template-columns:repeat(3,1fr);gap:20px">${s.checks.map((c, k) => `<div class="step" ${st(k, .6, .6)} style="text-align:center;padding:40px 20px"><div style="width:64px;height:64px;border-radius:50%;background:#2f8a5b;color:#fff;display:grid;place-items:center;margin:0 auto 18px;font:800 30px var(--f-body)">✓</div><span class="term" style="font-size:24px">${c}</span></div>`).join('')}</div></div>` });
+    <div class="steps" style="grid-template-columns:repeat(3,1fr);gap:20px">${s.checks.map((c, k) => `<div class="step" ${st(k, .6, .6)} style="text-align:center;padding:40px 20px"><div style="width:64px;height:64px;border-radius:50%;background:#4f7a1c;color:#fff;display:grid;place-items:center;margin:0 auto 18px;font:800 30px var(--f-body)">✓</div><span class="term" style="font-size:24px">${c}</span></div>`).join('')}</div></div>` });
 
   L.gate = s => ({ html: `<div class="content">${head(34)}<div class="row" style="align-items:center;gap:50px">
     <svg viewBox="0 0 420 260" width="420" height="260" aria-hidden="true">
-      <path d="M10 70h250" stroke="#2a6f97" stroke-width="4" stroke-dasharray="10 8"/><text x="10" y="50" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#2a6f97">AI</text>
-      <rect x="262" y="40" width="16" height="60" rx="3" fill="#c4523b"/>
-      <path d="M10 190h400" stroke="#d9952b" stroke-width="6"/><text x="10" y="172" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#9a6514">HUMAN</text>
-      <path d="M396 178l14 12-14 12" fill="none" stroke="#d9952b" stroke-width="6"/>
+      <path d="M10 70h250" stroke="#4278bc" stroke-width="4" stroke-dasharray="10 8"/><text x="10" y="50" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#4278bc">AI</text>
+      <rect x="262" y="40" width="16" height="60" rx="3" fill="#c63b6a"/>
+      <path d="M10 190h400" stroke="#00b6bd" stroke-width="6"/><text x="10" y="172" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#00777c">HUMAN</text>
+      <path d="M396 178l14 12-14 12" fill="none" stroke="#00b6bd" stroke-width="6"/>
     </svg>
     <div><p class="lead in" style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1)} style="margin-top:16px">${esc(s.sub)}</p></div></div></div>` });
 
@@ -261,11 +261,11 @@
       <div class="instr">${esc(s.instruction)} <span class="added-tag" style="position:static">NEW</span></div></div>` };
   };
 
-  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#d9952b')}${t}</div>`).join('')}</div></div>` });
+  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00b6bd')}${t}</div>`).join('')}</div></div>` });
 
   L.threeGate = s => ({ html: `<div class="content">${head(41)}<div class="gate3">${s.parts.map((p, k) => `${k ? '<div class="plus">+</div>' : ''}<div class="gpart" ${st(k, .4, .8)}>${I.open}${esc(p)}</div>`).join('')}</div></div>` });
 
-  L.stages = s => ({ html: `<div class="content">${head(42)}<div class="stages">${s.stages.map((t, k) => `${k ? `<div class="ln" style="animation-delay:${(k * .8).toFixed(1)}s"></div>` : ''}<div class="stg" ${st(k, .3, .8)}><div class="lock">${I.lock('#d9952b')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>
+  L.stages = s => ({ html: `<div class="content">${head(42)}<div class="stages">${s.stages.map((t, k) => `${k ? `<div class="ln" style="animation-delay:${(k * .8).toFixed(1)}s"></div>` : ''}<div class="stg" ${st(k, .3, .8)}><div class="lock">${I.lock('#00b6bd')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>
     <p class="lead in" ${st(0, 2.6)} style="margin-top:44px;text-align:center;max-width:none;font-weight:600">${esc(s.sub)}</p></div>` });
 
   L.promptPart = s => {
@@ -285,14 +285,14 @@
     s.highlights.forEach(([w, lab]) => { clear = clear.replace(esc(w), `<span class="hl">${esc(w)}<small>${esc(lab)}</small></span>`); });
     const show = !!state.gate[idx];
     return { gate: show, html: `<div class="content">${head(52)}<div class="cmp ${show ? 'show' : ''}">
-      <div class="card vague in"><span class="term" style="color:#5b6577">VAGUE</span><p>${esc(s.vague)}</p></div>
+      <div class="card vague in"><span class="term" style="color:#5a5c61">VAGUE</span><p>${esc(s.vague)}</p></div>
       <div class="card ai clear in" ${st(0, .8)}><span class="term">CLEARER</span><p>${show ? clear : esc(s.clear)}</p></div></div>
       <button class="navbtn toggle" data-act="hl" ${show ? 'disabled' : ''}>${show ? 'Details highlighted' : 'Show what was added'}</button></div>` };
   };
 
   L.agentModel = s => ({ html: `<div class="content">${head(56)}<p class="lead in">${esc(s.text)}</p>
     <div class="agent"><div class="inputs">${s.inputs.map((t, k) => `<div class="inp" ${st(k, .5, .5)}>${esc(t)}</div>`).join('')}</div>
-      <div class="funnel"><svg viewBox="0 0 120 260" aria-hidden="true"><path d="M0 40 C60 40 60 130 110 130 M0 130 H110 M0 220 C60 220 60 130 110 130" fill="none" stroke="#2a6f97" stroke-width="3" class="in" style="animation-delay:1.8s"/><path d="M104 122l12 8-12 8" fill="#2a6f97"/></svg></div>
+      <div class="funnel"><svg viewBox="0 0 120 260" aria-hidden="true"><path d="M0 40 C60 40 60 130 110 130 M0 130 H110 M0 220 C60 220 60 130 110 130" fill="none" stroke="#4278bc" stroke-width="3" class="in" style="animation-delay:1.8s"/><path d="M104 122l12 8-12 8" fill="#4278bc"/></svg></div>
       <div class="task in" ${st(0, 2.1)}>A defined task</div></div></div>` });
 
   L.lanes = s => ({ html: `<div class="content">${head(57)}<div class="lanes">
@@ -311,14 +311,14 @@
     state.gate[idx] = g;
     const panes = [
       `<h3>Talent meeting summary</h3><p>We will create an agent that turns meeting notes into a completed meeting summary using the approved Talent meeting-summary template.</p><p><b>The rule:</b> the agent must use only the information in the meeting notes. If an owner, deadline, decision, minority view, or other detail is not provided, it must not invent one.</p>`,
-      `<h3>${esc(s.notesTitle)}</h3><ul>${s.notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul><p class="src" style="color:#5b6577;font-size:14px;margin-top:12px">Names are fictional.</p>`,
+      `<h3>${esc(s.notesTitle)}</h3><ul>${s.notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul><p class="src" style="color:#5a5c61;font-size:14px;margin-top:12px">Names are fictional.</p>`,
       `<h3>Right prompt for Atlas</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
       `<h3>Expected output check</h3><p>${esc(s.check)}</p><p><b>Example action items</b></p><ol>${s.actions.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
        <p style="margin-top:14px"><b>Before you accept the output, ask:</b></p><ol>${s.review.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
     ];
     return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on · Guided Atlas activity')}
       <div class="tryit"><div class="tabs">${s.tabs.map(([t, d], k) => `<button class="tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="tab" data-k="${k}"><span class="term">${t}</span><span>${esc(d)}</span></button>`).join('')}
-        <p style="font-size:14px;color:#5b6577;margin:6px 2px">Open all four tabs, then try it in Atlas.</p></div>
+        <p style="font-size:14px;color:#5a5c61;margin:6px 2px">Open all four tabs, then try it in Atlas.</p></div>
       <div class="tpane">${g.cur == null ? '<h3>Select a tab to begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to check the output.</p>' : panes[g.cur]}</div></div></div>` };
   };
 
@@ -336,7 +336,7 @@
       ${answered.length < 8 ? `<h2 class="h">Answer all 8 questions to see your result</h2><p class="lead">You have answered ${answered.length} of 8.</p>` : `
       <div class="row" style="align-items:center;gap:60px;margin-top:20px"><div class="score ${pass ? 'pass' : 'fail'}">${pct}%</div>
       <div><h2 class="h" style="margin-bottom:12px">${esc(pass ? s.pass.title : s.fail.title)}</h2><p class="lead">${esc(pass ? s.pass.text : s.fail.text)}</p>
-      <p class="lead" style="font-size:18px;margin-top:10px;color:#5b6577">${right} of 8 correct · pass mark 80%</p>
+      <p class="lead" style="font-size:18px;margin-top:10px;color:#5a5c61">${right} of 8 correct · pass mark 80%</p>
       ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : '<button class="navbtn next" style="margin-top:22px" data-act="retake">Retry assessment</button>'}</div></div>`}</div>` };
   };
 
