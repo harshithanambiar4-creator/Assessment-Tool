@@ -1,0 +1,650 @@
+[
+ {
+  "n": 1,
+  "section": "Opening",
+  "title": "AI LITERACY",
+  "onscreen": "Level 1\nUnderstand AI. Use It Responsibly.",
+  "vo": "Welcome to AI Literacy, Level 1. This course gives you a practical foundation for understanding AI, using it responsibly, and knowing where human judgment must remain at the center.",
+  "build": "Title animation only. Keep the screen clean and let the narration introduce the course."
+ },
+ {
+  "n": 2,
+  "section": "Opening",
+  "title": "What you will learn",
+  "onscreen": "By the end of this course, you will be able to:\n• Use AI effectively and understand its limitations\n• Use AI responsibly and protect sensitive information\n• Use basic prompting techniques to guide AI outputs",
+  "vo": "By the end of this course, you will be able to use AI effectively while understanding its limitations, use AI responsibly while protecting sensitive information, and use basic prompting techniques to guide AI outputs.",
+  "build": "Reveal the three outcomes one at a time."
+ },
+ {
+  "n": 3,
+  "section": "Opening",
+  "title": "The learning journey",
+  "onscreen": "1  Understand AI\n2  Understand its capabilities and limits\n3  See where AI supports work\n4  Use AI responsibly\n5  Protect information\n6  Prompt with purpose\n7  Experience an AI agent\n8  Demonstrate your judgment",
+  "vo": "We will move from understanding AI, to understanding what it can and cannot do, to seeing where it can support work. We will then focus on responsible use, information protection, prompting, and a short experience with an AI agent before you complete the assessment.",
+  "build": "Build the journey as a horizontal path. Highlight the current step as the learner progresses."
+ },
+ {
+  "n": 4,
+  "section": "Opening",
+  "title": "AWARE is your guide",
+  "onscreen": "A  Appreciate AI\nW  Weigh the Output\nA  Assess the Risk\nR  Respond with the Right Prompt\nE  Ensure Human Accountability",
+  "vo": "AWARE is the mental model that connects the course. Appreciate what AI is and what it can do. Weigh the output rather than accepting it automatically. Assess the risks. Respond with a clear prompt. And ensure that human judgment and accountability stay at the center.",
+  "build": "Animate the five letters in sequence. Do not reteach the framework later. Use the relevant letter as a small visual cue."
+ },
+ {
+  "n": 5,
+  "section": "Understanding AI",
+  "title": "Understanding AI",
+  "onscreen": "What is AI?\nHow does generative AI work at a high level?\nWhat language will you hear when people talk about AI?",
+  "vo": "Let us begin with the foundation: what AI is, what generative AI means, and a few terms you need to recognize.",
+  "build": ""
+ },
+ {
+  "n": 6,
+  "section": "Understanding AI",
+  "title": "What is Artificial Intelligence?",
+  "onscreen": "AI is technology that enables systems to perform tasks that typically require human intelligence.\n\nRecognize patterns  •  Understand information  •  Generate content  •  Make predictions",
+  "vo": "Artificial intelligence is technology that enables systems to perform tasks that typically require some form of human intelligence. Depending on the technology, AI can recognize patterns, understand information, generate content, make predictions, and support decisions.",
+  "build": "Use a central AI node with four surrounding capability cards. Keep the definition visually dominant."
+ },
+ {
+  "n": 7,
+  "section": "Understanding AI",
+  "title": "AI is a broad field",
+  "onscreen": "AI is not one single tool.\n\nDifferent systems can be designed for different capabilities.",
+  "vo": "One important point is that AI is a broad field, not one single tool. Different AI systems can be designed for different capabilities. This course focuses on the concepts that apply across AI tools.",
+  "build": "Show several simple system tiles feeding into one AI umbrella. Avoid naming products."
+ },
+ {
+  "n": 8,
+  "section": "Understanding AI",
+  "title": "What is Generative AI?",
+  "onscreen": "Generative AI creates new content from instructions and context.\n\nTEXT   IMAGES   AUDIO   VIDEO   CODE",
+  "vo": "Generative AI refers to AI that creates new content. Depending on the system, that content can include text, images, audio, video, or code.",
+  "build": "Animate the five output types from the center. Keep the definition on screen throughout."
+ },
+ {
+  "n": 9,
+  "section": "Understanding AI",
+  "title": "What is a Large Language Model?",
+  "onscreen": "A language model learns patterns from large amounts of data and uses those patterns to generate language.",
+  "vo": "A large language model, or LLM, learns patterns from large amounts of data and uses those patterns to generate language in response to an instruction. The important point for Level 1 is that an LLM generates a response based on learned patterns. That does not mean the response has automatically been checked for accuracy.",
+  "build": "Show data patterns flowing into a language model and then into a response. Do not imply that the model independently verifies facts."
+ },
+ {
+  "n": 10,
+  "section": "Understanding AI",
+  "title": "Three terms you will use often",
+  "onscreen": "PROMPT\nThe instruction you give AI\n\nCONTEXT\nInformation that helps AI understand the task",
+  "vo": "A prompt is the instruction you give an AI system. Context is the information that helps the system understand what you need. You will use both ideas again when we cover prompting.",
+  "build": "Use two large cards. Reveal prompt first, then context."
+ },
+ {
+  "n": 11,
+  "section": "Understanding AI",
+  "title": "Three terms to recognize",
+  "onscreen": "HALLUCINATION\nAn inaccurate or unsupported AI output\n\nBIAS\nA pattern that can lead to unfair or distorted outcomes\n\nAGENT\nAn AI system configured to carry out a defined task",
+  "vo": "A hallucination is an inaccurate or unsupported AI output. Bias can lead to unfair or distorted outcomes. An AI agent is a system configured to carry out a defined task using instructions, context, and available capabilities.",
+  "build": "Use three cards with a single example icon for each term."
+ },
+ {
+  "n": 12,
+  "section": "Understanding AI",
+  "title": "Knowledge Check",
+  "onscreen": "A workplace tool creates a new draft email from your instructions.\n\nWhat type of AI is involved?\n\nA  Predictive AI\nB  Generative AI\nC  Spreadsheet formula\nD  Search filter",
+  "vo": "You have learned that generative AI creates new content. Select the option that best describes a tool creating a new draft email from your instructions.",
+  "build": "Use four selectable answer cards. On selection, show the separate feedback layer.\nSelect one answer."
+ },
+ {
+  "n": 13,
+  "section": "Understanding AI",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nGenerative AI creates new content from instructions and context.\n\nINCORRECT\nThe key clue is that the system is creating new content from your instructions.",
+  "vo": "Correct feedback: Generative AI creates new content from instructions and context.\nIncorrect feedback: The key clue is that the system is creating new content from your instructions.",
+  "build": "Feedback layer for the previous slide. Add a Try Again or Continue trigger in Storyline.\nFeedback layer."
+ },
+ {
+  "n": 14,
+  "section": "Capabilities and Limits",
+  "title": "What AI Can and Cannot Do",
+  "onscreen": "AI can support many kinds of work.\nBut capability does not equal reliability.",
+  "vo": "Now that you know what AI is, let us look at a critical distinction: what AI can do is not the same as what AI can reliably do.",
+  "build": ""
+ },
+ {
+  "n": 15,
+  "section": "Capabilities and Limits",
+  "title": "AI can generate and transform",
+  "onscreen": "GENERATE\nCreate a first draft or new content\n\nTRANSFORM\nRewrite, reformat, translate, or adapt existing content",
+  "vo": "AI can generate new content and transform existing content. For example, it can create a first draft or adapt information into a different format.",
+  "build": "Use a before and after visual with two large capability cards."
+ },
+ {
+  "n": 16,
+  "section": "Capabilities and Limits",
+  "title": "AI can summarize and organize",
+  "onscreen": "SUMMARIZE\nCondense information into key points\n\nORGANIZE\nGroup, structure, or extract information",
+  "vo": "AI can also summarize information and help organize it. These capabilities can save time, but the resulting output still needs to be reviewed when accuracy matters.",
+  "build": "Show a long document becoming a concise summary and then a structured list."
+ },
+ {
+  "n": 17,
+  "section": "Capabilities and Limits",
+  "title": "AI can identify patterns",
+  "onscreen": "IDENTIFY PATTERNS\nSpot themes, similarities, differences, or recurring information",
+  "vo": "AI can identify patterns in information. This can be useful for exploring large amounts of content, but pattern recognition does not automatically mean that the interpretation is correct or appropriate.",
+  "build": "Use a simple visual of repeated items becoming grouped themes."
+ },
+ {
+  "n": 18,
+  "section": "Capabilities and Limits",
+  "title": "AI cannot guarantee the answer",
+  "onscreen": "AI cannot guarantee:\n• Accuracy\n• Completeness\n• Current information\n• Fairness\n• Appropriate judgment",
+  "vo": "AI can produce useful output, but it cannot guarantee accuracy, completeness, current information, fairness, or appropriate judgment. Those are areas where human review remains important.",
+  "build": "Reveal each limitation one at a time. Keep the list short and prominent."
+ },
+ {
+  "n": 19,
+  "section": "Capabilities and Limits",
+  "title": "Confident does not mean correct",
+  "onscreen": "CONFIDENT OUTPUT  ≠  CORRECT OUTPUT",
+  "vo": "One of the most important habits in working with AI is to separate confidence from correctness. An AI response can sound polished and certain while still containing an error.",
+  "build": "Make the not-equal symbol the visual focus. Reuse this as a recurring micro-message later."
+ },
+ {
+  "n": 20,
+  "section": "Capabilities and Limits",
+  "title": "Knowledge Check",
+  "onscreen": "An AI tool gives you a confident answer containing a fact you cannot confirm.\n\nWhat should you do?\n\nA  Assume confidence means accuracy\nB  Use it immediately\nC  Verify the information using an appropriate reliable source\nD  Ask AI to sound more certain",
+  "vo": "Select the response that best reflects responsible use of an AI-generated answer that you cannot confirm.",
+  "build": "Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."
+ },
+ {
+  "n": 21,
+  "section": "Capabilities and Limits",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nAI can produce convincing but inaccurate information. Important facts should be verified.\n\nINCORRECT\nAI can sound confident even when it is wrong. Important information should be checked before use.",
+  "vo": "Correct feedback: AI can produce convincing but inaccurate information. Important facts should be verified.\nIncorrect feedback: AI can sound confident even when it is wrong. Important information should be checked before use.",
+  "build": "Feedback layer for the previous slide.\nFeedback layer."
+ },
+ {
+  "n": 22,
+  "section": "AI at Work",
+  "title": "AI at Work",
+  "onscreen": "Think  •  Create  •  Understand  •  Explore\n\nAI supports the work. People own the work.",
+  "vo": "AI can support work in many ways. At Level 1, the goal is not to teach specific workflows. It is to understand the role AI can play and the role people must continue to play.",
+  "build": ""
+ },
+ {
+  "n": 23,
+  "section": "AI at Work",
+  "title": "AI can help you think and create",
+  "onscreen": "THINK\nExplore ideas and possibilities\n\nCREATE\nDraft or generate content",
+  "vo": "AI can support thinking by helping you explore ideas and possibilities. It can also support creation by producing a starting draft or alternative versions.",
+  "build": "Use two large cards with light motion from idea to draft."
+ },
+ {
+  "n": 24,
+  "section": "AI at Work",
+  "title": "AI can help you understand and explore",
+  "onscreen": "UNDERSTAND\nSummarize, explain, or clarify information\n\nEXPLORE\nSurface possibilities, themes, or questions",
+  "vo": "AI can help you understand information by summarizing, explaining, or clarifying it. It can also help you explore possibilities, themes, or questions.",
+  "build": "Use document and magnifying-glass style editable shapes."
+ },
+ {
+  "n": 25,
+  "section": "AI at Work",
+  "title": "AI is an assistant, not the owner",
+  "onscreen": "AI can suggest, generate, organize, and assist.\n\nThe person still provides context, judgment, verification, and decisions.",
+  "vo": "The safest way to think about AI at work is as an assistant, not the owner of the work. AI can suggest, generate, organize, and assist. People provide the context, judgment, verification, and decisions.",
+  "build": "Use a simple two-column visual: AI assists on the left, human owns the work on the right."
+ },
+ {
+  "n": 26,
+  "section": "AI at Work",
+  "title": "Keep the human in the loop",
+  "onscreen": "AI\nGenerate • Suggest • Organize\n\nHUMAN\nJudge • Verify • Decide • Own",
+  "vo": "The human role is especially important when work affects people, business decisions, or important outcomes. AI may support the process, but people remain responsible for evaluating the output and making the decision.",
+  "build": "Animate the handoff from AI output to human review and decision."
+ },
+ {
+  "n": 27,
+  "section": "AI at Work",
+  "title": "Knowledge Check",
+  "onscreen": "Which example best reflects AI as an assistant?\n\nA  AI decides who should be promoted\nB  AI generates learning campaign ideas for a person to evaluate\nC  AI approves a disciplinary action\nD  AI determines a candidate suitability without human review",
+  "vo": "Select the example that keeps AI in an assisting role and human judgment in the decision.",
+  "build": "Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."
+ },
+ {
+  "n": 28,
+  "section": "AI at Work",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nAI can support ideation while the person remains responsible for evaluation and decisions.\n\nINCORRECT\nAI can assist with ideas and information, but sensitive decisions require human judgment and accountability.",
+  "vo": "Correct feedback: AI can support ideation while the person remains responsible for evaluation and decisions.\nIncorrect feedback: AI can assist with ideas and information, but sensitive decisions require human judgment and accountability.",
+  "build": "Feedback layer for the previous slide.\nFeedback layer."
+ },
+ {
+  "n": 29,
+  "section": "Responsible AI",
+  "title": "Responsible AI",
+  "onscreen": "Pause before you trust the output.\n\nCheck accuracy. Consider fairness. Review use. Keep human accountability.",
+  "vo": "Responsible AI is about how we use AI, not just what AI can produce. We will focus on accuracy, fairness, intellectual property, appropriate use, and accountability.",
+  "build": ""
+ },
+ {
+  "n": 30,
+  "section": "Responsible AI",
+  "title": "Accuracy: pause, check, verify",
+  "onscreen": "PAUSE\nDo not accept the output automatically\n\nCHECK\nIdentify claims that matter\n\nVERIFY\nUse an appropriate reliable source",
+  "vo": "When accuracy matters, pause before using the output. Check the claims that matter and verify them using an appropriate reliable source.",
+  "build": "Build the three steps as a simple horizontal process."
+ },
+ {
+  "n": 31,
+  "section": "Responsible AI",
+  "title": "Hallucinations can look convincing",
+  "onscreen": "An AI output can be fluent, polished, and still be wrong.\n\nIf the consequence matters, verify.",
+  "vo": "AI systems can produce inaccurate or unsupported information, sometimes called hallucinations. The important lesson is not to judge accuracy by how polished the answer sounds.",
+  "build": "Show a polished answer card with a subtle warning marker. Avoid scary imagery."
+ },
+ {
+  "n": 32,
+  "section": "Responsible AI",
+  "title": "Bias and fairness",
+  "onscreen": "ASK\nCould this output disadvantage someone?\n\nREVIEW\nPay closer attention when people may be affected.",
+  "vo": "AI can reflect patterns or biases present in the information used to develop or operate a system. When people may be affected, review the output for fairness and apply human judgment.",
+  "build": "Use a balance visual with a question prompt. Keep the wording neutral and practical."
+ },
+ {
+  "n": 33,
+  "section": "Responsible AI",
+  "title": "Copyright and intellectual property",
+  "onscreen": "Before you use or share AI-generated content:\n\nCHECK  •  REVIEW  •  CONFIRM",
+  "vo": "AI-generated or transformed content is not automatically free to use. Consider ownership, permissions, copyright, intellectual property requirements, and your organization expectations before using or sharing content.",
+  "build": "Use three editable check cards. Avoid legal claims beyond the source material."
+ },
+ {
+  "n": 34,
+  "section": "Responsible AI",
+  "title": "When AI should not be the decision-maker",
+  "onscreen": "Do not delegate sensitive decisions or accountability to AI.\n\nEspecially when decisions affect people or carry significant consequences.",
+  "vo": "There are situations where AI should support the process rather than make the decision. Do not delegate sensitive decisions or accountability to AI, especially when people may be affected or consequences are significant.",
+  "build": "Use a decision gate visual."
+ },
+ {
+  "n": 35,
+  "section": "Responsible AI",
+  "title": "Human accountability stays with us",
+  "onscreen": "AI can assist.\n\nHumans remain accountable.",
+  "vo": "This is the core principle of the course. AI can assist, but humans remain accountable for how outputs are reviewed, used, and acted upon.",
+  "build": "Make this a strong visual statement. Reuse the phrase at the end of the course."
+ },
+ {
+  "n": 36,
+  "section": "Responsible AI",
+  "title": "Knowledge Check",
+  "onscreen": "AI generates a recommendation that could affect an employee.\n\nWhat is the most responsible next step?\n\nA  Use it because AI is objective\nB  Review the recommendation, verify the information, consider fairness, and apply human judgment\nC  Share it immediately\nD  Let AI make the final decision",
+  "vo": "Select the response that keeps human review, fairness, and accountability at the center.",
+  "build": "Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."
+ },
+ {
+  "n": 37,
+  "section": "Responsible AI",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nHuman review, verification, fairness, and accountability are essential when people may be affected.\n\nINCORRECT\nAI should not be treated as the final decision-maker in situations that affect people.",
+  "vo": "Correct feedback: Human review, verification, fairness, and accountability are essential when people may be affected.\nIncorrect feedback: AI should not be treated as the final decision-maker in situations that affect people.",
+  "build": "Feedback layer for the previous slide.\nFeedback layer."
+ },
+ {
+  "n": 38,
+  "section": "Data, Privacy and Security",
+  "title": "Data, Privacy and Security",
+  "onscreen": "Before you share information with an AI tool, stop and assess the information, the tool, and your permission to use it.",
+  "vo": "Responsible AI also means protecting information. Before you enter information into an AI tool, consider what the information is, who owns it, whether the tool is approved, and whether you are permitted to use it.",
+  "build": ""
+ },
+ {
+  "n": 39,
+  "section": "Data, Privacy and Security",
+  "title": "Think before you share",
+  "onscreen": "1  What information is it?\n2  Who owns it?\n3  Is the tool approved?\n4  Am I permitted to use it?",
+  "vo": "Use four questions before sharing information with an AI tool. What information is it? Who owns it? Is the tool approved? And am I permitted to use it?",
+  "build": "Reveal the four questions in sequence. Make them usable as a mental checklist."
+ },
+ {
+  "n": 40,
+  "section": "Data, Privacy and Security",
+  "title": "Information to protect",
+  "onscreen": "CONFIDENTIAL\nSENSITIVE\nEMPLOYEE\nCANDIDATE\nPERSONAL",
+  "vo": "Protect confidential, sensitive, employee, candidate, and personal information. The ability of a tool to process information does not mean you are permitted to share that information with it.",
+  "build": "Use five simple category cards. Keep this slide about recognition, not policy detail."
+ },
+ {
+  "n": 41,
+  "section": "Data, Privacy and Security",
+  "title": "Use approved tools",
+  "onscreen": "APPROVED TOOL\n+\nPERMISSION\n+\nPOLICY REQUIREMENTS",
+  "vo": "Use approved AI tools and follow organizational policies and permissions. If you are unsure whether information may be used with a tool, stop and check the applicable requirement before proceeding.",
+  "build": "Use a three-part gate visual. Do not name internal tools unless the organization has approved them for the audience."
+ },
+ {
+  "n": 42,
+  "section": "Data, Privacy and Security",
+  "title": "Protect the information throughout the process",
+  "onscreen": "Before input  →  During use  →  Before sharing output\n\nProtect information at every stage.",
+  "vo": "Information protection does not stop when you enter the prompt. Consider the information before input, during use, and again before sharing the output.",
+  "build": "Use a three-stage process with a lock icon motif."
+ },
+ {
+  "n": 43,
+  "section": "Data, Privacy and Security",
+  "title": "Knowledge Check",
+  "onscreen": "You want to paste an employee name, performance information, and personal details into an AI tool.\n\nWhat should you consider first?\n\nA  Whether the prompt is short\nB  Whether the information may be shared, whether the tool is approved, and what policy requirements apply\nC  Whether AI can summarize it\nD  Whether the output will look professional",
+  "vo": "Select the response that checks permission, tool approval, and policy requirements before the information is shared.",
+  "build": "Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."
+ },
+ {
+  "n": 44,
+  "section": "Data, Privacy and Security",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nCheck permissions, sensitivity, approved tools, and organizational requirements before sharing information.\n\nINCORRECT\nThe ability to process information does not mean you are permitted to share it. Privacy, security, and policy requirements come first.",
+  "vo": "Correct feedback: Check permissions, sensitivity, approved tools, and organizational requirements before sharing information.\nIncorrect feedback: The ability to process information does not mean you are permitted to share it. Privacy, security, and policy requirements come first.",
+  "build": "Feedback layer for the previous slide.\nFeedback layer."
+ },
+ {
+  "n": 45,
+  "section": "Prompting",
+  "title": "Prompting Fundamentals",
+  "onscreen": "A useful prompt gives AI enough information to understand what you need.",
+  "vo": "Once you know how AI works at a high level and how to use it responsibly, the next step is giving clear instructions. Prompting is simply communicating what you need from the system.",
+  "build": ""
+ },
+ {
+  "n": 46,
+  "section": "Prompting",
+  "title": "Start with context",
+  "onscreen": "CONTEXT\nWhat does AI need to know to understand the situation?",
+  "vo": "Context gives AI the information it needs to understand the situation. Think about the background, source information, or relevant details that shape the task.",
+  "build": "Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."
+ },
+ {
+  "n": 47,
+  "section": "Prompting",
+  "title": "Define the task",
+  "onscreen": "TASK\nWhat exactly do you want AI to do?",
+  "vo": "State the task clearly. Tell AI what you want it to produce, change, summarize, compare, or organize.",
+  "build": "Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."
+ },
+ {
+  "n": 48,
+  "section": "Prompting",
+  "title": "Specify the audience",
+  "onscreen": "AUDIENCE\nWho is the output for?",
+  "vo": "Tell AI who will use or read the output. Audience can influence language, detail, tone, and emphasis.",
+  "build": "Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."
+ },
+ {
+  "n": 49,
+  "section": "Prompting",
+  "title": "Describe the output",
+  "onscreen": "OUTPUT\nWhat should the result look like?",
+  "vo": "Describe the result you want. You can specify format, structure, length, or other output expectations.",
+  "build": "Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."
+ },
+ {
+  "n": 50,
+  "section": "Prompting",
+  "title": "Add constraints",
+  "onscreen": "CONSTRAINTS\nWhat boundaries should AI follow?",
+  "vo": "Add useful boundaries such as length, deadline, tone, required elements, or information that must be included or excluded.",
+  "build": "Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."
+ },
+ {
+  "n": 51,
+  "section": "Prompting",
+  "title": "Put the pieces together",
+  "onscreen": "CONTEXT + TASK + AUDIENCE + OUTPUT + CONSTRAINTS\n\nA clearer instruction gives AI a clearer target.",
+  "vo": "The five fundamentals work together. Context, task, audience, output, and constraints give AI a clearer target. You do not need advanced prompting techniques for this level.",
+  "build": "Animate each element into one prompt structure."
+ },
+ {
+  "n": 52,
+  "section": "Prompting",
+  "title": "From vague to clear",
+  "onscreen": "VAGUE\nWrite an email.\n\nCLEARER\nDraft a 100-word professional reminder to employees to complete mandatory training by Friday.",
+  "vo": "Compare these two prompts. The stronger version tells AI what to create, who it is for, how long it should be, the tone, and the deadline. The goal is not to make the prompt complicated. The goal is to make the request clear.",
+  "build": "Use a side-by-side comparison. Highlight the added information rather than adding more examples."
+ },
+ {
+  "n": 53,
+  "section": "Prompting",
+  "title": "Knowledge Check",
+  "onscreen": "Which prompt is more likely to produce a useful result?\n\nA  Write an email.\nB  Write something professional.\nC  Draft a 100-word professional reminder to employees to complete mandatory training by Friday.\nD  Email training.",
+  "vo": "Select the prompt that gives AI enough information to understand the intended result.",
+  "build": "Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."
+ },
+ {
+  "n": 54,
+  "section": "Prompting",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nThe prompt gives a clear task, audience, output expectation, tone, and deadline.\n\nINCORRECT\nA stronger prompt gives AI enough context and constraints to understand the desired result.",
+  "vo": "Correct feedback: The prompt gives a clear task, audience, output expectation, tone, and deadline.\nIncorrect feedback: A stronger prompt gives AI enough context and constraints to understand the desired result.",
+  "build": "Feedback layer for the previous slide.\nFeedback layer."
+ },
+ {
+  "n": 55,
+  "section": "AI Agents",
+  "title": "AI Agents and Atlas Experience",
+  "onscreen": "From a single response to a defined task",
+  "vo": "You now have the foundation to understand what an AI agent is. In this section, you will see the difference between a chatbot and an agent and then experience a simple agent scenario in Atlas.",
+  "build": ""
+ },
+ {
+  "n": 56,
+  "section": "AI Agents",
+  "title": "What is an AI agent?",
+  "onscreen": "An AI agent is an AI system configured to carry out a defined task using:\n\nINSTRUCTIONS  +  CONTEXT  +  AVAILABLE CAPABILITIES",
+  "vo": "At a high level, an AI agent is an AI system configured to carry out a defined task using instructions, context, and available capabilities. An agent can work through a defined task or sequence rather than simply returning one response.",
+  "build": "Use a three-input model flowing into a defined task. Keep this conceptual."
+ },
+ {
+  "n": 57,
+  "section": "AI Agents",
+  "title": "Chatbot versus AI agent",
+  "onscreen": "CHATBOT\nYou ask → AI responds\n\nAGENT\nYou define a task → Agent works through it",
+  "vo": "A chatbot typically responds to the request you make. An agent can be configured around a defined task and work through that task using its instructions, context, and capabilities.",
+  "build": "Use two lanes. Animate the chatbot response as one step and the agent task as a short sequence."
+ },
+ {
+  "n": 58,
+  "section": "AI Agents",
+  "title": "Atlas: see the concept in action",
+  "onscreen": "CREATE  →  CONFIGURE  →  TEST  →  REVIEW\n\nUse the approved Atlas environment for the demonstration.",
+  "vo": "Now we will connect the concept to a simple experience in Atlas. The focus is not on mastering a tool. Watch how the task is defined, how instructions and context shape the agent, how the result is tested, and how the output is reviewed.",
+  "build": "Insert an approved Atlas screen recording or screenshots. Do not invent UI labels. Add callouts to the actual interface during build."
+ },
+ {
+  "n": 59,
+  "section": "AI Agents",
+  "title": "Atlas demonstration storyboard",
+  "onscreen": "STEP 1  Define the task\nSTEP 2  Add instructions and context\nSTEP 3  Test with a sample situation\nSTEP 4  Review the output",
+  "vo": "For the demonstration, define one simple task, add the instructions and context the agent needs, test it with a sample situation, and then review the output. The review step is essential: an agent can complete a task without making the result automatically correct or appropriate.",
+  "build": "Use this slide as the setup for a short screen recording. The exact Atlas clicks should be captured from the approved environment.\nScreen recording setup."
+ },
+ {
+  "n": 60,
+  "section": "AI Agents",
+  "title": "Try It — Create a Talent Meeting Summary Agent",
+  "onscreen": "SCENARIO\nTalent meeting summary\n\nINPUT\nSample meeting notes\n\nTASK\nCreate a meeting summary using the Talent meeting-summary template\n\nOUTPUT\nCompleted meeting summary",
+  "vo": "Now it is your turn to try the concept using a familiar Talent workflow. We will create an agent that turns meeting notes into a completed meeting summary using the approved Talent meeting-summary template.\n\nThe agent will identify the meeting details, agenda items, descriptions, action items or next steps, responsible persons, deadlines, announcements, minority views and alternate opinions, outcomes of minority-view consideration, and additional notes where the information is provided.\n\nThe important rule is that the agent must use only the information in the meeting notes. If an owner, deadline, decision, minority view, or other detail is not provided, it must not invent one.",
+  "build": "HANDS-ON / GUIDED ATLAS ACTIVITY\n\nSample meeting notes\n• Purpose: Business Writing Team Connect\n• The team reviewed the October Tip 3 content and finalized the version for sharing.\n• The finalized Tip 3 should be shared with the team. Owner: Team. Deadline: October 2.\n• Karthika demonstrated the AI Agent Builder feature in Atlas and walked the team through an R&R Auditor Agent she created.\n• Karthika will share the R&R Auditor Agent prompt and demonstration details with the team. Deadline: October 2.\n• Karthika walked the team through the AI presentation prepared for Talent Development.\n• No announcements or minority views were recorded.\n\nRIGHT PROMPT FOR ATLAS\nCreate a meeting summary using the Talent meeting-summary template. Review the meeting notes provided below and populate the relevant fields in the template. Capture meeting details, agenda items, descriptions, action items or next steps, responsible persons, deadlines, announcements, minority views and alternate opinions, outcomes of minority-view consideration, and additional notes when the information is provided. Use only information explicitly stated in the meeting notes. Do not infer or invent owners, deadlines, decisions, viewpoints, or other details. If a field is not supported by the notes, leave it blank or mark it as Not specified, according to the template requirement. Keep the wording concise and professional while preserving the meaning of the original notes.\n\nEXPECTED OUTPUT CHECK\nThe completed summary should follow the Talent template structure and accurately reflect the source notes. The learner must review the output before using or sharing it."
+ },
+ {
+  "n": 61,
+  "section": "AI Agents",
+  "title": "Knowledge Check",
+  "onscreen": "Which statement best describes an AI agent?\n\nA  A system that only searches the internet\nB  A system configured to carry out defined tasks using instructions, context, and available capabilities\nC  Any chatbot\nD  A spreadsheet macro",
+  "vo": "Select the statement that best describes an AI agent.",
+  "build": "Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."
+ },
+ {
+  "n": 62,
+  "section": "AI Agents",
+  "title": "Layer — Knowledge Check",
+  "onscreen": "CORRECT\nAn AI agent can be configured to carry out a defined task or sequence using available capabilities.\n\nINCORRECT\nAn agent is more than a chatbot response. It is configured to perform a defined task using instructions, context, and capabilities.",
+  "vo": "Correct feedback: An AI agent can be configured to carry out a defined task or sequence using available capabilities.\nIncorrect feedback: An agent is more than a chatbot response. It is configured to perform a defined task using instructions, context, and capabilities.",
+  "build": "Feedback layer for the previous slide.\nFeedback layer."
+ },
+ {
+  "n": 63,
+  "section": "Assessment",
+  "title": "Comprehensive Assessment",
+  "onscreen": "Show what you know.\n\nThe assessment tests understanding and judgment, not simple recall.",
+  "vo": "You have reached the comprehensive assessment. The questions bring together the ideas from the course and ask you to apply judgment to realistic situations.",
+  "build": "Use a clean transition into the assessment. Eight scenario-based questions follow."
+ },
+ {
+  "n": 64,
+  "section": "Assessment",
+  "title": "1 of 8 — AI Fundamentals",
+  "onscreen": "A tool creates a first draft of a communication based on your instructions. What capability is this?\n\nA  Data storage\nB  Generative AI\nC  Password management\nD  File compression",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 65,
+  "section": "Assessment",
+  "title": "Layer — Assessment 1 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 66,
+  "section": "Assessment",
+  "title": "2 of 8 — AI Limitations",
+  "onscreen": "An AI-generated summary includes a statement that may be outdated. What is the appropriate response?\n\nA  Publish it immediately\nB  Verify the statement before relying on it\nC  Assume the AI checked it\nD  Remove all human review",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 67,
+  "section": "Assessment",
+  "title": "Layer — Assessment 2 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 68,
+  "section": "Assessment",
+  "title": "3 of 8 — Human Accountability",
+  "onscreen": "An AI system suggests an action that could affect an employee. What should happen?\n\nA  AI makes the final decision\nB  A person reviews the information, context, fairness, and implications before deciding\nC  The recommendation is automatically approved\nD  The employee should not be informed",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 69,
+  "section": "Assessment",
+  "title": "Layer — Assessment 3 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 70,
+  "section": "Assessment",
+  "title": "4 of 8 — Data and Privacy",
+  "onscreen": "You need to use AI with candidate information. What should you check first?\n\nA  Only whether the AI produces a good answer\nB  Whether the information may be shared, whether the tool is approved, and what policies apply\nC  Whether the prompt is short\nD  Whether the output is visually appealing",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 71,
+  "section": "Assessment",
+  "title": "Layer — Assessment 4 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 72,
+  "section": "Assessment",
+  "title": "5 of 8 — Prompting",
+  "onscreen": "Which prompt is strongest?\n\nA  Summarize this.\nB  Make it better.\nC  Create a concise professional 100-word summary for a leadership audience, highlighting three key actions.\nD  Write something useful.",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 73,
+  "section": "Assessment",
+  "title": "Layer — Assessment 5 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 74,
+  "section": "Assessment",
+  "title": "6 of 8 — Responsible Use",
+  "onscreen": "An AI response is polished and persuasive but contains a claim you cannot verify. What should you do?\n\nA  Use it because it sounds professional\nB  Verify the claim before using it\nC  Ask AI to make it more persuasive\nD  Remove the source and keep the claim",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 75,
+  "section": "Assessment",
+  "title": "Layer — Assessment 6 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 76,
+  "section": "Assessment",
+  "title": "7 of 8 — AI at Work",
+  "onscreen": "Which example best reflects AI as an assistant?\n\nA  AI decides which employee should be promoted\nB  AI generates possible learning campaign ideas that a person evaluates\nC  AI approves a disciplinary action\nD  AI determines a candidate suitability without human review",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 77,
+  "section": "Assessment",
+  "title": "Layer — Assessment 7 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 78,
+  "section": "Assessment",
+  "title": "8 of 8 — AI Agents",
+  "onscreen": "At a high level, what is an AI agent?\n\nA  Any software application\nB  An AI system configured to carry out defined tasks using instructions, context, and available capabilities\nC  A static report\nD  A search engine",
+  "vo": "Read the scenario and select the response that best reflects the principles from this course.",
+  "build": "Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."
+ },
+ {
+  "n": 79,
+  "section": "Assessment",
+  "title": "Layer — Assessment 8 of 8",
+  "onscreen": "CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "vo": "Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.",
+  "build": "Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."
+ },
+ {
+  "n": 80,
+  "section": "Close",
+  "title": "Carry AWARE forward",
+  "onscreen": "A  Appreciate AI\nW  Weigh the Output\nA  Assess the Risk\nR  Respond with the Right Prompt\nE  Ensure Human Accountability\n\nAI can assist. Humans remain accountable.",
+  "vo": "You now have the Level 1 foundation. Use AWARE as you continue working with AI: appreciate what it can do, weigh the output, assess the risk, respond with the right prompt, and ensure human accountability.",
+  "build": "Animate AWARE as a final recap. End on the core principle."
+ },
+ {
+  "n": 81,
+  "section": "Close",
+  "title": "What comes next",
+  "onscreen": "LEVEL 1  Understand\nBuild the foundation\n\nLEVEL 2  Use\nApply AI to everyday work\n\nLEVEL 3  Apply\nUse AI within your function\n\nLEVEL 4  Improve and Transform\nRedesign and scale AI-enabled work",
+  "vo": "Level 1 establishes the foundation. Later levels build on it with practical everyday use, function-specific applications, and AI-enabled improvement and transformation. The goal here is not to cover everything. It is to make sure everyone starts from a shared foundation.",
+  "build": "Show four connected levels. Highlight Level 1 as complete."
+ }
+]

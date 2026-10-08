@@ -1,0 +1,945 @@
+<title>AI Literacy Level 1 Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: a fixed 1280x720 course "stage" (the Storyline slide, fixed palette) inside a theme-aware review shell. */
+:root {
+  /* review shell (follows viewer theme) */
+  --shell-bg: #e7ebf0;
+  --shell-fg: #1a2233;
+  --shell-muted: #5d6779;
+  --shell-panel: #ffffff;
+  --shell-line: #d3d9e2;
+  --shell-accent: #2a6f97;
+
+  /* course stage (fixed: this is the Storyline slide palette) */
+  --ink: #172036;
+  --ink-2: #2b3550;
+  --paper: #f3f5f8;
+  --card: #ffffff;
+  --line: #d9dee7;
+  --muted: #5b6577;
+  --ai: #2a6f97;        /* AI = cool, outlined, mono */
+  --ai-soft: #e3eef5;
+  --human: #d9952b;     /* Human = warm, solid */
+  --human-soft: #fbf0dc;
+  --ok: #2f8a5b;
+  --ok-soft: #e2f3ea;
+  --alert: #c4523b;
+  --alert-soft: #f9e5e0;
+
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --shell-bg: #0f141d; --shell-fg: #e4e9f1; --shell-muted: #95a0b3; --shell-panel: #18202c; --shell-line: #2a3444; --shell-accent: #7fb6d8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --shell-bg: #0f141d; --shell-fg: #e4e9f1; --shell-muted: #95a0b3; --shell-panel: #18202c; --shell-line: #2a3444; --shell-accent: #7fb6d8;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body { background: var(--shell-bg); color: var(--shell-fg); font-family: var(--f-body); margin: 0; }
+.shell { display: grid; grid-template-rows: auto 1fr; min-height: 100%; padding-inline: 16px; padding-block: 12px; gap: 12px; box-sizing: border-box; }
+
+/* ---------- review toolbar ---------- */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 13px; }
+.toolbar h1 { font-family: var(--f-display); font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+.toolbar .sp { flex: 1; }
+.toolbar label { display: inline-flex; align-items: center; gap: 6px; color: var(--shell-muted); cursor: pointer; }
+.toolbar select, .toolbar button { font: inherit; color: var(--shell-fg); background: var(--shell-panel); border: 1px solid var(--shell-line); border-radius: 6px; padding: 5px 10px; }
+.toolbar button { cursor: pointer; }
+.toolbar button[aria-pressed="true"] { border-color: var(--shell-accent); color: var(--shell-accent); }
+.toolbar select { max-width: min(340px, 100%); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
+.main.no-notes { grid-template-columns: minmax(0, 1fr); }
+.main.no-notes .notes { display: none; }
+@media (max-width: 1000px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- stage ---------- */
+.stage-wrap { width: 100%; aspect-ratio: 16 / 9; position: relative; max-width: 100%; }
+.stage {
+  position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0;
+  background: var(--paper); color: var(--ink); font-family: var(--f-body); overflow: hidden;
+  border-radius: 6px; box-shadow: 0 10px 30px rgba(10, 20, 40, .18);
+}
+.stage *, .stage *::before, .stage *::after { box-sizing: border-box; }
+.stage.dark { background: var(--ink); color: #f3f5f8; }
+
+/* top progress path (lives on the Storyline slide master) */
+.path { position: absolute; left: 64px; right: 400px; top: 26px; height: 20px; display: flex; align-items: center; gap: 0; }
+.path .seg { flex: 1; height: 2px; background: var(--line); position: relative; }
+.path .seg.done { background: var(--human); }
+.path .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line); background: var(--paper); flex: none; position: relative; }
+.path .dot.done { background: var(--human); border-color: var(--human); }
+.path .dot.now { border-color: var(--human); background: var(--paper); box-shadow: 0 0 0 4px var(--human-soft); }
+.path .now-label { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stage.dark .path .seg { background: #3a4562; }
+.stage.dark .path .dot { background: var(--ink); border-color: #3a4562; }
+.stage.dark .path .dot.done { background: var(--human); border-color: var(--human); }
+.stage.dark .path .dot.now { background: var(--ink); border-color: var(--human); box-shadow: 0 0 0 4px rgba(217,149,43,.25); }
+.stage.dark .path .now-label { color: #aab3c5; }
+
+.badge { position: absolute; right: 48px; top: 16px; display: flex; align-items: center; gap: 8px; font: 600 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.badge b { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; background: var(--ink); color: var(--human); font: 700 20px var(--f-display); letter-spacing: 0; }
+.stage.dark .badge { color: #aab3c5; }
+.stage.dark .badge b { background: #24304a; }
+
+.footer { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; border-top: 1px solid var(--line); display: flex; align-items: center; padding: 0 32px; gap: 16px; font-size: 13px; color: var(--muted); background: var(--paper); }
+.stage.dark .footer { background: var(--ink); border-color: #2b3550; color: #aab3c5; }
+.footer .brand { font: 700 13px var(--f-display); letter-spacing: .02em; color: var(--ink); }
+.stage.dark .footer .brand { color: #f3f5f8; }
+.footer .sp { flex: 1; }
+.navbtn { font: 600 14px var(--f-body); border-radius: 8px; padding: 9px 18px; cursor: pointer; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); }
+.navbtn.next { background: var(--ink); color: #fff; }
+.stage.dark .navbtn { border-color: #f3f5f8; color: #f3f5f8; }
+.stage.dark .navbtn.next { background: var(--human); border-color: var(--human); color: var(--ink); }
+.navbtn:disabled { opacity: .35; cursor: not-allowed; }
+.iconbtn { font: 600 12px var(--f-mono); border: 1.5px solid currentColor; background: transparent; color: inherit; border-radius: 6px; padding: 6px 9px; cursor: pointer; }
+.iconbtn[aria-pressed="true"] { background: var(--ai); border-color: var(--ai); color: #fff; }
+.stage button:focus-visible, .toolbar :focus-visible, .notes :focus-visible { outline: 3px solid var(--human); outline-offset: 2px; }
+
+.ccbar { min-height: 52px; margin-top: 8px; display: flex; justify-content: center; align-items: flex-start; }
+.cc { max-width: 900px; background: #0f1420; color: #fff; font: 400 16px/1.45 var(--f-body); padding: 8px 16px; border-radius: 6px; text-align: center; }
+
+/* ---------- slide content area ---------- */
+.content { position: absolute; left: 64px; right: 64px; top: 84px; bottom: 76px; display: flex; flex-direction: column; }
+.eyebrow { font: 600 13px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ai); margin-bottom: 10px; }
+.stage.dark .eyebrow { color: var(--human); }
+.h { font: 700 44px/1.08 var(--f-display); letter-spacing: -0.02em; margin: 0 0 28px; text-wrap: balance; max-width: 980px; }
+.lead { font: 400 24px/1.4 var(--f-body); color: var(--ink-2); max-width: 900px; margin: 0; text-wrap: pretty; }
+.stage.dark .lead { color: #d3d9e4; }
+.grow { flex: 1; min-height: 0; }
+.row { display: flex; gap: 24px; }
+.center { display: flex; align-items: center; justify-content: center; }
+
+.term { font: 700 15px var(--f-mono); letter-spacing: .1em; color: var(--ai); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px 26px; }
+.card .term { margin-bottom: 10px; display: block; }
+.card p { margin: 0; font-size: 21px; line-height: 1.4; }
+.card.ai { border: 2px dashed var(--ai); background: var(--ai-soft); }
+.card.human { border: 2px solid var(--human); background: var(--human-soft); }
+.card.human .term { color: #9a6514; }
+
+/* entrance animation (stand-in for Storyline Fade/Fly entrances on cue points) */
+.in { animation: fadeUp .55s both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .stage * { animation: none !important; transition: none !important; } }
+
+/* title */
+.title-slide .big { font: 800 112px/0.92 var(--f-display); letter-spacing: -0.04em; margin: 0; }
+.title-slide .big span { color: var(--human); }
+.title-slide .level { font: 600 18px var(--f-mono); letter-spacing: .2em; color: var(--human); margin-bottom: 26px; }
+.title-slide .tag { font: 400 30px/1.3 var(--f-body); color: #d3d9e4; margin-top: 30px; }
+.title-slide .tag b { color: #fff; font-weight: 600; }
+.title-art { position: absolute; right: -60px; top: 80px; width: 560px; height: 560px; }
+
+/* outcomes */
+.outcome { display: grid; grid-template-columns: 64px 1fr; gap: 20px; align-items: center; padding: 22px 0; border-top: 1px solid var(--line); font-size: 26px; line-height: 1.3; }
+.outcome:last-child { border-bottom: 1px solid var(--line); }
+.outcome .num { width: 52px; height: 52px; border-radius: 50%; background: var(--human); color: var(--ink); display: grid; place-items: center; font: 700 22px var(--f-display); }
+
+/* journey */
+.jpath { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; position: relative; margin-top: 40px; }
+.jpath::before { content: ""; position: absolute; left: 6%; right: 6%; top: 34px; height: 3px; background: var(--human); animation: wipe 1.2s both; }
+.jstop { text-align: center; position: relative; padding: 0 8px; }
+.jstop .n { width: 70px; height: 70px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 3px solid var(--human); font: 700 26px var(--f-display); position: relative; }
+.jstop:last-child .n { background: var(--ink); color: var(--human); }
+.jstop .t { font-size: 17px; line-height: 1.3; }
+
+/* AWARE */
+.aware { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-top: 8px; }
+.aw { background: var(--card); border-radius: 16px; padding: 22px 18px 24px; border: 1px solid var(--line); animation: pop .5s both; }
+.aw .L { font: 800 96px/1 var(--f-display); color: var(--human); letter-spacing: -0.04em; }
+.aw .w { font: 600 20px/1.25 var(--f-body); margin-top: 14px; }
+.stage.dark .aw { background: #1f2943; border-color: #2e3a58; }
+
+/* opener */
+.opener .secno { font: 700 160px/0.8 var(--f-display); color: var(--human); letter-spacing: -0.05em; }
+.opener .h { font-size: 56px; margin-top: 18px; color: #fff; }
+.opener ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.opener li { font: 400 24px/1.35 var(--f-body); color: #d3d9e4; padding-left: 26px; position: relative; }
+.opener li::before { content: ""; position: absolute; left: 0; top: 13px; width: 12px; height: 2px; background: var(--human); }
+.meera-cta { margin-top: auto; align-self: flex-start; }
+
+/* Meera layer */
+.layer { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(12, 17, 30, .72); }
+.panel { width: 1040px; background: var(--paper); color: var(--ink); border-radius: 18px; padding: 34px 40px; display: grid; grid-template-columns: 190px 1fr; gap: 32px; box-shadow: 0 30px 60px rgba(0,0,0,.35); animation: fadeUp .4s both; }
+.meera-fig { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.meera-fig .nm { font: 700 20px var(--f-display); }
+.meera-fig .rl { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.panel .sit { font: 400 21px/1.45 var(--f-body); margin: 0 0 18px; }
+.panel .q { font: 700 24px var(--f-display); margin: 0 0 16px; }
+.choices { display: grid; gap: 10px; }
+.choice { text-align: left; font: 500 18px/1.35 var(--f-body); color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 10px; padding: 14px 18px; cursor: pointer; }
+.choice:hover { border-color: var(--human); }
+.choice.sel { border-color: var(--human); background: var(--human-soft); }
+.reply { margin-top: 14px; padding: 14px 18px; border-radius: 10px; background: var(--ai-soft); border-left: 4px solid var(--ai); font-size: 18px; line-height: 1.4; }
+.added-tag { display: inline-block; font: 700 10px var(--f-mono); letter-spacing: .1em; background: #7a3cc8; color: #fff; border-radius: 4px; padding: 3px 6px; vertical-align: middle; }
+.stage .added-tag { position: absolute; z-index: 40; }
+.hide-added .added-tag { display: none; }
+
+/* define / radial */
+.define { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 22px 400px; position: relative; margin-top: 6px; }
+.define .core { position: absolute; left: 50%; top: 50%; width: 350px; transform: translate(-50%, -50%); background: var(--ink); color: #fff; border-radius: 20px; padding: 26px; font: 500 21px/1.38 var(--f-body); text-align: center; z-index: 2; }
+.define .core .term { color: var(--human); display: block; margin-bottom: 8px; }
+.capc { padding: 26px 24px; font: 600 22px var(--f-body); border: 2px dashed var(--ai); background: var(--ai-soft); border-radius: 14px; min-height: 150px; display: flex; align-items: center; }
+.capc:nth-child(odd) { justify-content: flex-start; }
+.capc:nth-child(even) { justify-content: flex-end; text-align: right; }
+
+.umb { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-top: 24px; }
+.umb .tile { height: 90px; border-radius: 12px; border: 2px dashed var(--ai); background: var(--ai-soft); display: grid; place-items: center; }
+.umb .tile svg { width: 36px; height: 36px; }
+.umb-top { height: 110px; border-radius: 120px 120px 14px 14px; background: var(--ink); color: var(--human); display: grid; place-items: center; font: 800 46px var(--f-display); letter-spacing: .04em; animation: fadeUp .5s both; }
+
+.radial { position: relative; height: 330px; margin-top: 4px; }
+.radial .hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 170px; height: 170px; border-radius: 50%; background: var(--ink); color: var(--human); display: grid; place-items: center; font: 800 26px/1.1 var(--f-display); text-align: center; }
+.radial .chip { position: absolute; transform: translate(-50%,-50%); font: 700 18px var(--f-mono); letter-spacing: .1em; color: var(--ai); background: var(--card); border: 2px dashed var(--ai); border-radius: 999px; padding: 12px 22px; animation: pop .5s both; }
+
+.flow { display: grid; grid-template-columns: 1fr 70px 1fr 70px 1fr; align-items: center; margin-top: 36px; }
+.flow .node { border-radius: 16px; padding: 26px; text-align: center; font: 700 22px var(--f-display); min-height: 150px; display: grid; place-items: center; gap: 10px; }
+.flow .node.data { background: var(--card); border: 1px solid var(--line); }
+.flow .node.model { background: var(--ink); color: #fff; }
+.flow .node.resp { background: var(--ai-soft); border: 2px dashed var(--ai); }
+.flow .arrow { height: 3px; background: var(--ai); position: relative; animation: wipe .6s both; }
+.flow .arrow::after { content: ""; position: absolute; right: -2px; top: -6px; border: 7px solid transparent; border-left: 10px solid var(--ai); border-right: 0; }
+.dots { display: grid; grid-template-columns: repeat(6, 10px); gap: 6px; justify-content: center; }
+.dots i { width: 10px; height: 10px; border-radius: 2px; background: var(--ai); opacity: .35; }
+.dots i:nth-child(3n) { opacity: .8; }
+.lines-skel { display: grid; gap: 8px; width: 80%; }
+.lines-skel i { height: 8px; border-radius: 4px; background: var(--ai); opacity: .35; }
+
+/* reveal cards */
+.reveal-row { display: grid; gap: 22px; margin-top: 8px; }
+.rcard { text-align: left; font: inherit; color: inherit; cursor: pointer; background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 30px; min-height: 230px; display: flex; flex-direction: column; gap: 14px; transition: border-color .2s, background .2s; }
+.rcard:hover { border-color: var(--ai); }
+.rcard .term { font-size: 22px; }
+.rcard .def { font-size: 23px; line-height: 1.38; }
+.rcard .hint { margin-top: auto; font-size: 14px; color: var(--muted); }
+.rcard.open { border-style: dashed; border-color: var(--ai); background: var(--ai-soft); cursor: default; }
+.rcard svg { width: 44px; height: 44px; }
+.instr { font-size: 15px; color: var(--muted); margin-top: 16px; display: flex; align-items: center; gap: 10px; }
+
+/* before/after, condense, pattern */
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.ba .vis { height: 170px; display: flex; align-items: center; justify-content: center; gap: 22px; margin-bottom: 18px; }
+.page { width: 100px; height: 132px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 12px; display: grid; gap: 7px; align-content: start; }
+.page i { height: 7px; border-radius: 3px; background: var(--line); }
+.page.ai { border: 2px dashed var(--ai); background: var(--ai-soft); }
+.page.ai i { background: var(--ai); opacity: .55; }
+.page.blank i { background: transparent; }
+.arr { font: 700 30px var(--f-mono); color: var(--ai); }
+.condense-vis { display: flex; align-items: center; gap: 28px; justify-content: center; height: 200px; margin-bottom: 20px; }
+.page.long { height: 190px; }
+.page.short { height: 90px; }
+.page.list i:nth-child(odd) { width: 40%; background: var(--ai); opacity: .8; }
+
+.pattern { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.pattern svg { width: 100%; height: 330px; }
+
+/* limits */
+.limits { display: grid; grid-template-columns: 340px 1fr; gap: 40px; align-items: start; }
+.limits .lead { font: 700 34px/1.2 var(--f-display); color: var(--ink); }
+.limits ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.limits li { font: 600 30px var(--f-display); display: flex; align-items: center; gap: 18px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.limits li .x { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--alert); color: var(--alert); display: grid; place-items: center; font: 700 16px var(--f-mono); flex: none; }
+
+/* not equal */
+.neq { display: grid; grid-template-columns: 1fr 140px 1fr; align-items: center; gap: 10px; margin-top: 40px; }
+.neq .side { border-radius: 18px; padding: 44px 30px; text-align: center; font: 700 30px var(--f-mono); letter-spacing: .06em; }
+.neq .l { background: var(--ai-soft); border: 2px dashed var(--ai); color: var(--ai); }
+.neq .r { background: var(--ok-soft); border: 2px solid var(--ok); color: var(--ok); }
+.neq .sym { font: 800 120px/1 var(--f-display); text-align: center; color: var(--alert); animation: pop .5s 1s both; }
+
+/* kc / quiz */
+.kc { display: grid; grid-template-columns: 420px 1fr; gap: 40px; height: 100%; }
+.kc .stem { font: 600 26px/1.35 var(--f-display); margin: 0 0 18px; }
+.kc .sub { font-size: 18px; color: var(--muted); }
+.opts { display: grid; gap: 12px; align-content: start; }
+.opt { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: center; text-align: left; font: 500 19px/1.35 var(--f-body); color: var(--ink); background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 13px 16px; cursor: pointer; }
+.opt .k { width: 36px; height: 36px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; font: 700 16px var(--f-mono); }
+.opt:hover { border-color: var(--ink); }
+.opt.sel { border-color: var(--ink); }
+.opt.sel .k { background: var(--ink); border-color: var(--ink); color: #fff; }
+.opt:disabled { cursor: default; }
+.submit { margin-top: 18px; align-self: start; }
+.kc-tag { display: inline-flex; gap: 8px; align-items: center; font: 600 12px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; margin-bottom: 16px; }
+.fb { position: absolute; inset: 0; z-index: 20; background: rgba(12,17,30,.55); display: flex; align-items: center; justify-content: center; }
+.fb .box { width: 760px; background: var(--card); border-radius: 18px; padding: 34px 40px; border-top: 8px solid var(--ok); animation: fadeUp .35s both; }
+.fb .box.bad { border-top-color: var(--alert); }
+.fb .ttl { font: 800 34px var(--f-display); margin: 0 0 12px; color: var(--ok); }
+.fb .box.bad .ttl { color: var(--alert); }
+.fb p { font-size: 21px; line-height: 1.45; margin: 0 0 24px; }
+
+.qhead { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.qprog { display: flex; gap: 6px; }
+.qprog i { width: 34px; height: 6px; border-radius: 3px; background: var(--line); }
+.qprog i.on { background: var(--ink); }
+.qprog i.cur { background: var(--human); }
+
+/* two column / handoff */
+.twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 10px; }
+.twocol .card { min-height: 260px; padding: 34px; }
+.twocol .card .term { font-size: 20px; }
+.twocol .card p { font-size: 27px; line-height: 1.35; }
+.lanes2 { display: grid; grid-template-rows: auto auto; gap: 18px; }
+.lane { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 20px; border-radius: 16px; padding: 24px 28px; }
+.lane.ai { background: var(--ai-soft); border: 2px dashed var(--ai); }
+.lane.hu { background: var(--human-soft); border: 2px solid var(--human); }
+.lane .who { font: 700 22px var(--f-mono); letter-spacing: .1em; }
+.lane.ai .who { color: var(--ai); }
+.lane.hu .who { color: #9a6514; }
+.verbs { display: flex; gap: 12px; flex-wrap: wrap; }
+.verb { font: 600 22px var(--f-display); padding: 10px 20px; border-radius: 999px; background: var(--card); animation: pop .4s both; }
+.lane.hu .verb { background: var(--human); color: var(--ink); }
+.handarrow { text-align: center; font: 600 15px var(--f-body); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+
+/* steps / stages */
+.steps { display: grid; gap: 0; align-items: stretch; margin-top: 20px; }
+.step { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 26px; animation: fadeUp .5s both; }
+.step .term { display: block; font-size: 20px; margin-bottom: 12px; }
+.step p { margin: 0; font-size: 22px; line-height: 1.35; }
+.step .no { font: 700 14px var(--f-mono); color: var(--muted); margin-bottom: 18px; display: block; }
+.conn { display: grid; place-items: center; font: 700 28px var(--f-mono); color: var(--human); }
+
+.warncard { width: 560px; background: var(--card); border: 2px dashed var(--ai); border-radius: 16px; padding: 28px; position: relative; }
+.warncard .lines-skel { width: 100%; gap: 12px; }
+.warncard .lines-skel i { height: 12px; }
+.warncard .mark { position: absolute; right: -22px; top: -22px; width: 56px; height: 56px; border-radius: 50%; background: var(--alert); color: #fff; display: grid; place-items: center; font: 800 32px var(--f-display); animation: pop .5s .8s both; }
+
+.statement { font: 800 84px/1.02 var(--f-display); letter-spacing: -0.035em; margin: 0; }
+.statement .a { color: #7fb6d8; display: block; }
+.statement .h2 { color: var(--human); display: block; }
+
+.check-list { display: grid; gap: 14px; max-width: 900px; }
+.chk { display: grid; grid-template-columns: 56px 1fr; gap: 18px; align-items: center; font: 600 28px var(--f-display); color: var(--ink); background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 16px 22px; text-align: left; cursor: pointer; }
+.chk .box { width: 44px; height: 44px; border-radius: 10px; border: 2.5px solid var(--line); display: grid; place-items: center; font: 800 22px var(--f-body); color: transparent; }
+.chk.on { border-color: var(--ok); background: var(--ok-soft); }
+.chk.on .box { background: var(--ok); border-color: var(--ok); color: #fff; }
+.chk .n { font: 700 14px var(--f-mono); color: var(--muted); display: block; }
+
+.cats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-top: 10px; }
+.cat { background: var(--ink); color: #fff; border-radius: 14px; padding: 28px 16px; text-align: center; font: 700 17px var(--f-mono); letter-spacing: .08em; display: grid; gap: 16px; justify-items: center; animation: fadeUp .5s both; }
+.cat svg { width: 40px; height: 40px; }
+
+.gate3 { display: grid; grid-template-columns: 1fr 60px 1fr 60px 1fr; align-items: center; margin-top: 30px; }
+.gpart { border-radius: 16px; background: var(--card); border: 2px solid var(--ok); padding: 36px 20px; text-align: center; font: 700 22px var(--f-mono); letter-spacing: .06em; display: grid; gap: 16px; justify-items: center; animation: fadeUp .5s both; }
+.gpart svg { width: 38px; height: 38px; }
+.plus { text-align: center; font: 700 40px var(--f-display); color: var(--muted); }
+
+.stages { display: grid; grid-template-columns: 1fr 80px 1fr 80px 1fr; align-items: center; margin-top: 30px; }
+.stg { text-align: center; display: grid; gap: 16px; justify-items: center; animation: fadeUp .5s both; }
+.stg .lock { width: 96px; height: 96px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+.stg .lock svg { width: 40px; height: 40px; }
+.stg .t { font: 700 24px var(--f-display); }
+.stages .ln { height: 3px; background: var(--human); margin-bottom: 44px; animation: wipe .6s both; }
+
+/* prompt builder */
+.pp-card { margin: 4px auto 0; width: 820px; text-align: center; border-radius: 22px; padding: 46px 40px; background: var(--card); border: 1px solid var(--line); animation: pop .5s both; }
+.pp-card .term { font-size: 30px; display: block; margin-bottom: 16px; }
+.pp-card p { font: 600 36px/1.25 var(--f-display); margin: 0; text-wrap: balance; }
+.builder { margin-top: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.slot { height: 58px; border-radius: 10px; border: 2px dashed var(--line); display: grid; place-items: center; font: 700 15px var(--f-mono); letter-spacing: .08em; color: var(--muted); }
+.slot.on { border: 2px solid var(--ai); background: var(--ai); color: #fff; }
+.slot.now { animation: pop .5s .4s both; }
+.builder-label { font-size: 13px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; margin-top: auto; }
+.assembled { display: flex; border-radius: 14px; overflow: hidden; margin-top: 50px; box-shadow: 0 10px 30px rgba(42,111,151,.25); }
+.assembled span { flex: 1; padding: 26px 8px; text-align: center; background: var(--ai); color: #fff; font: 700 17px var(--f-mono); letter-spacing: .06em; border-right: 1px solid rgba(255,255,255,.25); animation: fadeUp .45s both; }
+.assembled span:last-child { border-right: 0; }
+
+.cmp { display: grid; grid-template-columns: 1fr 1.6fr; gap: 26px; margin-top: 6px; }
+.cmp .card { padding: 30px; min-height: 260px; }
+.cmp .vague p { font: 500 30px var(--f-mono); color: var(--muted); }
+.cmp .clear p { font: 500 30px/1.6 var(--f-mono); }
+.hl { background: var(--human-soft); border-bottom: 3px solid var(--human); border-radius: 3px; padding: 0 3px; position: relative; }
+.hl small { position: absolute; left: 0; top: -22px; white-space: nowrap; font: 700 11px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: #9a6514; opacity: 0; transition: opacity .3s; }
+.cmp.show .hl small { opacity: 1; }
+.toggle { align-self: start; margin-top: 18px; }
+
+/* agents */
+.agent { display: grid; grid-template-columns: 1fr 120px 340px; gap: 0; align-items: center; margin-top: 10px; }
+.inputs { display: grid; gap: 14px; }
+.inp { padding: 22px 24px; border-radius: 12px; border: 2px dashed var(--ai); background: var(--ai-soft); font: 700 19px var(--f-mono); color: var(--ai); letter-spacing: .06em; animation: fadeUp .5s both; }
+.funnel svg { width: 120px; height: 260px; }
+.task { border-radius: 18px; background: var(--ink); color: #fff; padding: 40px 30px; text-align: center; font: 700 30px var(--f-display); }
+.task small { display: block; font: 600 13px var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--human); margin-bottom: 10px; }
+
+.lanes { display: grid; gap: 20px; margin-top: 10px; }
+.lanerow { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 24px; padding: 24px 28px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.lanerow .who { font: 700 20px var(--f-mono); letter-spacing: .1em; color: var(--ai); }
+.lanerow .seq { display: flex; align-items: center; gap: 12px; font: 600 22px var(--f-display); flex-wrap: wrap; }
+.pill { padding: 10px 18px; border-radius: 999px; background: var(--ai-soft); border: 1.5px dashed var(--ai); animation: pop .4s both; }
+.pill.solid { background: var(--ai); color: #fff; border-style: solid; }
+.lanerow .cap { grid-column: 2; font-size: 18px; color: var(--muted); }
+
+.proc { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.proc span { font: 700 15px var(--f-mono); letter-spacing: .08em; padding: 9px 16px; border-radius: 8px; background: var(--ink); color: #fff; }
+.proc span:last-child { background: var(--human); color: var(--ink); }
+.proc b { color: var(--muted); font-family: var(--f-mono); }
+.video { flex: 1; border-radius: 14px; background: #1c2438; color: #c9d1df; display: grid; place-items: center; text-align: center; position: relative; border: 2px dashed #46536f; }
+.video .play { width: 74px; height: 74px; border-radius: 50%; background: var(--human); display: grid; place-items: center; margin: 0 auto 14px; }
+.video small { display: block; font-size: 15px; color: #9aa6bb; margin-top: 6px; }
+.stepcards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 10px; }
+.stepcards .step { min-height: 250px; display: flex; flex-direction: column; }
+.stepcards .step:last-child { border: 2px solid var(--human); background: var(--human-soft); }
+.stepcards .step .vid { margin-top: auto; font-size: 14px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+
+/* try it */
+.tryit { display: grid; grid-template-columns: 300px 1fr; gap: 26px; height: 100%; min-height: 0; }
+.tabs { display: grid; gap: 10px; align-content: start; }
+.tab { text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; position: relative; }
+.tab .term { font-size: 14px; }
+.tab span:last-child { font-size: 16px; line-height: 1.3; }
+.tab.cur { border-color: var(--ai); background: var(--ai-soft); }
+.tab.seen::after { content: "✓"; position: absolute; right: 12px; top: 10px; color: var(--ok); font-weight: 800; }
+.tpane { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 30px; overflow: auto; min-height: 0; }
+.tpane h3 { font: 700 26px var(--f-display); margin: 0 0 14px; }
+.tpane p, .tpane li { font-size: 18px; line-height: 1.5; }
+.tpane ul, .tpane ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.mono-box { font: 400 15px/1.55 var(--f-mono); background: var(--ai-soft); border: 2px dashed var(--ai); border-radius: 10px; padding: 16px 18px; }
+.minibtn { font: 600 14px var(--f-body); border: 1.5px solid var(--ink); background: transparent; color: var(--ink); border-radius: 8px; padding: 7px 14px; cursor: pointer; margin-top: 12px; }
+
+/* assessment intro / results */
+.chips { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+.chips span { font: 600 18px var(--f-body); padding: 12px 20px; border-radius: 999px; border: 1.5px solid #46536f; color: #e6ebf3; }
+.score { font: 800 140px/1 var(--f-display); letter-spacing: -0.04em; }
+.score.pass { color: var(--ok); }
+.score.fail { color: var(--alert); }
+
+/* close */
+.levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 16px; align-items: stretch; }
+.lvl { padding: 28px 24px; border: 1px solid var(--line); background: var(--card); display: grid; gap: 10px; align-content: start; position: relative; animation: fadeUp .5s both; }
+.lvl:first-child { border-radius: 16px 0 0 16px; background: var(--ink); color: #fff; border-color: var(--ink); }
+.lvl:last-child { border-radius: 0 16px 16px 0; }
+.lvl .term { color: var(--muted); }
+.lvl:first-child .term { color: var(--human); }
+.lvl .nm { font: 700 28px/1.1 var(--f-display); }
+.lvl p { margin: 0; font-size: 18px; line-height: 1.35; color: var(--muted); }
+.lvl:first-child p { color: #c9d1df; }
+.done-tag { justify-self: start; font: 700 12px var(--f-body); letter-spacing: .1em; text-transform: uppercase; background: var(--human); color: var(--ink); padding: 5px 10px; border-radius: 999px; }
+
+/* ---------- notes drawer ---------- */
+.notes { background: var(--shell-panel); border: 1px solid var(--shell-line); border-radius: 10px; padding: 16px 18px; font-size: 13.5px; line-height: 1.5; min-width: 0; max-height: calc(100vh - 90px); overflow: auto; }
+.notes h2 { font: 700 15px var(--f-display); margin: 0 0 4px; }
+.notes h3 { font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--shell-muted); margin: 16px 0 6px; }
+.notes p { margin: 0 0 8px; }
+.notes .src { color: var(--shell-muted); font-size: 12.5px; }
+.notes .flag { border-left: 3px solid #c4523b; padding: 6px 10px; margin: 6px 0; background: color-mix(in srgb, #c4523b 8%, transparent); border-radius: 0 6px 6px 0; }
+.notes .flag b { display: block; }
+.notes .new { border-left: 3px solid #7a3cc8; padding: 6px 10px; margin: 6px 0; background: color-mix(in srgb, #7a3cc8 8%, transparent); border-radius: 0 6px 6px 0; }
+.notes .vo { white-space: pre-wrap; color: var(--shell-fg); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--shell-muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+/* absolutely centred elements: opacity-only entrance so the centring transform is kept */
+@keyframes fadeOnly { from { opacity: 0; } to { opacity: 1; } }
+.define .core.in, .radial .chip { animation-name: fadeOnly; }
+.submit { justify-self: start; }
+
+/* re-render of the same screen (a click) must not replay entrance animations */
+.stage.static .in, .stage.static [data-d], .stage.static .aw, .stage.static .chip, .stage.static .verb, .stage.static .step, .stage.static .slot, .stage.static .tile, .stage.static .ln, .stage.static .arrow, .stage.static .umb-top, .stage.static .sym, .stage.static .pp-card { animation: none !important; }
+
+</style>
+<div class="shell">
+  <div class="toolbar">
+    <h1>AI Literacy · Level 1 — prototype</h1>
+    <select id="jump" aria-label="Jump to screen"></select>
+    <span class="sp"></span>
+    <button id="t-narr" title="Reads the voiceover with your browser's voice. The final course uses Storyline's AI voice.">Narration</button>
+    <button id="t-review" title="On: move freely. Off: experience the learner restrictions.">Free navigation</button>
+    <button id="t-added" title="Show purple tags on content that is new and needs your approval">Show NEW tags</button>
+    <button id="t-notes">Designer notes</button>
+  </div>
+  <div class="main">
+    <div><div class="stage-wrap"><div class="stage" id="stage"></div></div>
+      <div class="ccbar"><div class="cc" id="cc" hidden></div></div>
+      <div class="legend" style="margin-top:10px">
+        <span><i style="background:#2a6f97"></i>AI: cool blue, dashed outline, mono type</span>
+        <span><i style="background:#d9952b"></i>Human: warm marigold, solid</span>
+        <span><i style="background:#7a3cc8"></i>NEW: needs your approval</span>
+        <span>Arrow keys move between screens.</span>
+      </div></div>
+    <aside class="notes" id="notes" aria-live="polite"></aside>
+  </div>
+</div>
+<script>window.SB = [{"n":1,"section":"Opening","title":"AI LITERACY","onscreen":"Level 1\nUnderstand AI. Use It Responsibly.","vo":"Welcome to AI Literacy, Level 1. This course gives you a practical foundation for understanding AI, using it responsibly, and knowing where human judgment must remain at the center.","build":"Title animation only. Keep the screen clean and let the narration introduce the course."},{"n":2,"section":"Opening","title":"What you will learn","onscreen":"By the end of this course, you will be able to:\n• Use AI effectively and understand its limitations\n• Use AI responsibly and protect sensitive information\n• Use basic prompting techniques to guide AI outputs","vo":"By the end of this course, you will be able to use AI effectively while understanding its limitations, use AI responsibly while protecting sensitive information, and use basic prompting techniques to guide AI outputs.","build":"Reveal the three outcomes one at a time."},{"n":3,"section":"Opening","title":"The learning journey","onscreen":"1  Understand AI\n2  Understand its capabilities and limits\n3  See where AI supports work\n4  Use AI responsibly\n5  Protect information\n6  Prompt with purpose\n7  Experience an AI agent\n8  Demonstrate your judgment","vo":"We will move from understanding AI, to understanding what it can and cannot do, to seeing where it can support work. We will then focus on responsible use, information protection, prompting, and a short experience with an AI agent before you complete the assessment.","build":"Build the journey as a horizontal path. Highlight the current step as the learner progresses."},{"n":4,"section":"Opening","title":"AWARE is your guide","onscreen":"A  Appreciate AI\nW  Weigh the Output\nA  Assess the Risk\nR  Respond with the Right Prompt\nE  Ensure Human Accountability","vo":"AWARE is the mental model that connects the course. Appreciate what AI is and what it can do. Weigh the output rather than accepting it automatically. Assess the risks. Respond with a clear prompt. And ensure that human judgment and accountability stay at the center.","build":"Animate the five letters in sequence. Do not reteach the framework later. Use the relevant letter as a small visual cue."},{"n":5,"section":"Understanding AI","title":"Understanding AI","onscreen":"What is AI?\nHow does generative AI work at a high level?\nWhat language will you hear when people talk about AI?","vo":"Let us begin with the foundation: what AI is, what generative AI means, and a few terms you need to recognize.","build":""},{"n":6,"section":"Understanding AI","title":"What is Artificial Intelligence?","onscreen":"AI is technology that enables systems to perform tasks that typically require human intelligence.\n\nRecognize patterns  •  Understand information  •  Generate content  •  Make predictions","vo":"Artificial intelligence is technology that enables systems to perform tasks that typically require some form of human intelligence. Depending on the technology, AI can recognize patterns, understand information, generate content, make predictions, and support decisions.","build":"Use a central AI node with four surrounding capability cards. Keep the definition visually dominant."},{"n":7,"section":"Understanding AI","title":"AI is a broad field","onscreen":"AI is not one single tool.\n\nDifferent systems can be designed for different capabilities.","vo":"One important point is that AI is a broad field, not one single tool. Different AI systems can be designed for different capabilities. This course focuses on the concepts that apply across AI tools.","build":"Show several simple system tiles feeding into one AI umbrella. Avoid naming products."},{"n":8,"section":"Understanding AI","title":"What is Generative AI?","onscreen":"Generative AI creates new content from instructions and context.\n\nTEXT   IMAGES   AUDIO   VIDEO   CODE","vo":"Generative AI refers to AI that creates new content. Depending on the system, that content can include text, images, audio, video, or code.","build":"Animate the five output types from the center. Keep the definition on screen throughout."},{"n":9,"section":"Understanding AI","title":"What is a Large Language Model?","onscreen":"A language model learns patterns from large amounts of data and uses those patterns to generate language.","vo":"A large language model, or LLM, learns patterns from large amounts of data and uses those patterns to generate language in response to an instruction. The important point for Level 1 is that an LLM generates a response based on learned patterns. That does not mean the response has automatically been checked for accuracy.","build":"Show data patterns flowing into a language model and then into a response. Do not imply that the model independently verifies facts."},{"n":10,"section":"Understanding AI","title":"Three terms you will use often","onscreen":"PROMPT\nThe instruction you give AI\n\nCONTEXT\nInformation that helps AI understand the task","vo":"A prompt is the instruction you give an AI system. Context is the information that helps the system understand what you need. You will use both ideas again when we cover prompting.","build":"Use two large cards. Reveal prompt first, then context."},{"n":11,"section":"Understanding AI","title":"Three terms to recognize","onscreen":"HALLUCINATION\nAn inaccurate or unsupported AI output\n\nBIAS\nA pattern that can lead to unfair or distorted outcomes\n\nAGENT\nAn AI system configured to carry out a defined task","vo":"A hallucination is an inaccurate or unsupported AI output. Bias can lead to unfair or distorted outcomes. An AI agent is a system configured to carry out a defined task using instructions, context, and available capabilities.","build":"Use three cards with a single example icon for each term."},{"n":12,"section":"Understanding AI","title":"Knowledge Check","onscreen":"A workplace tool creates a new draft email from your instructions.\n\nWhat type of AI is involved?\n\nA  Predictive AI\nB  Generative AI\nC  Spreadsheet formula\nD  Search filter","vo":"You have learned that generative AI creates new content. Select the option that best describes a tool creating a new draft email from your instructions.","build":"Use four selectable answer cards. On selection, show the separate feedback layer.\nSelect one answer."},{"n":13,"section":"Understanding AI","title":"Layer — Knowledge Check","onscreen":"CORRECT\nGenerative AI creates new content from instructions and context.\n\nINCORRECT\nThe key clue is that the system is creating new content from your instructions.","vo":"Correct feedback: Generative AI creates new content from instructions and context.\nIncorrect feedback: The key clue is that the system is creating new content from your instructions.","build":"Feedback layer for the previous slide. Add a Try Again or Continue trigger in Storyline.\nFeedback layer."},{"n":14,"section":"Capabilities and Limits","title":"What AI Can and Cannot Do","onscreen":"AI can support many kinds of work.\nBut capability does not equal reliability.","vo":"Now that you know what AI is, let us look at a critical distinction: what AI can do is not the same as what AI can reliably do.","build":""},{"n":15,"section":"Capabilities and Limits","title":"AI can generate and transform","onscreen":"GENERATE\nCreate a first draft or new content\n\nTRANSFORM\nRewrite, reformat, translate, or adapt existing content","vo":"AI can generate new content and transform existing content. For example, it can create a first draft or adapt information into a different format.","build":"Use a before and after visual with two large capability cards."},{"n":16,"section":"Capabilities and Limits","title":"AI can summarize and organize","onscreen":"SUMMARIZE\nCondense information into key points\n\nORGANIZE\nGroup, structure, or extract information","vo":"AI can also summarize information and help organize it. These capabilities can save time, but the resulting output still needs to be reviewed when accuracy matters.","build":"Show a long document becoming a concise summary and then a structured list."},{"n":17,"section":"Capabilities and Limits","title":"AI can identify patterns","onscreen":"IDENTIFY PATTERNS\nSpot themes, similarities, differences, or recurring information","vo":"AI can identify patterns in information. This can be useful for exploring large amounts of content, but pattern recognition does not automatically mean that the interpretation is correct or appropriate.","build":"Use a simple visual of repeated items becoming grouped themes."},{"n":18,"section":"Capabilities and Limits","title":"AI cannot guarantee the answer","onscreen":"AI cannot guarantee:\n• Accuracy\n• Completeness\n• Current information\n• Fairness\n• Appropriate judgment","vo":"AI can produce useful output, but it cannot guarantee accuracy, completeness, current information, fairness, or appropriate judgment. Those are areas where human review remains important.","build":"Reveal each limitation one at a time. Keep the list short and prominent."},{"n":19,"section":"Capabilities and Limits","title":"Confident does not mean correct","onscreen":"CONFIDENT OUTPUT  ≠  CORRECT OUTPUT","vo":"One of the most important habits in working with AI is to separate confidence from correctness. An AI response can sound polished and certain while still containing an error.","build":"Make the not-equal symbol the visual focus. Reuse this as a recurring micro-message later."},{"n":20,"section":"Capabilities and Limits","title":"Knowledge Check","onscreen":"An AI tool gives you a confident answer containing a fact you cannot confirm.\n\nWhat should you do?\n\nA  Assume confidence means accuracy\nB  Use it immediately\nC  Verify the information using an appropriate reliable source\nD  Ask AI to sound more certain","vo":"Select the response that best reflects responsible use of an AI-generated answer that you cannot confirm.","build":"Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."},{"n":21,"section":"Capabilities and Limits","title":"Layer — Knowledge Check","onscreen":"CORRECT\nAI can produce convincing but inaccurate information. Important facts should be verified.\n\nINCORRECT\nAI can sound confident even when it is wrong. Important information should be checked before use.","vo":"Correct feedback: AI can produce convincing but inaccurate information. Important facts should be verified.\nIncorrect feedback: AI can sound confident even when it is wrong. Important information should be checked before use.","build":"Feedback layer for the previous slide.\nFeedback layer."},{"n":22,"section":"AI at Work","title":"AI at Work","onscreen":"Think  •  Create  •  Understand  •  Explore\n\nAI supports the work. People own the work.","vo":"AI can support work in many ways. At Level 1, the goal is not to teach specific workflows. It is to understand the role AI can play and the role people must continue to play.","build":""},{"n":23,"section":"AI at Work","title":"AI can help you think and create","onscreen":"THINK\nExplore ideas and possibilities\n\nCREATE\nDraft or generate content","vo":"AI can support thinking by helping you explore ideas and possibilities. It can also support creation by producing a starting draft or alternative versions.","build":"Use two large cards with light motion from idea to draft."},{"n":24,"section":"AI at Work","title":"AI can help you understand and explore","onscreen":"UNDERSTAND\nSummarize, explain, or clarify information\n\nEXPLORE\nSurface possibilities, themes, or questions","vo":"AI can help you understand information by summarizing, explaining, or clarifying it. It can also help you explore possibilities, themes, or questions.","build":"Use document and magnifying-glass style editable shapes."},{"n":25,"section":"AI at Work","title":"AI is an assistant, not the owner","onscreen":"AI can suggest, generate, organize, and assist.\n\nThe person still provides context, judgment, verification, and decisions.","vo":"The safest way to think about AI at work is as an assistant, not the owner of the work. AI can suggest, generate, organize, and assist. People provide the context, judgment, verification, and decisions.","build":"Use a simple two-column visual: AI assists on the left, human owns the work on the right."},{"n":26,"section":"AI at Work","title":"Keep the human in the loop","onscreen":"AI\nGenerate • Suggest • Organize\n\nHUMAN\nJudge • Verify • Decide • Own","vo":"The human role is especially important when work affects people, business decisions, or important outcomes. AI may support the process, but people remain responsible for evaluating the output and making the decision.","build":"Animate the handoff from AI output to human review and decision."},{"n":27,"section":"AI at Work","title":"Knowledge Check","onscreen":"Which example best reflects AI as an assistant?\n\nA  AI decides who should be promoted\nB  AI generates learning campaign ideas for a person to evaluate\nC  AI approves a disciplinary action\nD  AI determines a candidate suitability without human review","vo":"Select the example that keeps AI in an assisting role and human judgment in the decision.","build":"Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."},{"n":28,"section":"AI at Work","title":"Layer — Knowledge Check","onscreen":"CORRECT\nAI can support ideation while the person remains responsible for evaluation and decisions.\n\nINCORRECT\nAI can assist with ideas and information, but sensitive decisions require human judgment and accountability.","vo":"Correct feedback: AI can support ideation while the person remains responsible for evaluation and decisions.\nIncorrect feedback: AI can assist with ideas and information, but sensitive decisions require human judgment and accountability.","build":"Feedback layer for the previous slide.\nFeedback layer."},{"n":29,"section":"Responsible AI","title":"Responsible AI","onscreen":"Pause before you trust the output.\n\nCheck accuracy. Consider fairness. Review use. Keep human accountability.","vo":"Responsible AI is about how we use AI, not just what AI can produce. We will focus on accuracy, fairness, intellectual property, appropriate use, and accountability.","build":""},{"n":30,"section":"Responsible AI","title":"Accuracy: pause, check, verify","onscreen":"PAUSE\nDo not accept the output automatically\n\nCHECK\nIdentify claims that matter\n\nVERIFY\nUse an appropriate reliable source","vo":"When accuracy matters, pause before using the output. Check the claims that matter and verify them using an appropriate reliable source.","build":"Build the three steps as a simple horizontal process."},{"n":31,"section":"Responsible AI","title":"Hallucinations can look convincing","onscreen":"An AI output can be fluent, polished, and still be wrong.\n\nIf the consequence matters, verify.","vo":"AI systems can produce inaccurate or unsupported information, sometimes called hallucinations. The important lesson is not to judge accuracy by how polished the answer sounds.","build":"Show a polished answer card with a subtle warning marker. Avoid scary imagery."},{"n":32,"section":"Responsible AI","title":"Bias and fairness","onscreen":"ASK\nCould this output disadvantage someone?\n\nREVIEW\nPay closer attention when people may be affected.","vo":"AI can reflect patterns or biases present in the information used to develop or operate a system. When people may be affected, review the output for fairness and apply human judgment.","build":"Use a balance visual with a question prompt. Keep the wording neutral and practical."},{"n":33,"section":"Responsible AI","title":"Copyright and intellectual property","onscreen":"Before you use or share AI-generated content:\n\nCHECK  •  REVIEW  •  CONFIRM","vo":"AI-generated or transformed content is not automatically free to use. Consider ownership, permissions, copyright, intellectual property requirements, and your organization expectations before using or sharing content.","build":"Use three editable check cards. Avoid legal claims beyond the source material."},{"n":34,"section":"Responsible AI","title":"When AI should not be the decision-maker","onscreen":"Do not delegate sensitive decisions or accountability to AI.\n\nEspecially when decisions affect people or carry significant consequences.","vo":"There are situations where AI should support the process rather than make the decision. Do not delegate sensitive decisions or accountability to AI, especially when people may be affected or consequences are significant.","build":"Use a decision gate visual."},{"n":35,"section":"Responsible AI","title":"Human accountability stays with us","onscreen":"AI can assist.\n\nHumans remain accountable.","vo":"This is the core principle of the course. AI can assist, but humans remain accountable for how outputs are reviewed, used, and acted upon.","build":"Make this a strong visual statement. Reuse the phrase at the end of the course."},{"n":36,"section":"Responsible AI","title":"Knowledge Check","onscreen":"AI generates a recommendation that could affect an employee.\n\nWhat is the most responsible next step?\n\nA  Use it because AI is objective\nB  Review the recommendation, verify the information, consider fairness, and apply human judgment\nC  Share it immediately\nD  Let AI make the final decision","vo":"Select the response that keeps human review, fairness, and accountability at the center.","build":"Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."},{"n":37,"section":"Responsible AI","title":"Layer — Knowledge Check","onscreen":"CORRECT\nHuman review, verification, fairness, and accountability are essential when people may be affected.\n\nINCORRECT\nAI should not be treated as the final decision-maker in situations that affect people.","vo":"Correct feedback: Human review, verification, fairness, and accountability are essential when people may be affected.\nIncorrect feedback: AI should not be treated as the final decision-maker in situations that affect people.","build":"Feedback layer for the previous slide.\nFeedback layer."},{"n":38,"section":"Data, Privacy and Security","title":"Data, Privacy and Security","onscreen":"Before you share information with an AI tool, stop and assess the information, the tool, and your permission to use it.","vo":"Responsible AI also means protecting information. Before you enter information into an AI tool, consider what the information is, who owns it, whether the tool is approved, and whether you are permitted to use it.","build":""},{"n":39,"section":"Data, Privacy and Security","title":"Think before you share","onscreen":"1  What information is it?\n2  Who owns it?\n3  Is the tool approved?\n4  Am I permitted to use it?","vo":"Use four questions before sharing information with an AI tool. What information is it? Who owns it? Is the tool approved? And am I permitted to use it?","build":"Reveal the four questions in sequence. Make them usable as a mental checklist."},{"n":40,"section":"Data, Privacy and Security","title":"Information to protect","onscreen":"CONFIDENTIAL\nSENSITIVE\nEMPLOYEE\nCANDIDATE\nPERSONAL","vo":"Protect confidential, sensitive, employee, candidate, and personal information. The ability of a tool to process information does not mean you are permitted to share that information with it.","build":"Use five simple category cards. Keep this slide about recognition, not policy detail."},{"n":41,"section":"Data, Privacy and Security","title":"Use approved tools","onscreen":"APPROVED TOOL\n+\nPERMISSION\n+\nPOLICY REQUIREMENTS","vo":"Use approved AI tools and follow organizational policies and permissions. If you are unsure whether information may be used with a tool, stop and check the applicable requirement before proceeding.","build":"Use a three-part gate visual. Do not name internal tools unless the organization has approved them for the audience."},{"n":42,"section":"Data, Privacy and Security","title":"Protect the information throughout the process","onscreen":"Before input  →  During use  →  Before sharing output\n\nProtect information at every stage.","vo":"Information protection does not stop when you enter the prompt. Consider the information before input, during use, and again before sharing the output.","build":"Use a three-stage process with a lock icon motif."},{"n":43,"section":"Data, Privacy and Security","title":"Knowledge Check","onscreen":"You want to paste an employee name, performance information, and personal details into an AI tool.\n\nWhat should you consider first?\n\nA  Whether the prompt is short\nB  Whether the information may be shared, whether the tool is approved, and what policy requirements apply\nC  Whether AI can summarize it\nD  Whether the output will look professional","vo":"Select the response that checks permission, tool approval, and policy requirements before the information is shared.","build":"Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."},{"n":44,"section":"Data, Privacy and Security","title":"Layer — Knowledge Check","onscreen":"CORRECT\nCheck permissions, sensitivity, approved tools, and organizational requirements before sharing information.\n\nINCORRECT\nThe ability to process information does not mean you are permitted to share it. Privacy, security, and policy requirements come first.","vo":"Correct feedback: Check permissions, sensitivity, approved tools, and organizational requirements before sharing information.\nIncorrect feedback: The ability to process information does not mean you are permitted to share it. Privacy, security, and policy requirements come first.","build":"Feedback layer for the previous slide.\nFeedback layer."},{"n":45,"section":"Prompting","title":"Prompting Fundamentals","onscreen":"A useful prompt gives AI enough information to understand what you need.","vo":"Once you know how AI works at a high level and how to use it responsibly, the next step is giving clear instructions. Prompting is simply communicating what you need from the system.","build":""},{"n":46,"section":"Prompting","title":"Start with context","onscreen":"CONTEXT\nWhat does AI need to know to understand the situation?","vo":"Context gives AI the information it needs to understand the situation. Think about the background, source information, or relevant details that shape the task.","build":"Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."},{"n":47,"section":"Prompting","title":"Define the task","onscreen":"TASK\nWhat exactly do you want AI to do?","vo":"State the task clearly. Tell AI what you want it to produce, change, summarize, compare, or organize.","build":"Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."},{"n":48,"section":"Prompting","title":"Specify the audience","onscreen":"AUDIENCE\nWho is the output for?","vo":"Tell AI who will use or read the output. Audience can influence language, detail, tone, and emphasis.","build":"Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."},{"n":49,"section":"Prompting","title":"Describe the output","onscreen":"OUTPUT\nWhat should the result look like?","vo":"Describe the result you want. You can specify format, structure, length, or other output expectations.","build":"Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."},{"n":50,"section":"Prompting","title":"Add constraints","onscreen":"CONSTRAINTS\nWhat boundaries should AI follow?","vo":"Add useful boundaries such as length, deadline, tone, required elements, or information that must be included or excluded.","build":"Reveal the single prompt element, then move to the next. Keep the visual pattern consistent."},{"n":51,"section":"Prompting","title":"Put the pieces together","onscreen":"CONTEXT + TASK + AUDIENCE + OUTPUT + CONSTRAINTS\n\nA clearer instruction gives AI a clearer target.","vo":"The five fundamentals work together. Context, task, audience, output, and constraints give AI a clearer target. You do not need advanced prompting techniques for this level.","build":"Animate each element into one prompt structure."},{"n":52,"section":"Prompting","title":"From vague to clear","onscreen":"VAGUE\nWrite an email.\n\nCLEARER\nDraft a 100-word professional reminder to employees to complete mandatory training by Friday.","vo":"Compare these two prompts. The stronger version tells AI what to create, who it is for, how long it should be, the tone, and the deadline. The goal is not to make the prompt complicated. The goal is to make the request clear.","build":"Use a side-by-side comparison. Highlight the added information rather than adding more examples."},{"n":53,"section":"Prompting","title":"Knowledge Check","onscreen":"Which prompt is more likely to produce a useful result?\n\nA  Write an email.\nB  Write something professional.\nC  Draft a 100-word professional reminder to employees to complete mandatory training by Friday.\nD  Email training.","vo":"Select the prompt that gives AI enough information to understand the intended result.","build":"Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."},{"n":54,"section":"Prompting","title":"Layer — Knowledge Check","onscreen":"CORRECT\nThe prompt gives a clear task, audience, output expectation, tone, and deadline.\n\nINCORRECT\nA stronger prompt gives AI enough context and constraints to understand the desired result.","vo":"Correct feedback: The prompt gives a clear task, audience, output expectation, tone, and deadline.\nIncorrect feedback: A stronger prompt gives AI enough context and constraints to understand the desired result.","build":"Feedback layer for the previous slide.\nFeedback layer."},{"n":55,"section":"AI Agents","title":"AI Agents and Atlas Experience","onscreen":"From a single response to a defined task","vo":"You now have the foundation to understand what an AI agent is. In this section, you will see the difference between a chatbot and an agent and then experience a simple agent scenario in Atlas.","build":""},{"n":56,"section":"AI Agents","title":"What is an AI agent?","onscreen":"An AI agent is an AI system configured to carry out a defined task using:\n\nINSTRUCTIONS  +  CONTEXT  +  AVAILABLE CAPABILITIES","vo":"At a high level, an AI agent is an AI system configured to carry out a defined task using instructions, context, and available capabilities. An agent can work through a defined task or sequence rather than simply returning one response.","build":"Use a three-input model flowing into a defined task. Keep this conceptual."},{"n":57,"section":"AI Agents","title":"Chatbot versus AI agent","onscreen":"CHATBOT\nYou ask → AI responds\n\nAGENT\nYou define a task → Agent works through it","vo":"A chatbot typically responds to the request you make. An agent can be configured around a defined task and work through that task using its instructions, context, and capabilities.","build":"Use two lanes. Animate the chatbot response as one step and the agent task as a short sequence."},{"n":58,"section":"AI Agents","title":"Atlas: see the concept in action","onscreen":"CREATE  →  CONFIGURE  →  TEST  →  REVIEW\n\nUse the approved Atlas environment for the demonstration.","vo":"Now we will connect the concept to a simple experience in Atlas. The focus is not on mastering a tool. Watch how the task is defined, how instructions and context shape the agent, how the result is tested, and how the output is reviewed.","build":"Insert an approved Atlas screen recording or screenshots. Do not invent UI labels. Add callouts to the actual interface during build."},{"n":59,"section":"AI Agents","title":"Atlas demonstration storyboard","onscreen":"STEP 1  Define the task\nSTEP 2  Add instructions and context\nSTEP 3  Test with a sample situation\nSTEP 4  Review the output","vo":"For the demonstration, define one simple task, add the instructions and context the agent needs, test it with a sample situation, and then review the output. The review step is essential: an agent can complete a task without making the result automatically correct or appropriate.","build":"Use this slide as the setup for a short screen recording. The exact Atlas clicks should be captured from the approved environment.\nScreen recording setup."},{"n":60,"section":"AI Agents","title":"Try It — Create a Talent Meeting Summary Agent","onscreen":"SCENARIO\nTalent meeting summary\n\nINPUT\nSample meeting notes\n\nTASK\nCreate a meeting summary using the Talent meeting-summary template\n\nOUTPUT\nCompleted meeting summary","vo":"Now it is your turn to try the concept using a familiar Talent workflow. We will create an agent that turns meeting notes into a completed meeting summary using the approved Talent meeting-summary template.\n\nThe agent will identify the meeting details, agenda items, descriptions, action items or next steps, responsible persons, deadlines, announcements, minority views and alternate opinions, outcomes of minority-view consideration, and additional notes where the information is provided.\n\nThe important rule is that the agent must use only the information in the meeting notes. If an owner, deadline, decision, minority view, or other detail is not provided, it must not invent one.","build":"HANDS-ON / GUIDED ATLAS ACTIVITY\n\nSample meeting notes\n• Purpose: Business Writing Team Connect\n• The team reviewed the October Tip 3 content and finalized the version for sharing.\n• The finalized Tip 3 should be shared with the team. Owner: Team. Deadline: October 2.\n• Karthika demonstrated the AI Agent Builder feature in Atlas and walked the team through an R&R Auditor Agent she created.\n• Karthika will share the R&R Auditor Agent prompt and demonstration details with the team. Deadline: October 2.\n• Karthika walked the team through the AI presentation prepared for Talent Development.\n• No announcements or minority views were recorded.\n\nRIGHT PROMPT FOR ATLAS\nCreate a meeting summary using the Talent meeting-summary template. Review the meeting notes provided below and populate the relevant fields in the template. Capture meeting details, agenda items, descriptions, action items or next steps, responsible persons, deadlines, announcements, minority views and alternate opinions, outcomes of minority-view consideration, and additional notes when the information is provided. Use only information explicitly stated in the meeting notes. Do not infer or invent owners, deadlines, decisions, viewpoints, or other details. If a field is not supported by the notes, leave it blank or mark it as Not specified, according to the template requirement. Keep the wording concise and professional while preserving the meaning of the original notes.\n\nEXPECTED OUTPUT CHECK\nThe completed summary should follow the Talent template structure and accurately reflect the source notes. The learner must review the output before using or sharing it."},{"n":61,"section":"AI Agents","title":"Knowledge Check","onscreen":"Which statement best describes an AI agent?\n\nA  A system that only searches the internet\nB  A system configured to carry out defined tasks using instructions, context, and available capabilities\nC  Any chatbot\nD  A spreadsheet macro","vo":"Select the statement that best describes an AI agent.","build":"Four selectable answer cards. Show the feedback layer after selection.\nSelect one answer."},{"n":62,"section":"AI Agents","title":"Layer — Knowledge Check","onscreen":"CORRECT\nAn AI agent can be configured to carry out a defined task or sequence using available capabilities.\n\nINCORRECT\nAn agent is more than a chatbot response. It is configured to perform a defined task using instructions, context, and capabilities.","vo":"Correct feedback: An AI agent can be configured to carry out a defined task or sequence using available capabilities.\nIncorrect feedback: An agent is more than a chatbot response. It is configured to perform a defined task using instructions, context, and capabilities.","build":"Feedback layer for the previous slide.\nFeedback layer."},{"n":63,"section":"Assessment","title":"Comprehensive Assessment","onscreen":"Show what you know.\n\nThe assessment tests understanding and judgment, not simple recall.","vo":"You have reached the comprehensive assessment. The questions bring together the ideas from the course and ask you to apply judgment to realistic situations.","build":"Use a clean transition into the assessment. Eight scenario-based questions follow."},{"n":64,"section":"Assessment","title":"1 of 8 — AI Fundamentals","onscreen":"A tool creates a first draft of a communication based on your instructions. What capability is this?\n\nA  Data storage\nB  Generative AI\nC  Password management\nD  File compression","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":65,"section":"Assessment","title":"Layer — Assessment 1 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":66,"section":"Assessment","title":"2 of 8 — AI Limitations","onscreen":"An AI-generated summary includes a statement that may be outdated. What is the appropriate response?\n\nA  Publish it immediately\nB  Verify the statement before relying on it\nC  Assume the AI checked it\nD  Remove all human review","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":67,"section":"Assessment","title":"Layer — Assessment 2 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":68,"section":"Assessment","title":"3 of 8 — Human Accountability","onscreen":"An AI system suggests an action that could affect an employee. What should happen?\n\nA  AI makes the final decision\nB  A person reviews the information, context, fairness, and implications before deciding\nC  The recommendation is automatically approved\nD  The employee should not be informed","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":69,"section":"Assessment","title":"Layer — Assessment 3 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":70,"section":"Assessment","title":"4 of 8 — Data and Privacy","onscreen":"You need to use AI with candidate information. What should you check first?\n\nA  Only whether the AI produces a good answer\nB  Whether the information may be shared, whether the tool is approved, and what policies apply\nC  Whether the prompt is short\nD  Whether the output is visually appealing","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":71,"section":"Assessment","title":"Layer — Assessment 4 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":72,"section":"Assessment","title":"5 of 8 — Prompting","onscreen":"Which prompt is strongest?\n\nA  Summarize this.\nB  Make it better.\nC  Create a concise professional 100-word summary for a leadership audience, highlighting three key actions.\nD  Write something useful.","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":73,"section":"Assessment","title":"Layer — Assessment 5 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":74,"section":"Assessment","title":"6 of 8 — Responsible Use","onscreen":"An AI response is polished and persuasive but contains a claim you cannot verify. What should you do?\n\nA  Use it because it sounds professional\nB  Verify the claim before using it\nC  Ask AI to make it more persuasive\nD  Remove the source and keep the claim","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":75,"section":"Assessment","title":"Layer — Assessment 6 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":76,"section":"Assessment","title":"7 of 8 — AI at Work","onscreen":"Which example best reflects AI as an assistant?\n\nA  AI decides which employee should be promoted\nB  AI generates possible learning campaign ideas that a person evaluates\nC  AI approves a disciplinary action\nD  AI determines a candidate suitability without human review","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":77,"section":"Assessment","title":"Layer — Assessment 7 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":78,"section":"Assessment","title":"8 of 8 — AI Agents","onscreen":"At a high level, what is an AI agent?\n\nA  Any software application\nB  An AI system configured to carry out defined tasks using instructions, context, and available capabilities\nC  A static report\nD  A search engine","vo":"Read the scenario and select the response that best reflects the principles from this course.","build":"Use a four-option interaction. Provide immediate feedback on the separate layer slide.\nSelect one answer."},{"n":79,"section":"Assessment","title":"Layer — Assessment 8 of 8","onscreen":"CORRECT\nCorrect. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\n\nINCORRECT\nReview AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","vo":"Correct feedback: Correct. Your answer reflects the Level 1 principle and keeps the appropriate human role in the process.\nIncorrect feedback: Review AWARE. Consider what you need to verify, what risks you need to assess, what information you need to protect, and where human accountability remains.","build":"Feedback layer. In Storyline, link the Continue trigger to the next assessment question.\nFeedback layer."},{"n":80,"section":"Close","title":"Carry AWARE forward","onscreen":"A  Appreciate AI\nW  Weigh the Output\nA  Assess the Risk\nR  Respond with the Right Prompt\nE  Ensure Human Accountability\n\nAI can assist. Humans remain accountable.","vo":"You now have the Level 1 foundation. Use AWARE as you continue working with AI: appreciate what it can do, weigh the output, assess the risk, respond with the right prompt, and ensure human accountability.","build":"Animate AWARE as a final recap. End on the core principle."},{"n":81,"section":"Close","title":"What comes next","onscreen":"LEVEL 1  Understand\nBuild the foundation\n\nLEVEL 2  Use\nApply AI to everyday work\n\nLEVEL 3  Apply\nUse AI within your function\n\nLEVEL 4  Improve and Transform\nRedesign and scale AI-enabled work","vo":"Level 1 establishes the foundation. Later levels build on it with practical everyday use, function-specific applications, and AI-enabled improvement and transformation. The goal here is not to cover everything. It is to make sure everyone starts from a shared foundation.","build":"Show four connected levels. Highlight Level 1 as complete."}]; window.D = {"SECTIONS":[{"key":"understand","label":"Understand AI","aware":"A","awareWord":"Appreciate AI"},{"key":"limits","label":"Capabilities and limits","aware":"W","awareWord":"Weigh the Output"},{"key":"work","label":"AI at work","aware":"E","awareWord":"Ensure Human Accountability"},{"key":"responsible","label":"Responsible AI","aware":"A","awareWord":"Assess the Risk"},{"key":"data","label":"Protect information","aware":"A","awareWord":"Assess the Risk"},{"key":"prompting","label":"Prompt with purpose","aware":"R","awareWord":"Respond with the Right Prompt"},{"key":"agents","label":"AI agents and Atlas","aware":"E","awareWord":"Ensure Human Accountability"},{"key":"assessment","label":"Assessment","aware":null,"awareWord":null}],"CHARACTER":{"name":"Meera","role":"Talent Partner","note":"Fictional character. In Storyline, use one Content Library 360 illustrated character for every appearance."},"SCREENS":[{"n":[1],"layout":"title","section":null,"storyline":"Title slide. Entrance animation: title Fade + Grow (0.75s), subtitle Fade 0.5s later. Disable Next until timeline ends."},{"n":[2],"layout":"outcomes","section":null,"intro":"By the end of this course, you will be able to:","items":["Use AI effectively and understand its limitations","Use AI responsibly and protect sensitive information","Use basic prompting techniques to guide AI outputs"],"storyline":"Three outcome rows. Add each row's Fade entrance at a cue point that matches the narration. One numbered icon per outcome."},{"n":[3],"layout":"journey","section":null,"steps":["Understand AI","Understand its capabilities and limits","See where AI supports work","Use AI responsibly","Protect information","Prompt with purpose","Experience an AI agent","Demonstrate your judgment"],"storyline":"Horizontal path of 8 stops. Animate the path line with a Wipe (From Left), then each stop Fades in on a cue point. This same path becomes the progress bar at the top of every slide (it lives on the slide master)."},{"n":[4],"layout":"aware","section":null,"letters":[["A","Appreciate AI"],["W","Weigh the Output"],["A","Assess the Risk"],["R","Respond with the Right Prompt"],["E","Ensure Human Accountability"]],"storyline":"Five letter tiles. Each tile Fades + Grows in on the cue point where the narrator says that word. After this slide, the relevant letter appears as a small badge in the top-right of each section (on the section's slide layout)."},{"n":[5],"layout":"opener","section":0,"sectionNo":1,"lines":["What is AI?","How does generative AI work at a high level?","What language will you hear when people talk about AI?"],"meera":{"added":true,"situation":"Meera's manager says, \"Just ask the AI. It knows everything.\" Meera has used a chatbot twice and isn't sure what \"the AI\" actually is.","question":"What would you want to understand first?","options":[{"label":"What AI actually is, and what it does","reply":"A strong place to start. Knowing what a tool is helps you judge what to expect from it."},{"label":"Which buttons to press","reply":"Useful later. Tools change often, so this course starts with ideas that work across every AI tool."},{"label":"Nothing. If it knows everything, just use it","reply":"Hold that thought. By the end of this course you will see why \"knows everything\" is not quite true."}],"vo":"Meet Meera, a Talent Partner. Her manager has told her to just ask the AI, because it knows everything. What would you want to understand first? Choose an option."},"storyline":"Section opener on the dark \"Section\" layout. Base layer: section number, title, three questions (Fade in on cues). Then show layer \"Meera\" automatically when the base timeline ends. Meera layer: character + speech panel + 3 choice buttons. Each button shows its own reply layer and changes variable MeeraDone = True. Next is disabled until MeeraDone = True."},{"n":[6],"layout":"defineCards","section":0,"definition":"AI is technology that enables systems to perform tasks that typically require human intelligence.","caps":["Recognize patterns","Understand information","Generate content","Make predictions"],"storyline":"Central AI node with the definition dominant. Four capability cards Fade in around it on narration cues."},{"n":[7],"layout":"umbrella","section":0,"statement":"AI is not one single tool.","sub":"Different systems can be designed for different capabilities.","tiles":6,"storyline":"Six plain system tiles (no product names) Fly In from the bottom and join one \"AI\" umbrella shape. Use motion paths or Fly In entrance with a 0.2s stagger."},{"n":[8],"layout":"radial","section":0,"definition":"Generative AI creates new content from instructions and context.","types":["TEXT","IMAGES","AUDIO","VIDEO","CODE"],"storyline":"Definition stays on screen throughout. Five output chips Fly In from the centre, 0.25s apart."},{"n":[9],"layout":"flow","section":0,"text":"A language model learns patterns from large amounts of data and uses those patterns to generate language.","nodes":["Data","Language model","Response"],"storyline":"Three-node flow: data patterns → language model → response. Animate the connecting arrows with Wipe. Do not add a \"checked\" or \"verified\" mark anywhere on the response."},{"n":[10],"layout":"reveal","section":0,"cards":[["PROMPT","The instruction you give AI"],["CONTEXT","Information that helps AI understand the task"]],"instruction":"Select each card.","instructionAdded":true,"storyline":"Two large cards. Each card has states: Normal (term only) and Selected (term + definition). Trigger: when user clicks card, change state to Selected. Next is enabled when both cards are Selected. Prompt card is revealed first by the narration."},{"n":[11],"layout":"reveal","section":0,"cards":[["HALLUCINATION","An inaccurate or unsupported AI output"],["BIAS","A pattern that can lead to unfair or distorted outcomes"],["AGENT","An AI system configured to carry out a defined task"]],"icons":["warn","balance","agent"],"instruction":"Select each card.","instructionAdded":true,"storyline":"Same card pattern as slide 10, one icon per term. Next is enabled when all three cards are Selected."},{"n":[12,13],"layout":"kc","section":0,"correct":1,"storyline":"Freeform Pick One question (Insert > Convert to Freeform > Pick One). Four answer cards with Normal / Hover / Selected states. Submit button. Correct layer and Incorrect layer built from slide 13. Incorrect layer has a Try Again button. Unscored: in Form View set Score to None. Attempts: unlimited."},{"n":[14],"layout":"opener","section":1,"sectionNo":2,"lines":["AI can support many kinds of work.","But capability does not equal reliability."],"meera":{"added":true,"situation":"Meera asks AI to summarize 40 pages of survey comments. The summary is polished, and it includes a statistic she has not seen before.","question":"What should Meera do with the summary?","options":[{"label":"Send it to leadership now","reply":"Risky. A polished summary can still contain an error. This section shows why."},{"label":"Check the statistic before using it","reply":"Good call. Being useful and being reliable are two different things."},{"label":"Ask the AI if it is sure","reply":"AI can sound certain and still be wrong. You will see why in this section."}],"vo":"Meera has an AI-generated summary of forty pages of survey comments. It looks polished, and it includes a statistic she has not seen before. What should she do?"},"storyline":"Same opener pattern as slide 5."},{"n":[15],"layout":"beforeAfter","section":1,"cards":[["GENERATE","Create a first draft or new content"],["TRANSFORM","Rewrite, reformat, translate, or adapt existing content"]],"storyline":"Before/after visual: a blank page becoming a draft (Generate), and a page becoming a reformatted page (Transform). Cards Fade in on cues."},{"n":[16],"layout":"condense","section":1,"cards":[["SUMMARIZE","Condense information into key points"],["ORGANIZE","Group, structure, or extract information"]],"storyline":"A long document shape shrinks (Grow/Shrink emphasis or motion path) into a short summary, then into a structured list."},{"n":[17],"layout":"pattern","section":1,"card":["IDENTIFY PATTERNS","Spot themes, similarities, differences, or recurring information"],"storyline":"Scattered dots move (motion paths) into three grouped clusters. One card below."},{"n":[18],"layout":"limits","section":1,"intro":"AI cannot guarantee:","items":["Accuracy","Completeness","Current information","Fairness","Appropriate judgment"],"storyline":"Large, short list. Each item Fades in on its narration cue."},{"n":[19],"layout":"notEqual","section":1,"left":"CONFIDENT OUTPUT","right":"CORRECT OUTPUT","storyline":"The ≠ symbol is the visual focus: it draws in last with a Grow entrance. Save the ≠ group as a reusable asset; it reappears as a small marker on slide 31."},{"n":[20,21],"layout":"kc","section":1,"correct":2,"storyline":"Same knowledge-check pattern as slide 12."},{"n":[22],"layout":"opener","section":2,"sectionNo":3,"lines":["Think  •  Create  •  Understand  •  Explore","AI supports the work. People own the work."],"meera":{"added":true,"situation":"Meera needs ideas for a learning campaign by Friday. A colleague suggests letting AI choose the campaign.","question":"How should Meera use AI here?","options":[{"label":"Let AI choose the campaign","reply":"AI can suggest, but the choice is Meera's to own. This section explains the difference."},{"label":"Use AI to brainstorm, then choose herself","reply":"Exactly. AI supports the work. Meera owns it."},{"label":"Avoid AI completely","reply":"That is an option, but AI can save time on early ideas. This section shows where it helps."}],"vo":"Meera needs learning campaign ideas by Friday. A colleague suggests letting AI choose the campaign. How should she use AI here?"},"storyline":"Same opener pattern as slide 5."},{"n":[23],"layout":"pair","section":2,"cards":[["THINK","Explore ideas and possibilities"],["CREATE","Draft or generate content"]],"icons":["idea","draft"],"storyline":"Two large cards with light motion: an idea shape moves (motion path) from the THINK card into the CREATE card."},{"n":[24],"layout":"pair","section":2,"cards":[["UNDERSTAND","Summarize, explain, or clarify information"],["EXPLORE","Surface possibilities, themes, or questions"]],"icons":["doc","search"],"storyline":"Document and magnifying-glass icons (editable shapes or the supplied SVGs)."},{"n":[25],"layout":"twoCol","section":2,"left":["AI","AI can suggest, generate, organize, and assist."],"right":["HUMAN","The person still provides context, judgment, verification, and decisions."],"storyline":"Two columns. AI side uses the cool AI colour and outline style; human side uses the warm human colour and solid style. This colour rule is used across the whole course."},{"n":[26],"layout":"handoff","section":2,"ai":["Generate","Suggest","Organize"],"human":["Judge","Verify","Decide","Own"],"storyline":"An \"output\" card moves from the AI lane to the HUMAN lane on a motion path, then each human verb lights up (state change) in turn."},{"n":[27,28],"layout":"kc","section":2,"correct":1,"storyline":"Same knowledge-check pattern as slide 12."},{"n":[29],"layout":"opener","section":3,"sectionNo":4,"lines":["Pause before you trust the output.","Check accuracy. Consider fairness. Review use. Keep human accountability."],"meera":{"added":true,"situation":"An AI tool recommends which three employees should join a leadership programme. Meera's manager wants the list today.","question":"What is Meera's next step?","options":[{"label":"Forward the list as it is","reply":"This decision affects people, so it needs more than a forward. Let's look at why."},{"label":"Review the list for accuracy and fairness first","reply":"Right. When people are affected, review and accountability come first."},{"label":"Ask the AI for a longer list","reply":"A longer list still needs a person to review it and own the decision."}],"vo":"An AI tool has recommended three employees for a leadership programme, and Meera's manager wants the list today. What is her next step?"},"storyline":"Same opener pattern as slide 5."},{"n":[30],"layout":"steps","section":3,"steps":[["PAUSE","Do not accept the output automatically"],["CHECK","Identify claims that matter"],["VERIFY","Use an appropriate reliable source"]],"storyline":"Three-step horizontal process. Each step Fades in with its connector arrow on cue."},{"n":[31],"layout":"warning","section":3,"text":"An AI output can be fluent, polished, and still be wrong.","sub":"If the consequence matters, verify.","storyline":"A polished answer card (text lines drawn as grey bars, no readable fake facts) with a small ≠ warning marker that Pulses once. No alarming imagery."},{"n":[32],"layout":"balance","section":3,"cards":[["ASK","Could this output disadvantage someone?"],["REVIEW","Pay closer attention when people may be affected."]],"storyline":"Balance-scale icon above two cards. The scale tips gently (Spin emphasis, 5°) and settles."},{"n":[33],"layout":"checks3","section":3,"intro":"Before you use or share AI-generated content:","checks":["CHECK","REVIEW","CONFIRM"],"storyline":"Three check cards. Each gets a tick on its narration cue. Do not add legal claims."},{"n":[34],"layout":"gate","section":3,"text":"Do not delegate sensitive decisions or accountability to AI.","sub":"Especially when decisions affect people or carry significant consequences.","storyline":"Decision-gate visual: the AI path stops at a gate; only the human path continues through."},{"n":[35],"layout":"statement","section":3,"lines":["AI can assist.","Humans remain accountable."],"storyline":"Strong statement slide on the dark layout. Line 1 in the AI colour, line 2 in the human colour. Reused at the very end of the course."},{"n":[36,37],"layout":"kc","section":3,"correct":1,"storyline":"Same knowledge-check pattern as slide 12."},{"n":[38],"layout":"opener","section":4,"sectionNo":5,"lines":["Before you share information with an AI tool, stop and assess the information, the tool, and your permission to use it."],"meera":{"added":true,"situation":"Meera wants AI to help her draft feedback for a team member. The full performance review is open on her screen.","question":"What should Meera do before pasting anything?","options":[{"label":"Paste the whole review in","reply":"Being able to paste it doesn't mean she is allowed to. This section shows what to check."},{"label":"Check what she may share and whether the tool is approved","reply":"Yes. Information, tool and permission come before the prompt."},{"label":"Remove the name, then paste the rest","reply":"Better, but other details can still identify the person. She should check permission and the tool first."}],"vo":"Meera wants AI to help draft feedback for a team member, and the full performance review is open on her screen. What should she do before pasting anything?"},"storyline":"Same opener pattern as slide 5."},{"n":[39],"layout":"checklist","section":4,"items":["What information is it?","Who owns it?","Is the tool approved?","Am I permitted to use it?"],"instruction":"Select each question to tick it off.","instructionAdded":true,"storyline":"Four checklist rows, each a button with Normal and Selected (ticked) states. Next is enabled when all four are Selected. Make the list feel like a reusable mental checklist."},{"n":[40],"layout":"categories","section":4,"items":["CONFIDENTIAL","SENSITIVE","EMPLOYEE","CANDIDATE","PERSONAL"],"storyline":"Five simple category cards with a small lock motif. Recognition only, no policy detail."},{"n":[41],"layout":"threeGate","section":4,"parts":["APPROVED TOOL","PERMISSION","POLICY REQUIREMENTS"],"storyline":"Three-part gate: three bars that each turn to the \"open\" state on cue. Do not name internal tools."},{"n":[42],"layout":"stages","section":4,"stages":["Before input","During use","Before sharing output"],"sub":"Protect information at every stage.","storyline":"Three-stage process with a lock icon on each stage. A lock travels along the path (motion path)."},{"n":[43,44],"layout":"kc","section":4,"correct":1,"storyline":"Same knowledge-check pattern as slide 12."},{"n":[45],"layout":"opener","section":5,"sectionNo":6,"lines":["A useful prompt gives AI enough information to understand what you need."],"meera":{"added":true,"situation":"Meera typed \"Write an email\" and got something generic that she can't use.","question":"What should she try next?","options":[{"label":"Run the same prompt again","reply":"The same unclear request usually gives a similarly unclear result."},{"label":"Say who it is for, what it is about, and how long it should be","reply":"That's it. A clearer instruction gives AI a clearer target."},{"label":"Give up and write it herself","reply":"Sometimes that's fine. But a few extra details can make AI much more useful."}],"vo":"Meera typed \"Write an email\" and got something generic that she can't use. What should she try next?"},"storyline":"Same opener pattern as slide 5."},{"n":[46],"layout":"promptPart","section":5,"part":0,"parts":["CONTEXT","TASK","AUDIENCE","OUTPUT","CONSTRAINTS"],"storyline":"Prompt-builder pattern (slides 46–50): one big element card in the centre, and a five-slot builder bar at the bottom. On each slide one more slot fills in. Build slide 46 completely, then duplicate it four times and change only the text and which slot is filled."},{"n":[47],"layout":"promptPart","section":5,"part":1,"parts":["CONTEXT","TASK","AUDIENCE","OUTPUT","CONSTRAINTS"],"storyline":"Duplicate of slide 46 with the next builder slot filled."},{"n":[48],"layout":"promptPart","section":5,"part":2,"parts":["CONTEXT","TASK","AUDIENCE","OUTPUT","CONSTRAINTS"],"storyline":"Duplicate of slide 46 with the next builder slot filled."},{"n":[49],"layout":"promptPart","section":5,"part":3,"parts":["CONTEXT","TASK","AUDIENCE","OUTPUT","CONSTRAINTS"],"storyline":"Duplicate of slide 46 with the next builder slot filled."},{"n":[50],"layout":"promptPart","section":5,"part":4,"parts":["CONTEXT","TASK","AUDIENCE","OUTPUT","CONSTRAINTS"],"storyline":"Duplicate of slide 46 with the next builder slot filled."},{"n":[51],"layout":"assemble","section":5,"parts":["CONTEXT","TASK","AUDIENCE","OUTPUT","CONSTRAINTS"],"sub":"A clearer instruction gives AI a clearer target.","storyline":"The five builder slots fly up (motion paths) and lock together into one prompt bar. Then the subline Fades in."},{"n":[52],"layout":"compare","section":5,"vague":"Write an email.","clear":"Draft a 100-word professional reminder to employees to complete mandatory training by Friday.","highlights":[["100-word","length"],["professional","tone"],["reminder","what to create"],["employees","who it is for"],["by Friday","deadline"]],"storyline":"Side-by-side. On the CLEARER card, each added detail gets a highlight shape + small label on its narration cue (what to create, who it is for, length, tone, deadline)."},{"n":[53,54],"layout":"kc","section":5,"correct":2,"storyline":"Same knowledge-check pattern as slide 12."},{"n":[55],"layout":"opener","section":6,"sectionNo":7,"lines":["From a single response to a defined task"],"meera":{"added":true,"situation":"Every week, Meera turns her team's meeting notes into a summary using the same template.","question":"What could help most?","options":[{"label":"Ask a chatbot from scratch each week","reply":"It works, but she would repeat the same instructions every time."},{"label":"Set up an agent for this task, and review each output","reply":"Yes. An agent can carry out a defined task, and Meera still reviews the result."},{"label":"Set up an agent that sends summaries without review","reply":"An agent can complete a task without the result being correct. Review stays with Meera."}],"vo":"Every week, Meera turns her team's meeting notes into a summary using the same template. What could help most?"},"storyline":"Same opener pattern as slide 5."},{"n":[56],"layout":"agentModel","section":6,"text":"An AI agent is an AI system configured to carry out a defined task using:","inputs":["INSTRUCTIONS","CONTEXT","AVAILABLE CAPABILITIES"],"storyline":"Three inputs flow (Wipe arrows) into one \"defined task\" block. Keep it conceptual."},{"n":[57],"layout":"lanes","section":6,"chatbot":"You ask → AI responds","agent":"You define a task → Agent works through it","storyline":"Two lanes. Chatbot lane animates as one step; agent lane animates as a short sequence of 3–4 small steps."},{"n":[58],"layout":"atlasVideo","section":6,"process":["CREATE","CONFIGURE","TEST","REVIEW"],"note":"Use the approved Atlas environment for the demonstration.","storyline":"Insert > Video > From File: your Atlas screen recording. Add callouts (rounded rectangles) that point to the real Atlas interface labels. Do not invent labels. Show the four-step process bar above the video."},{"n":[59],"layout":"atlasSteps","section":6,"steps":["Define the task","Add instructions and context","Test with a sample situation","Review the output"],"storyline":"Four step cards. If you record one video per step, put each on its own layer and open it from the matching card."},{"n":[60],"layout":"tryIt","section":6,"tabs":[["SCENARIO","Talent meeting summary"],["INPUT","Sample meeting notes"],["TASK","Create a meeting summary using the Talent meeting-summary template"],["OUTPUT","Completed meeting summary"]],"notesTitle":"Sample meeting notes","notes":["Purpose: Business Writing Team Connect","The team reviewed the October Tip 3 content and finalized the version for sharing.","The finalized Tip 3 should be shared with the team. Owner: Team. Deadline: October 2.","Neha demonstrated the AI Agent Builder feature in Atlas and walked the team through an R&R Auditor Agent she created.","Neha will share the R&R Auditor Agent prompt and demonstration details with the team. Deadline: October 2.","Neha walked the team through the AI presentation prepared for Talent Development.","No announcements or minority views were recorded."],"renamed":"Karthika → Neha (fictional name, as you requested)","prompt":"Create a meeting summary using the Talent meeting-summary template. Review the meeting notes provided below and populate the relevant fields in the template. Capture meeting details, agenda items, descriptions, action items or next steps, responsible persons, deadlines, announcements, minority views and alternate opinions, outcomes of minority-view consideration, and additional notes when the information is provided. Use only information explicitly stated in the meeting notes. Do not infer or invent owners, deadlines, decisions, viewpoints, or other details. If a field is not supported by the notes, leave it blank or mark it as Not specified, according to the template requirement. Keep the wording concise and professional while preserving the meaning of the original notes.","check":"The completed summary should follow the Talent template structure and accurately reflect the source notes. The learner must review the output before using or sharing it.","actions":["Share the finalized October Tip 3 — Responsible Person: Team — Deadline: October 2","Share the R&R Auditor Agent prompt and demonstration details — Responsible Person: Neha — Deadline: October 2"],"review":["Did the agent capture the information that was actually provided?","Did it place the information in the correct sections of the Talent template?","Did it invent any owner, deadline, decision, or viewpoint?","Is the wording accurate and appropriate for a meeting summary?","What would you correct before sharing the summary?"],"storyline":"Base layer: four tab buttons (Scenario, Input, Task, Output). Each tab opens its own layer. Extra layers: \"Sample notes\", \"Right prompt for Atlas\", \"Expected output check\". Track visited tabs with True/False variables; enable Next when all four are visited. Optional: attach the Talent template and sample notes as Resources in the player."},{"n":[61,62],"layout":"kc","section":6,"correct":1,"storyline":"Same knowledge-check pattern as slide 12."},{"n":[63],"layout":"assessIntro","section":7,"lines":["Show what you know.","The assessment tests understanding and judgment, not simple recall."],"info":["8 questions","Pass mark 80% (7 of 8)","Unlimited attempts"],"infoAdded":true,"storyline":"Clean transition into the assessment. The three info chips are new: they tell learners the rules before they start."},{"n":[64,65],"layout":"quiz","section":7,"qNo":1,"correct":1,"storyline":"Graded Pick One question (Insert > New Slide > Quizzing > Graded Question > Pick One). Points: 10 each. Attempts: 1. Feedback: By Question, using the slide 65 text on the Correct and Incorrect layers. The Continue button on each layer goes to the next question. Do not shuffle answers."},{"n":[66,67],"layout":"quiz","section":7,"qNo":2,"correct":1,"storyline":"Same graded pattern as question 1."},{"n":[68,69],"layout":"quiz","section":7,"qNo":3,"correct":1,"storyline":"Same graded pattern as question 1."},{"n":[70,71],"layout":"quiz","section":7,"qNo":4,"correct":1,"storyline":"Same graded pattern as question 1."},{"n":[72,73],"layout":"quiz","section":7,"qNo":5,"correct":2,"storyline":"Same graded pattern as question 1."},{"n":[74,75],"layout":"quiz","section":7,"qNo":6,"correct":1,"storyline":"Same graded pattern as question 1."},{"n":[76,77],"layout":"quiz","section":7,"qNo":7,"correct":1,"storyline":"Same graded pattern as question 1."},{"n":[78,79],"layout":"quiz","section":7,"qNo":8,"correct":1,"storyline":"Same graded pattern as question 1."},{"n":[],"layout":"results","section":7,"added":true,"pass":{"title":"You passed","text":"You have completed the AI Literacy Level 1 assessment."},"fail":{"title":"Not yet","text":"You need 80% to pass. Review AWARE and try the assessment again."},"storyline":"NEW. Insert > New Slide > Quizzing > Result Slide > Graded Results Slide. Include all 8 questions. Passing score 80%. Success layer: Continue to slide 80. Failure layer: Retry Quiz button (resets results and jumps to question 1). The LMS reads pass/fail from this slide."},{"n":[80],"layout":"awareClose","section":null,"letters":[["A","Appreciate AI"],["W","Weigh the Output"],["A","Assess the Risk"],["R","Respond with the Right Prompt"],["E","Ensure Human Accountability"]],"closing":"AI can assist. Humans remain accountable.","storyline":"AWARE recap: the five tiles from slide 4 animate in again, then the closing line from slide 35."},{"n":[81],"layout":"levels","section":null,"levels":[["LEVEL 1","Understand","Build the foundation"],["LEVEL 2","Use","Apply AI to everyday work"],["LEVEL 3","Apply","Use AI within your function"],["LEVEL 4","Improve and Transform","Redesign and scale AI-enabled work"]],"storyline":"Four connected level cards. Level 1 shows a \"Complete\" tick. Add an Exit Course button (trigger: Exit course) if your LMS needs one."}],"FLAGS":[{"slides":[10],"text":"Title says \"Three terms you will use often\" but the slide shows two terms (Prompt, Context).","fix":"Change the title to \"Two terms you will use often\"."},{"slides":[2],"text":"The learning outcomes do not mention AI agents, but a whole section and one assessment question cover them.","fix":"Add a fourth outcome, for example \"Describe what an AI agent is\"."},{"slides":[63,"results"],"text":"Pass mark 80% with 8 questions means learners need 7 of 8 correct (6 of 8 is 75%, a fail).","fix":"Confirm that 7 of 8 is intended."},{"slides":[64,76,78],"text":"Three assessment questions repeat earlier knowledge checks almost word for word (Q1 ≈ slide 12, Q7 ≈ slide 27, Q8 ≈ slide 61). This tests recall, which slide 63 says the assessment avoids.","fix":"Rewrite Q1, Q7 and Q8 as new workplace scenarios."},{"slides":[64,66,68,70,72,74,76,78],"text":"Several wrong options are obviously wrong (for example \"Password management\", \"File compression\", \"A static report\"), so learners can answer without understanding.","fix":"Replace them with believable mistakes people actually make."},{"slides":[65,67,69,71,73,75,77,79],"text":"All 8 assessment feedback layers use identical text. The correct-answer text (\"keeps the appropriate human role\") does not fit Q1, Q5 or Q8.","fix":"Write one specific sentence of feedback per question."},{"slides":[63],"text":"Slide 63 says \"Eight scenario-based questions follow\", but Q5 and Q8 are not scenarios.","fix":"Reword the build note, or turn Q5 and Q8 into scenarios."},{"slides":[58,59],"text":"Slide 58 names the steps Create → Configure → Test → Review; slide 59 calls them Define → Add instructions and context → Test → Review.","fix":"Use one set of step names on both slides."},{"slides":[27,76],"text":"Grammar: \"a candidate suitability\" should be \"a candidate's suitability\".","fix":"Add the apostrophe."},{"slides":[33],"text":"Grammar in voiceover: \"your organization expectations\" should be \"your organization's expectations\". Also check: the AI voice will read \"R&R\" literally.","fix":"Add the apostrophe."},{"slides":[60],"text":"Slide 60 holds more content than one screen can show (scenario, notes, prompt, expected output).","fix":"Already handled in this design with tabs and layers. No wording changed."},{"slides":[12,20,27,36,43,53,61],"text":"The storyboard does not say whether a wrong knowledge-check answer can be retried.","fix":"This design uses Try Again until correct. Confirm."}]};</script>
+<script>
+/* AI Literacy Level 1 — clickable prototype. Data: window.SB (signed-off storyboard), window.D (design layer). */
+(function () {
+  const SB = {}; window.SB.forEach(r => { SB[r.n] = r; });
+  const { SECTIONS, CHARACTER, SCREENS, FLAGS } = window.D;
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const sb = n => SB[n] || { title: '', onscreen: '', vo: '', build: '' };
+
+  // ---------- icons (same shapes ship in the asset pack) ----------
+  const I = {
+    warn: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linejoin="round"><path d="M24 6 44 41H4Z"/><path d="M24 19v11M24 35v1" stroke-linecap="round"/></svg>',
+    balance: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v36M12 42h24M8 14h32"/><path d="M8 14 3 28h10ZM40 14l-5 14h10Z"/></svg>',
+    agent: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="32" height="24" rx="6"/><path d="M24 6v8M18 26h.01M30 26h.01M4 24v6M44 24v6"/></svg>',
+    idea: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 30a12 12 0 1 1 14 0v6H17Z"/><path d="M19 42h10"/></svg>',
+    draft: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M16 22h16M16 29h16M16 36h9"/></svg>',
+    doc: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M30 6v8h8M16 24h16M16 31h12"/></svg>',
+    search: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3" stroke-linecap="round"><circle cx="21" cy="21" r="12"/><path d="m30 30 12 12"/></svg>',
+    lock: c => `<svg viewBox="0 0 48 48" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 18 0v6M24 30v4"/></svg>`,
+    open: '<svg viewBox="0 0 48 48" fill="none" stroke="#2f8a5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 17-4"/><path d="m18 31 4 4 8-8"/></svg>',
+    play: '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7Z" fill="#172036"/></svg>',
+    sys: '<svg viewBox="0 0 48 48" fill="none" stroke="#2a6f97" stroke-width="3"><rect x="8" y="8" width="32" height="32" rx="8"/><circle cx="24" cy="24" r="6"/></svg>',
+  };
+  const MEERA = `<svg viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Meera">
+    <circle cx="80" cy="80" r="78" fill="#fbf0dc"/>
+    <path d="M30 150c4-30 24-46 50-46s46 16 50 46Z" fill="#2a6f97"/>
+    <path d="M66 100h28v14c-4 6-24 6-28 0Z" fill="#9c6b4a"/>
+    <circle cx="80" cy="70" r="30" fill="#b07a55"/>
+    <path d="M48 70c0-24 14-38 33-38s31 14 31 34c-10-2-22-10-28-20-6 12-20 22-36 24Z" fill="#1e1a22"/>
+    <circle cx="104" cy="42" r="12" fill="#1e1a22"/>
+    <circle cx="70" cy="74" r="2.6" fill="#1e1a22"/><circle cx="91" cy="74" r="2.6" fill="#1e1a22"/>
+    <path d="M72 86c5 4 11 4 16 0" stroke="#5a3826" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="80.5" cy="60" r="2" fill="#c4523b"/>
+  </svg>`;
+
+  // ---------- parsing helpers for signed-off text ----------
+  function parseQ(n) {
+    const lines = sb(n).onscreen.split('\n').map(s => s.trim()).filter(Boolean);
+    const opts = [], stem = [];
+    lines.forEach(l => { const m = l.match(/^([A-D])\s{2,}(.*)$/); if (m) opts.push(m[2]); else stem.push(l); });
+    return { stem, opts };
+  }
+  function parseFb(n) {
+    const t = sb(n).onscreen;
+    const c = (t.match(/CORRECT\n([\s\S]*?)(\n\nINCORRECT|$)/) || [])[1] || '';
+    const w = (t.match(/INCORRECT\n([\s\S]*)$/) || [])[1] || '';
+    const v = sb(n).vo;
+    const vc = (v.match(/Correct feedback:\s*([\s\S]*?)(\n?Incorrect feedback:|$)/) || [])[1] || c;
+    const vw = (v.match(/Incorrect feedback:\s*([\s\S]*)$/) || [])[1] || w;
+    return { c: c.trim(), w: w.trim(), vc: vc.trim(), vw: vw.trim() };
+  }
+  function cardLines(n) { // "TERM\ndesc"
+    const t = sb(n).onscreen.split('\n');
+    return [t[0], t.slice(1).join(' ').trim()];
+  }
+
+  // ---------- state ----------
+  const state = { i: 0, review: true, cc: true, narr: false, notes: true, added: true, gate: {}, quiz: {}, kcDone: {}, meera: {} };
+  const qScreens = SCREENS.map((s, i) => s.layout === 'quiz' ? i : -1).filter(i => i >= 0);
+
+  // ---------- chrome ----------
+  function pathHTML(sec) {
+    let h = '<div class="path" aria-hidden="true">';
+    SECTIONS.forEach((s, k) => {
+      const cls = sec == null ? (state.i > 3 ? 'done' : '') : k < sec ? 'done' : k === sec ? 'now' : '';
+      h += `<span class="dot ${cls}">${k === sec ? `<span class="now-label">${esc(s.label)}</span>` : ''}</span>`;
+      if (k < SECTIONS.length - 1) h += `<span class="seg ${sec != null && k < sec ? 'done' : (sec == null && state.i > 3 ? 'done' : '')}"></span>`;
+    });
+    return h + '</div>';
+  }
+  function badgeHTML(sec) {
+    if (sec == null || !SECTIONS[sec].aware) return '';
+    return `<div class="badge"><span>${esc(SECTIONS[sec].awareWord)}</span><b>${SECTIONS[sec].aware}</b></div>`;
+  }
+  const head = (n, eyebrow) => `<div class="eyebrow">${esc(eyebrow || sb(n).section)}</div><h2 class="h in">${esc(sb(n).title)}</h2>`;
+  // entrance delay (stand-in for Storyline cue points); applied after render so it never clashes with inline styles
+  const st = (i, base = 0.15, step = 0.35) => `data-d="${(base + i * step).toFixed(2)}"`;
+
+  // ---------- layouts ----------
+  const L = {};
+  L.title = s => ({ dark: true, chrome: false, html: `
+    <svg class="title-art" viewBox="0 0 560 560" aria-hidden="true">
+      <circle cx="300" cy="280" r="220" fill="none" stroke="#2a6f97" stroke-width="2" stroke-dasharray="6 10"/>
+      <circle cx="300" cy="280" r="150" fill="none" stroke="#2a6f97" stroke-width="2" stroke-dasharray="6 10"/>
+      <circle cx="300" cy="280" r="80" fill="#d9952b"/>
+      <circle cx="520" cy="280" r="10" fill="#7fb6d8"/><circle cx="150" cy="170" r="10" fill="#7fb6d8"/><circle cx="300" cy="430" r="10" fill="#7fb6d8"/>
+    </svg>
+    <div class="content title-slide" style="justify-content:center">
+      <div class="level in">${esc(sb(1).onscreen.split('\n')[0].toUpperCase())}</div>
+      <h2 class="big in" ${st(1, .1, .2)}>AI<br><span>LITERACY</span></h2>
+      <div class="tag in" ${st(2, .1, .3)}>${esc(sb(1).onscreen.split('\n')[1]).replace('Use It Responsibly.', '<b>Use It Responsibly.</b>')}</div>
+    </div>` });
+
+  L.outcomes = s => ({ html: `<div class="content">${head(2, 'Before we begin')}
+    <p class="lead in" style="margin-bottom:18px">${esc(s.intro)}</p>
+    <div>${s.items.map((t, k) => `<div class="outcome in" ${st(k, .5, .6)}><span class="num">${k + 1}</span><span>${esc(t)}</span></div>`).join('')}</div></div>` });
+
+  L.journey = s => ({ html: `<div class="content">${head(3, 'Your route')}
+    <div class="jpath">${s.steps.map((t, k) => `<div class="jstop in" ${st(k, .3, .25)}><div class="n">${k + 1}</div><div class="t">${esc(t)}</div></div>`).join('')}</div></div>` });
+
+  L.aware = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">Your mental model</div><h2 class="h in" style="color:#fff">${esc(sb(4).title)}</h2>
+    <div class="aware">${s.letters.map(([l, w], k) => `<div class="aw" ${st(k, .4, .5)}><div class="L">${l}</div><div class="w" style="color:#e6ebf3">${esc(w)}</div></div>`).join('')}</div></div>` });
+
+  L.opener = (s, idx) => {
+    const n = s.n[0];
+    const done = state.meera[idx] != null;
+    return { dark: true, gate: done, html: `<div class="content opener">
+      <div class="secno in">${String(s.sectionNo).padStart(2, '0')}</div>
+      <h2 class="h in" ${st(1, .1, .2)}>${esc(sb(n).title)}</h2>
+      <ul>${s.lines.map((t, k) => `<li class="in" ${st(k, .5, .4)}>${esc(t)}</li>`).join('')}</ul>
+      ${s.meera ? `<button class="navbtn next meera-cta in" ${st(0, 1.6)} data-act="meera">${done ? 'Revisit' : 'Meet'} ${CHARACTER.name}'s moment</button>` : ''}
+    </div>${s.meera && state.layer === 'meera' ? meeraLayer(s, idx) : ''}`, after: el => {
+      if (s.meera && !done && state.layer !== 'meera' && !state.autoMeera[idx]) { state.autoMeera[idx] = true; setTimeout(() => { if (state.i === idx) { state.layer = 'meera'; render(); speak(s.meera.vo); } }, 2600); }
+    } };
+  };
+  function meeraLayer(s, idx) {
+    const m = s.meera, pick = state.meera[idx];
+    return `<div class="layer"><span class="added-tag" style="left:24px;top:64px">NEW · NEEDS APPROVAL</span><div class="panel">
+      <div class="meera-fig">${MEERA}<div class="nm">${CHARACTER.name}</div><div class="rl">${CHARACTER.role}</div></div>
+      <div><p class="sit">${esc(m.situation)}</p><p class="q">${esc(m.question)}</p>
+        <div class="choices">${m.options.map((o, k) => `<button class="choice ${pick === k ? 'sel' : ''}" data-act="mpick" data-k="${k}">${esc(o.label)}</button>`).join('')}</div>
+        ${pick != null ? `<div class="reply">${esc(m.options[pick].reply)}</div><button class="navbtn next" style="margin-top:16px" data-act="mclose">Continue</button>` : ''}
+      </div></div></div>`;
+  }
+
+  L.defineCards = s => ({ html: `<div class="content">${head(6)}
+    <div class="define">${s.caps.map((c, k) => `<div class="capc in" ${st(k, .8, .5)}>${esc(c)}</div>`).join('')}
+      <div class="core in"><span class="term">AI</span>${esc(s.definition)}</div></div></div>` });
+
+  L.umbrella = s => ({ html: `<div class="content">${head(7)}
+    <div class="umb-top" style="animation-delay:1.6s">AI</div>
+    <div class="umb">${Array.from({ length: s.tiles }, (_, k) => `<div class="tile in" ${st(k, .2, .15)}>${I.sys}</div>`).join('')}</div>
+    <p class="lead in" ${st(0, 2)} style="margin-top:22px"><b>${esc(s.statement)}</b> ${esc(s.sub)}</p></div>` });
+
+  L.radial = s => {
+    const pos = [[18, 25], [82, 25], [10, 78], [90, 78], [50, 96]];
+    return { html: `<div class="content">${head(8)}<p class="lead in">${esc(s.definition)}</p>
+      <div class="radial"><div class="hub">Gen<br>AI</div>${s.types.map((t, k) => `<span class="chip" style="left:${pos[k][0]}%;top:${pos[k][1]}%;animation-delay:${.6 + k * .3}s">${t}</span>`).join('')}</div></div>` };
+  };
+
+  L.flow = s => ({ html: `<div class="content">${head(9)}<p class="lead in">${esc(s.text)}</p>
+    <div class="flow">
+      <div class="node data in" ${st(0, .4)}><div class="dots">${'<i></i>'.repeat(24)}</div>${esc(s.nodes[0])}</div>
+      <div class="arrow" style="animation-delay:.9s"></div>
+      <div class="node model in" ${st(0, 1.2)}>${esc(s.nodes[1])}</div>
+      <div class="arrow" style="animation-delay:1.7s"></div>
+      <div class="node resp in" ${st(0, 2)}><div class="lines-skel"><i></i><i></i><i style="width:60%"></i></div>${esc(s.nodes[2])}</div>
+    </div></div>` });
+
+  L.reveal = (s, idx) => {
+    const open = state.gate[idx] || [];
+    const all = open.length === s.cards.length;
+    return { gate: all, html: `<div class="content">${head(s.n[0])}
+      <div class="reveal-row" style="grid-template-columns:repeat(${s.cards.length},1fr)">${s.cards.map(([t, d], k) => {
+        const o = open.includes(k);
+        return `<button class="rcard in ${o ? 'open' : ''}" ${st(k, .3, .2)} data-act="rev" data-k="${k}" aria-expanded="${o}">
+          ${s.icons ? I[s.icons[k]] : ''}<span class="term">${esc(t)}</span>${o ? `<span class="def">${esc(d)}</span>` : '<span class="hint">Select to reveal</span>'}</button>`;
+      }).join('')}</div>
+      <div class="instr">${esc(s.instruction)} <span class="added-tag" style="position:static">NEW</span></div></div>` };
+  };
+
+  L.beforeAfter = s => ({ html: `<div class="content">${head(15)}<div class="ba">
+    <div><div class="vis"><div class="page blank in"><i></i></div><span class="arr">→</span><div class="page ai in" ${st(0, .9)}><i></i><i></i><i></i><i style="width:70%"></i><i></i><i style="width:50%"></i></div></div>
+      <div class="card ai in" ${st(0, 1)}><span class="term">${esc(s.cards[0][0])}</span><p>${esc(s.cards[0][1])}</p></div></div>
+    <div><div class="vis"><div class="page in" ${st(0, 1.6)}><i></i><i></i><i></i><i></i><i></i></div><span class="arr">→</span><div class="page ai in" ${st(0, 2)}><i style="width:40%"></i><i></i><i style="width:40%"></i><i></i><i style="width:40%"></i></div></div>
+      <div class="card ai in" ${st(0, 2.2)}><span class="term">${esc(s.cards[1][0])}</span><p>${esc(s.cards[1][1])}</p></div></div></div></div>` });
+
+  L.condense = s => ({ html: `<div class="content">${head(16)}
+    <div class="condense-vis"><div class="page long in">${'<i></i>'.repeat(14)}</div><span class="arr">→</span>
+      <div class="page ai short in" ${st(0, .9)}><i></i><i></i><i style="width:60%"></i></div><span class="arr in" ${st(0, 1.4)}>→</span>
+      <div class="page ai list in" ${st(0, 1.6)}><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="ba">${s.cards.map(([t, d], k) => `<div class="card ai in" ${st(k, .8, .9)}><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div></div>` });
+
+  L.pattern = s => {
+    const pts = [[60, 60], [90, 110], [130, 70], [210, 220], [250, 260], [190, 270], [330, 90], [370, 130], [350, 60], [80, 260], [300, 250], [150, 150]];
+    const grp = [0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 1, 0];
+    const cen = [[110, 90], [250, 240], [360, 100]];
+    return { html: `<div class="content">${head(17)}<div class="pattern">
+      <svg viewBox="0 0 440 330" aria-hidden="true">${cen.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="62" fill="#e3eef5" stroke="#2a6f97" stroke-width="2" stroke-dasharray="5 6" class="in" style="animation-delay:1.4s"/>`).join('')}
+        ${pts.map(([x, y], k) => { const [cx, cy] = cen[grp[k]]; const tx = cx + ((k * 37) % 50) - 25, ty = cy + ((k * 23) % 50) - 25; return `<circle r="9" fill="#2a6f97" cx="${tx}" cy="${ty}"><animate attributeName="cx" from="${x}" to="${tx}" dur="1.2s" begin="0.2s" fill="freeze"/><animate attributeName="cy" from="${y}" to="${ty}" dur="1.2s" begin="0.2s" fill="freeze"/></circle>`; }).join('')}
+      </svg>
+      <div class="card ai in" ${st(0, 1.6)}><span class="term" style="font-size:20px">${esc(s.card[0])}</span><p style="font-size:26px">${esc(s.card[1])}</p></div></div></div>` };
+  };
+
+  L.limits = s => ({ html: `<div class="content">${head(18)}<div class="limits"><p class="lead">${esc(s.intro)}</p>
+    <ul>${s.items.map((t, k) => `<li class="in" ${st(k, .5, .5)}><span class="x">✕</span>${esc(t)}</li>`).join('')}</ul></div></div>` });
+
+  L.notEqual = s => ({ html: `<div class="content">${head(19)}<div class="neq">
+    <div class="side l in">${esc(s.left)}</div><div class="sym">≠</div><div class="side r in" ${st(0, .5)}>${esc(s.right)}</div></div></div>` });
+
+  function optsHTML(q, sel, locked) {
+    return `<div class="opts">${q.opts.map((o, k) => `<button class="opt ${sel === k ? 'sel' : ''}" data-act="opt" data-k="${k}" ${locked ? 'disabled' : ''} aria-pressed="${sel === k}"><span class="k">${'ABCD'[k]}</span><span>${esc(o)}</span></button>`).join('')}
+      <button class="navbtn next submit" data-act="submit" ${sel == null || locked ? 'disabled' : ''}>Submit</button></div>`;
+  }
+  L.kc = (s, idx) => {
+    const q = parseQ(s.n[0]), fb = parseFb(s.n[1]);
+    const k = state.kc[idx] || {};
+    const res = k.result;
+    return { gate: !!state.kcDone[idx], html: `<div class="content"><div class="kc">
+      <div><div class="kc-tag">Knowledge check · not scored</div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Select one answer.</p></div>
+      ${optsHTML(q, k.sel, !!res)}</div></div>
+      ${res ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Not quite'}</p><p>${esc(res === 'ok' ? fb.c : fb.w)}</p>
+        ${res === 'ok' ? '<button class="navbtn next" data-act="next">Continue</button>' : '<button class="navbtn next" data-act="retry">Try again</button>'}</div></div>` : ''}`,
+      onSubmit: () => { const ok = k.sel === s.correct; k.result = ok ? 'ok' : 'bad'; state.kc[idx] = k; if (ok) state.kcDone[idx] = true; render(); speak(ok ? fb.vc : fb.vw); } };
+  };
+
+  L.quiz = (s, idx) => {
+    const q = parseQ(s.n[0]), fb = parseFb(s.n[1]);
+    const a = state.quiz[idx] || {};
+    const res = a.result;
+    const label = sb(s.n[0]).title.split('—')[1] || '';
+    return { gate: !!res, html: `<div class="content">
+      <div class="qhead"><span class="kc-tag" style="margin:0">Question ${s.qNo} of 8 · ${esc(label.trim())}</span><span class="qprog">${qScreens.map((qi, k) => `<i class="${k + 1 === s.qNo ? 'cur' : state.quiz[qi] && state.quiz[qi].result ? 'on' : ''}"></i>`).join('')}</span></div>
+      <div class="kc"><div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Read the scenario and select the response that best reflects the principles from this course.</p></div>
+      ${optsHTML(q, a.sel, !!res)}</div></div>
+      ${res && state.layer !== 'closed' ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Incorrect'}</p><p>${esc(res === 'ok' ? fb.c.replace(/^Correct\.\s*/, '') : fb.w)}</p><button class="navbtn next" data-act="next">Continue</button></div></div>` : ''}`,
+      onSubmit: () => { a.result = a.sel === s.correct ? 'ok' : 'bad'; state.quiz[idx] = a; render(); speak(a.result === 'ok' ? fb.vc : fb.vw); } };
+  };
+
+  L.twoCol = s => ({ html: `<div class="content">${head(25)}<div class="twocol">
+    <div class="card ai in" ${st(0, .4)}><span class="term">${esc(s.left[0])}</span><p>${esc(s.left[1])}</p></div>
+    <div class="card human in" ${st(0, 1.4)}><span class="term">${esc(s.right[0])}</span><p>${esc(s.right[1])}</p></div></div></div>` });
+
+  L.handoff = s => ({ html: `<div class="content">${head(26)}<div class="lanes2">
+    <div class="lane ai"><span class="who">AI</span><div class="verbs">${s.ai.map((v, k) => `<span class="verb" ${st(k, .3, .3)}>${esc(v)}</span>`).join('')}</div></div>
+    <div class="handarrow in" ${st(0, 1.4)}>↓ output handed to a person ↓</div>
+    <div class="lane hu"><span class="who">HUMAN</span><div class="verbs">${s.human.map((v, k) => `<span class="verb" ${st(k, 1.8, .35)}>${esc(v)}</span>`).join('')}</div></div></div></div>` });
+
+  L.pair = s => ({ html: `<div class="content">${head(s.n[0])}<div class="twocol">${s.cards.map(([t, d], k) =>
+    `<div class="card ai in" ${st(k, .4, 1)}>${I[s.icons[k]].replace('<svg', '<svg width="48" height="48"')}<span class="term" style="margin-top:14px;font-size:20px">${esc(t)}</span><p style="font-size:26px">${esc(d)}</p></div>`).join('')}</div></div>` });
+
+  L.steps = s => ({ html: `<div class="content">${head(30)}<div class="steps" style="grid-template-columns:1fr 60px 1fr 60px 1fr">
+    ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><span class="no">STEP ${k + 1}</span><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div></div>` });
+
+  L.warning = s => ({ html: `<div class="content">${head(31)}<div class="row" style="align-items:center;gap:60px;margin-top:10px">
+    <div class="warncard in"><div class="lines-skel"><i></i><i></i><i style="width:85%"></i><i></i><i style="width:60%"></i><i></i><i style="width:75%"></i></div><span class="mark">≠</span></div>
+    <div><p class="lead in" ${st(0, .6)} style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1.4)} style="margin-top:20px;color:#c4523b;font-weight:600">${esc(s.sub)}</p></div></div></div>` });
+
+  L.balance = s => ({ html: `<div class="content">${head(32)}<div class="row" style="align-items:center;gap:40px">
+    <div class="in" style="width:200px;flex:none">${I.balance.replace('<svg', '<svg width="200" height="200"')}</div>
+    <div class="twocol" style="flex:1;margin:0">${s.cards.map(([t, d], k) => `<div class="card ${k ? 'human' : 'ai'} in" ${st(k, .5, .9)}><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div></div></div>` });
+
+  L.checks3 = s => ({ html: `<div class="content">${head(33)}<p class="lead in">${esc(s.intro)}</p>
+    <div class="steps" style="grid-template-columns:repeat(3,1fr);gap:20px">${s.checks.map((c, k) => `<div class="step" ${st(k, .6, .6)} style="text-align:center;padding:40px 20px"><div style="width:64px;height:64px;border-radius:50%;background:#2f8a5b;color:#fff;display:grid;place-items:center;margin:0 auto 18px;font:800 30px var(--f-body)">✓</div><span class="term" style="font-size:24px">${c}</span></div>`).join('')}</div></div>` });
+
+  L.gate = s => ({ html: `<div class="content">${head(34)}<div class="row" style="align-items:center;gap:50px">
+    <svg viewBox="0 0 420 260" width="420" height="260" aria-hidden="true">
+      <path d="M10 70h250" stroke="#2a6f97" stroke-width="4" stroke-dasharray="10 8"/><text x="10" y="50" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#2a6f97">AI</text>
+      <rect x="262" y="40" width="16" height="60" rx="3" fill="#c4523b"/>
+      <path d="M10 190h400" stroke="#d9952b" stroke-width="6"/><text x="10" y="172" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#9a6514">HUMAN</text>
+      <path d="M396 178l14 12-14 12" fill="none" stroke="#d9952b" stroke-width="6"/>
+    </svg>
+    <div><p class="lead in" style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1)} style="margin-top:16px">${esc(s.sub)}</p></div></div></div>` });
+
+  L.statement = s => ({ dark: true, html: `<div class="content" style="justify-content:center"><div class="eyebrow">${esc(sb(35).title)}</div>
+    <p class="statement"><span class="a in">${esc(s.lines[0])}</span><span class="h2 in" ${st(0, 1.2)}>${esc(s.lines[1])}</span></p></div>` });
+
+  L.checklist = (s, idx) => {
+    const on = state.gate[idx] || [];
+    return { gate: on.length === s.items.length, html: `<div class="content">${head(39)}<div class="check-list">${s.items.map((t, k) =>
+      `<button class="chk in ${on.includes(k) ? 'on' : ''}" ${st(k, .3, .3)} data-act="rev" data-k="${k}" aria-pressed="${on.includes(k)}"><span class="box">✓</span><span><span class="n">0${k + 1}</span>${esc(t)}</span></button>`).join('')}</div>
+      <div class="instr">${esc(s.instruction)} <span class="added-tag" style="position:static">NEW</span></div></div>` };
+  };
+
+  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#d9952b')}${t}</div>`).join('')}</div></div>` });
+
+  L.threeGate = s => ({ html: `<div class="content">${head(41)}<div class="gate3">${s.parts.map((p, k) => `${k ? '<div class="plus">+</div>' : ''}<div class="gpart" ${st(k, .4, .8)}>${I.open}${esc(p)}</div>`).join('')}</div></div>` });
+
+  L.stages = s => ({ html: `<div class="content">${head(42)}<div class="stages">${s.stages.map((t, k) => `${k ? `<div class="ln" style="animation-delay:${(k * .8).toFixed(1)}s"></div>` : ''}<div class="stg" ${st(k, .3, .8)}><div class="lock">${I.lock('#d9952b')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>
+    <p class="lead in" ${st(0, 2.6)} style="margin-top:44px;text-align:center;max-width:none;font-weight:600">${esc(s.sub)}</p></div>` });
+
+  L.promptPart = s => {
+    const n = s.n[0], [t, d] = cardLines(n);
+    return { html: `<div class="content">${head(n, `Prompt element ${s.part + 1} of 5`)}
+      <div class="pp-card"><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>
+      <div class="builder-label">Your prompt so far</div>
+      <div class="builder" style="margin-top:0">${s.parts.map((p, k) => `<div class="slot ${k <= s.part ? 'on' : ''} ${k === s.part ? 'now' : ''}">${p}</div>`).join('')}</div></div>` };
+  };
+
+  L.assemble = s => ({ html: `<div class="content">${head(51)}
+    <div class="assembled">${s.parts.map((p, k) => `<span ${st(k, .3, .35)}>${p}</span>`).join('')}</div>
+    <p class="lead in" ${st(0, 2.3)} style="margin-top:44px;text-align:center;max-width:none;font:700 34px var(--f-display)">${esc(s.sub)}</p></div>` });
+
+  L.compare = (s, idx) => {
+    let clear = esc(s.clear);
+    s.highlights.forEach(([w, lab]) => { clear = clear.replace(esc(w), `<span class="hl">${esc(w)}<small>${esc(lab)}</small></span>`); });
+    const show = !!state.gate[idx];
+    return { gate: show, html: `<div class="content">${head(52)}<div class="cmp ${show ? 'show' : ''}">
+      <div class="card vague in"><span class="term" style="color:#5b6577">VAGUE</span><p>${esc(s.vague)}</p></div>
+      <div class="card ai clear in" ${st(0, .8)}><span class="term">CLEARER</span><p>${show ? clear : esc(s.clear)}</p></div></div>
+      <button class="navbtn toggle" data-act="hl" ${show ? 'disabled' : ''}>${show ? 'Details highlighted' : 'Show what was added'}</button></div>` };
+  };
+
+  L.agentModel = s => ({ html: `<div class="content">${head(56)}<p class="lead in">${esc(s.text)}</p>
+    <div class="agent"><div class="inputs">${s.inputs.map((t, k) => `<div class="inp" ${st(k, .5, .5)}>${esc(t)}</div>`).join('')}</div>
+      <div class="funnel"><svg viewBox="0 0 120 260" aria-hidden="true"><path d="M0 40 C60 40 60 130 110 130 M0 130 H110 M0 220 C60 220 60 130 110 130" fill="none" stroke="#2a6f97" stroke-width="3" class="in" style="animation-delay:1.8s"/><path d="M104 122l12 8-12 8" fill="#2a6f97"/></svg></div>
+      <div class="task in" ${st(0, 2.1)}>A defined task</div></div></div>` });
+
+  L.lanes = s => ({ html: `<div class="content">${head(57)}<div class="lanes">
+    <div class="lanerow"><span class="who">CHATBOT</span><div class="seq"><span class="pill">You ask</span>→<span class="pill solid" style="animation-delay:.6s">AI responds</span></div><span class="cap">${esc(s.chatbot)}</span></div>
+    <div class="lanerow"><span class="who">AGENT</span><div class="seq"><span class="pill" style="animation-delay:1.2s">You define a task</span>→${['Step 1', 'Step 2', 'Step 3'].map((p, k) => `<span class="pill solid" style="animation-delay:${1.6 + k * .4}s">${p}</span>`).join('→')}</div><span class="cap">${esc(s.agent)}</span></div></div></div>` });
+
+  L.atlasVideo = s => ({ html: `<div class="content">${head(58)}
+    <div class="proc">${s.process.map(p => `<span>${p}</span>`).join('<b>→</b>')}</div>
+    <div class="video"><div><div class="play">${I.play}</div>Your Atlas screen recording goes here<small>${esc(s.note)}</small><small>Callouts point to real Atlas labels only.</small></div></div></div>` });
+
+  L.atlasSteps = s => ({ html: `<div class="content">${head(59)}<div class="stepcards">${s.steps.map((t, k) =>
+    `<div class="step" ${st(k, .3, .5)}><span class="no">STEP ${k + 1}</span><p style="font:700 26px/1.2 var(--f-display)">${esc(t)}</p><span class="vid">▶ Screen recording ${k + 1}</span></div>`).join('')}</div></div>` });
+
+  L.tryIt = (s, idx) => {
+    const g = state.gate[idx] || { seen: [], cur: null, sub: null };
+    state.gate[idx] = g;
+    const panes = [
+      `<h3>Talent meeting summary</h3><p>We will create an agent that turns meeting notes into a completed meeting summary using the approved Talent meeting-summary template.</p><p><b>The rule:</b> the agent must use only the information in the meeting notes. If an owner, deadline, decision, minority view, or other detail is not provided, it must not invent one.</p>`,
+      `<h3>${esc(s.notesTitle)}</h3><ul>${s.notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul><p class="src" style="color:#5b6577;font-size:14px;margin-top:12px">Names are fictional.</p>`,
+      `<h3>Right prompt for Atlas</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
+      `<h3>Expected output check</h3><p>${esc(s.check)}</p><p><b>Example action items</b></p><ol>${s.actions.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+       <p style="margin-top:14px"><b>Before you accept the output, ask:</b></p><ol>${s.review.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
+    ];
+    return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on · Guided Atlas activity')}
+      <div class="tryit"><div class="tabs">${s.tabs.map(([t, d], k) => `<button class="tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="tab" data-k="${k}"><span class="term">${t}</span><span>${esc(d)}</span></button>`).join('')}
+        <p style="font-size:14px;color:#5b6577;margin:6px 2px">Open all four tabs, then try it in Atlas.</p></div>
+      <div class="tpane">${g.cur == null ? '<h3>Select a tab to begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to check the output.</p>' : panes[g.cur]}</div></div></div>` };
+  };
+
+  L.assessIntro = s => ({ dark: true, html: `<div class="content opener" style="justify-content:center">
+    <div class="eyebrow">${esc(sb(63).title)}</div><h2 class="h in" style="font-size:72px">${esc(s.lines[0])}</h2>
+    <p class="lead in" ${st(0, .6)}>${esc(s.lines[1])}</p>
+    <div class="chips in" ${st(0, 1.2)}>${s.info.map(t => `<span>${esc(t)}</span>`).join('')}<span class="added-tag" style="position:static;align-self:center">NEW</span></div></div>` });
+
+  L.results = (s, idx) => {
+    const answered = qScreens.filter(i => state.quiz[i] && state.quiz[i].result);
+    const right = qScreens.filter(i => state.quiz[i] && state.quiz[i].result === 'ok').length;
+    const pct = Math.round(right / 8 * 100), pass = pct >= 80;
+    return { gate: pass || state.review, html: `<span class="added-tag" style="right:24px;top:70px">NEW · NEEDS APPROVAL</span><div class="content">
+      <div class="eyebrow">Assessment result</div>
+      ${answered.length < 8 ? `<h2 class="h">Answer all 8 questions to see your result</h2><p class="lead">You have answered ${answered.length} of 8.</p>` : `
+      <div class="row" style="align-items:center;gap:60px;margin-top:20px"><div class="score ${pass ? 'pass' : 'fail'}">${pct}%</div>
+      <div><h2 class="h" style="margin-bottom:12px">${esc(pass ? s.pass.title : s.fail.title)}</h2><p class="lead">${esc(pass ? s.pass.text : s.fail.text)}</p>
+      <p class="lead" style="font-size:18px;margin-top:10px;color:#5b6577">${right} of 8 correct · pass mark 80%</p>
+      ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : '<button class="navbtn next" style="margin-top:22px" data-act="retake">Retry assessment</button>'}</div></div>`}</div>` };
+  };
+
+  L.awareClose = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">${esc(sb(80).title)}</div>
+    <div class="aware" style="margin-top:10px">${s.letters.map(([l, w], k) => `<div class="aw" ${st(k, .3, .45)}><div class="L">${l}</div><div class="w" style="color:#e6ebf3">${esc(w)}</div></div>`).join('')}</div>
+    <p class="statement in" ${st(0, 2.8)} style="font-size:56px;margin-top:44px"><span class="a" style="display:inline">AI can assist.</span> <span class="h2" style="display:inline">Humans remain accountable.</span></p></div>` });
+
+  L.levels = s => ({ html: `<div class="content">${head(81, 'Close')}<div class="levels">${s.levels.map(([a, b, c], k) =>
+    `<div class="lvl" ${st(k, .3, .45)}><span class="term">${a}</span><span class="nm">${esc(b)}</span><p>${esc(c)}</p>${k === 0 ? '<span class="done-tag">Complete</span>' : ''}</div>`).join('')}</div></div>` });
+
+  // ---------- narration + captions ----------
+  let ccTimer = null, voices = [];
+  function loadVoices() { try { voices = speechSynthesis.getVoices(); } catch (e) { voices = []; } }
+  if ('speechSynthesis' in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+  const pickVoice = () => voices.find(v => v.lang === 'en-IN') || voices.find(v => /India/i.test(v.name)) || voices.find(v => /^en/.test(v.lang));
+  function speak(text) {
+    clearTimeout(ccTimer);
+    try { speechSynthesis.cancel(); } catch (e) { /* no speech */ }
+    const cc = $('#cc');
+    const sents = String(text || '').replace(/\n+/g, ' ').match(/[^.!?]+[.!?]+["”]?|\S[^.!?]*$/g) || [];
+    if (!sents.length) { if (cc) cc.hidden = true; return; }
+    let k = 0;
+    const show = t => { const c = $('#cc'); if (c) { c.textContent = t.trim(); c.hidden = !state.cc; } };
+    if (state.narr && 'speechSynthesis' in window) {
+      const v = pickVoice();
+      sents.forEach(t => {
+        const u = new SpeechSynthesisUtterance(t.trim()); if (v) u.voice = v; u.lang = v ? v.lang : 'en-IN'; u.rate = 0.98;
+        u.onstart = () => show(t);
+        speechSynthesis.speak(u);
+      });
+    } else {
+      const step = () => { if (k >= sents.length) { const c = $('#cc'); if (c) c.hidden = true; return; } show(sents[k]); ccTimer = setTimeout(step, Math.max(1800, sents[k].split(' ').length * 380)); k++; };
+      step();
+    }
+  }
+  function screenVO(s) {
+    if (s.layout === 'results') return '';
+    return s.n.length ? sb(s.n[0]).vo : '';
+  }
+
+  // ---------- notes drawer ----------
+  function notesHTML(s, idx) {
+    const ns = s.n;
+    const flags = FLAGS.filter(f => f.slides.some(x => ns.includes(x) || (x === 'results' && s.layout === 'results')));
+    const original = ns.length ? ns.map(n => `<b>${n}</b> ${esc(sb(n).title)}`).join('<br>') : '<b>New slide</b> (not in storyboard)';
+    const vo = ns.length ? sb(ns[0]).vo : '';
+    const added = [];
+    if (s.meera) added.push(`<b>${CHARACTER.name}'s moment</b> (layer). Voiceover: “${esc(s.meera.vo)}”`);
+    if (s.instructionAdded) added.push(`Instruction line: “${esc(s.instruction)}”`);
+    if (s.infoAdded) added.push(`Info chips: ${s.info.map(esc).join(' · ')}`);
+    if (s.added) added.push('The whole slide is new: Storyline needs a results slide to pass the 80% score to your LMS.');
+    if (s.renamed) added.push(esc(s.renamed));
+    return `<h2>Screen ${idx + 1} of ${SCREENS.length}</h2><p class="src">Storyboard slide${ns.length > 1 ? 's' : ''}:<br>${original}</p>
+      ${added.length ? `<h3>Added — needs your approval</h3>${added.map(a => `<div class="new">${a}</div>`).join('')}` : ''}
+      ${flags.length ? `<h3>Flag for your decision</h3>${flags.map(f => `<div class="flag"><b>${esc(f.text)}</b>Suggestion: ${esc(f.fix)}</div>`).join('')}` : ''}
+      <h3>How to build it in Storyline</h3><p>${esc(s.storyline || '')}</p>
+      ${ns.length ? `<h3>Storyboard build note</h3><p class="src">${esc(sb(ns[0]).build.split('\n\n')[0])}</p>` : ''}
+      ${vo ? `<h3>Voiceover (signed off)</h3><p class="vo">${esc(vo)}</p>` : ''}`;
+  }
+
+  // ---------- render ----------
+  state.kc = {}; state.autoMeera = {}; state.layer = null;
+  let cur = null;
+  function render() {
+    const s = SCREENS[state.i];
+    const out = L[s.layout](s, state.i);
+    cur = out;
+    const stage = $('#stage');
+    stage.className = 'stage' + (out.dark ? ' dark' : '') + (state.shown === state.i ? ' static' : '');
+    state.shown = state.i;
+    const canNext = state.review || out.gate === undefined || out.gate;
+    stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s.section)}${out.html}
+      <div class="footer"><span class="brand">AI Literacy · Level 1</span><span>${state.i + 1} / ${SCREENS.length}</span><span class="sp"></span>
+        <button class="iconbtn" data-act="cc" aria-pressed="${state.cc}" title="Closed captions">CC</button>
+        <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
+        <button class="navbtn next" data-act="next" ${!canNext || state.i === SCREENS.length - 1 ? 'disabled' : ''}>Next</button></div>`;
+    stage.querySelectorAll('[data-d]').forEach(el => { el.style.animationDelay = el.dataset.d + 's'; });
+    $('#notes').innerHTML = notesHTML(s, state.i);
+    $('#jump').value = state.i;
+    document.body.classList.toggle('hide-added', !state.added);
+    out.after && out.after($('#stage'));
+  }
+  function go(i) {
+    state.i = Math.max(0, Math.min(SCREENS.length - 1, i)); state.layer = null; state.shown = null;
+    render(); speak(screenVO(SCREENS[state.i]));
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const s = SCREENS[state.i], act = b.dataset.act, k = +b.dataset.k;
+    if (act === 'next') { const nx = state.i + 1; go(nx); }
+    else if (act === 'prev') go(state.i - 1);
+    else if (act === 'cc') { state.cc = !state.cc; render(); }
+    else if (act === 'meera') { state.layer = 'meera'; render(); speak(s.meera.vo); }
+    else if (act === 'mpick') { state.meera[state.i] = k; render(); speak(s.meera.options[k].reply); }
+    else if (act === 'mclose') { state.layer = null; render(); }
+    else if (act === 'rev') { const g = state.gate[state.i] || []; if (!g.includes(k)) g.push(k); state.gate[state.i] = g; render(); }
+    else if (act === 'hl') { state.gate[state.i] = true; render(); }
+    else if (act === 'tab') { const g = state.gate[state.i]; g.cur = k; if (!g.seen.includes(k)) g.seen.push(k); render(); }
+    else if (act === 'copy') { const t = s.prompt; navigator.clipboard && navigator.clipboard.writeText(t).then(() => { b.textContent = 'Copied'; }).catch(() => { const r = document.createRange(); r.selectNodeContents($('#prompt-box')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected: press Ctrl+C'; }); }
+    else if (act === 'opt') { const store = s.layout === 'quiz' ? state.quiz : state.kc; const a = store[state.i] || {}; a.sel = k; store[state.i] = a; render(); }
+    else if (act === 'submit') cur.onSubmit();
+    else if (act === 'retry') { state.kc[state.i] = {}; render(); }
+    else if (act === 'retake') { qScreens.forEach(i => delete state.quiz[i]); go(qScreens[0]); }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('select')) return;
+    if (e.key === 'ArrowRight' && !$('[data-act="next"]').disabled) go(state.i + 1);
+    if (e.key === 'ArrowLeft' && state.i > 0) go(state.i - 1);
+  });
+
+  // ---------- toolbar ----------
+  const jump = $('#jump');
+  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${i + 1}. ${esc(s.n.length ? sb(s.n[0]).title : 'Assessment results (new)')}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
+  jump.addEventListener('change', () => go(+jump.value));
+  const tog = (id, key, fn) => { const b = $(id); b.setAttribute('aria-pressed', state[key]); b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', state[key]); fn && fn(); render(); }); };
+  tog('#t-review', 'review', () => { jump.disabled = !state.review; });
+  tog('#t-notes', 'notes', () => $('.main').classList.toggle('no-notes', !state.notes));
+  tog('#t-added', 'added');
+  tog('#t-narr', 'narr', () => { if (state.narr) speak(screenVO(SCREENS[state.i])); else { try { speechSynthesis.cancel(); } catch (e) { /* none */ } } });
+
+  // scale stage to its wrapper
+  const wrap = $('.stage-wrap');
+  const fit = () => { $('#stage').style.transform = `scale(${wrap.clientWidth / 1280})`; };
+  new ResizeObserver(fit).observe(wrap); fit();
+
+  const start = Math.max(0, SCREENS.findIndex((s, i) => location.hash === '#s' + (i + 1)));
+  go(start);
+})();
+
+</script>
