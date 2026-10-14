@@ -106,7 +106,7 @@ W.opener = s => {
     `Base layer: section number "01" (Aptos Display bold 160 pt, Pro Teal), title ${q(T(n))} (Aptos Display bold 56 pt, Pro Green), and the three questions as separate text boxes (Aptos 24 pt, white, width 770 so they stay clear of the icon) with a short green dash before each.`,
     'Section icon on the right: a 300 × 300 circle with no fill and a dashed 2 pt outline <code>2B3F73</code>; in its centre the teal line icon (150 × 150) from <code>assets/icons</code> (this section: <code>sysTeal.png</code>; the other sections use searchTeal, ideaTeal, balanceTeal, lockTeal, draftTeal and agentTeal). Fade it in with the title.',
     'Add Meera: <b>Insert &gt; Character &gt; Illustrated</b>, choose one woman and a friendly pose. You\'ll reuse this same character in all seven openers.',
-    '<b>Slide Layers &gt; New Layer</b>, name it <code>Meera</code>. Click the layer\'s cog and tick <b>Prevent the user from clicking on the base layer</b>.',
+    '<b>Slide Layers &gt; New Layer</b>, name it <code>Meera</code>. Click the layer\'s cog: tick <b>Prevent the user from clicking on the base layer</b>, and set <b>When revisiting: Resume saved state</b> so the "Meet Meera\'s moment" button can reopen it.',
     'On the Meera layer: a full-slide navy rectangle at 30% transparency; on top, a white rounded panel 1040 × 330. Put Meera on the left with "Meera" and "Talent Partner" under her.',
     meeraTexts.replace('On the Meera layer: ', 'Text on the panel: '),
     'Choice buttons: rounded rectangles 460 × 40, white with grey outline. <b>Edit States</b>: add Hover and Selected (Selected = fill <code>D9F5F6</code>, Pro Teal outline). Select all three, right-click &gt; <b>Button Set</b>.',
