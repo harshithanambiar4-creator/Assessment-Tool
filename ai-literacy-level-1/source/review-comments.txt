@@ -1,0 +1,140 @@
+#0 slide 55 [title] by Claude
+  anchored: 'AI Agents and Atlas Experience'
+  comment: Atlas is never defined for learners, and slides 7 and 41 say not to name tools unless they are approved for the audience. Confirm Atlas is approved for this audience and add a one-line description, or rename the section generically.
+
+#1 slide 2 [onscreen] by Claude
+  anchored: 'By the end of this course, you will be able to:• Use AI effectively and understand its limitations• Use AI responsibly and protect sensitive information• Use basic prompting techniques to guide AI outputs• Describe what '
+  comment: Change: added an outcome for AI agents (also in the voiceover and build note). Reason: the objectives did not cover the agent section (slides 55 to 62).
+
+#2 slide 4 [build] by Claude
+  anchored: 'Animate the five letters in sequence. Do not reteach the framework in the content sections. Reference it only through the AWARE cues listed on slides 6, 19, 30, 32, 34, 39 and 51, the assessment feedback layers, and the '
+  comment: Change: clarified where AWARE appears and added cues on slides 6, 19, 30, 32, 34, 39 and 51. Reason: the design notes say AWARE is a subtle cue, but no content slide specified one, while later slides retaught it.
+
+#3 slide 6 [onscreen] by Claude
+  anchored: 'AI is technology that enables systems to perform tasks that typically require some form of human intelligence.Recognize patterns  •  Interpret information  •  Generate content  •  Make predictions'
+  comment: Change: screen and narration now match, 'understand' became 'interpret', and 'support decisions' was removed. Reason: avoid implying AI comprehends like a person, and avoid conflict with the human-accountability message.
+
+#4 slide 9 [vo] by Claude
+  anchored: 'A large language model, or LLM, learns patterns from large amounts of data and uses those patterns to generate language in response to an instruction. It does this by predicting likely language from what it learned in tr'
+  comment: Change: added one line on how an LLM works (predicting likely language from training). Reason: slide 5 promises 'how generative AI works' and this explains why fluent output can still be wrong.
+
+#5 slide 10 [title] by Claude
+  anchored: 'Two terms you will use often'
+  comment: Change: 'Three terms' became 'Two terms'. Reason: the slide has two terms (prompt, context). Slide 11 covers the next three.
+
+#6 slide 11 [onscreen] by Claude
+  anchored: 'HALLUCINATIONAn inaccurate or unsupported AI outputBIASA pattern that can lead to unfair or distorted outcomesAGENTAn AI system configured to carry out a defined task across multiple steps'
+  comment: Change: added 'across multiple steps' to the agent definition (also slides 56 and 57). Reason: distinguishes an agent from a single-response chatbot. Tool use is added on slide 56.
+
+#7 slide 12 [build] by Claude
+  anchored: 'Use four selectable answer cards. On selection, show the separate feedback layer.Select one answer.ANSWER KEY: B'
+  comment: Change: answer keys added to all 15 question slides and correct options rebalanced across A to D. Reason: B was correct in 12 of 15 questions, and no key existed. Slide 12 also drops the untaught 'Predictive AI' distractor and the narration that gave away the answer.
+
+#8 slide 23 [onscreen] by Claude
+  anchored: 'THINKBrainstorm ideas and optionsCREATEDraft or generate content'
+  comment: Change: Think is now brainstorming ideas and options. Reason: Think and Explore (slide 24) overlapped almost word for word.
+
+#9 slide 25 [vo] by Claude
+  anchored: 'The safest way to think about AI at work is as an assistant, not the owner of the work. AI can suggest, generate, organize, and assist. People provide the context, judgment, verification, and decisions. This matters most'
+  comment: Change: slide 26 (Keep the human in the loop) is merged into this slide and its row is a tracked deletion. Reason: the human-in-the-loop message was repeated on slides 22, 25, 26, 34 and 35. Renumber after accepting.
+
+#10 slide 30 [vo] by Claude
+  anchored: 'When accuracy matters, pause before using the output. Check the claims that matter and verify them using an appropriate reliable source. AI systems can produce inaccurate or unsupported information, sometimes called hall'
+  comment: Change: slide 31 (Hallucinations can look convincing) is merged into this slide and its row is a tracked deletion. Reason: the confident-does-not-mean-correct message appeared on slides 11, 19 and 31. Slide 19 now points to slides 30 and 74. Renumber after accepting.
+
+#11 slide 33 [onscreen] by Claude
+  anchored: 'Before you use or share AI-generated content:CHECK  Does it copy or closely resemble protected material?REVIEW  Who owns it, and what permissions apply?CONFIRM  Does your organization allow this use?'
+  comment: Legal review: confirm the IP wording here and in the voiceover. Ownership and copyrightability of AI-generated content varies by jurisdiction. Change: CHECK, REVIEW and CONFIRM now have objects.
+
+#12 slide 34 [onscreen] by Claude
+  anchored: 'Do not delegate sensitive decisions or accountability to AI.Especially when decisions affect people or carry significant consequences.AI can assist. Humans remain accountable.'
+  comment: Change: slide 35 (Human accountability stays with us) is merged into this slide and its row is a tracked deletion. The core-principle statement now closes this slide. Reuse the phrase at the end of the course. Renumber after accepting.
+
+#13 slide 34 [vo] by Claude
+  anchored: 'There are situations where AI should support the process rather than make the decision. Do not delegate sensitive decisions or accountability to AI, especially when people may be affected or consequences are significant.'
+  comment: Legal and HR review: confirm the added sentence about legal oversight requirements matches the jurisdictions your learners work in.
+
+#14 slide 34 [build] by Claude
+  anchored: 'Use a decision gate visual. Close with AI can assist. Humans remain accountable. as a strong visual statement, and reuse the phrase at the end of the course.AWARE cue: E (Ensure Human Accountability).'
+  comment: Transparency and disclosure is a standard responsible AI principle. A sentence was added to the voiceover; consider a dedicated slide in the Responsible AI section if policy supports it.
+
+#15 slide 38 [vo] by Claude
+  anchored: 'Responsible AI also means protecting information. Depending on the tool and its settings, information you enter may be stored, reviewed, or used to improve the tool. Before you enter information into an AI tool, consider'
+  comment: Change: added why sharing is risky (inputs may be stored, reviewed, or used to improve a tool). Hedged because it depends on the tool and its settings.
+
+#16 slide 40 [onscreen] by Claude
+  anchored: 'CONFIDENTIALSENSITIVEEMPLOYEECANDIDATEPERSONALCLIENTPROPRIETARYCREDENTIALS'
+  comment: Confirm these categories match your organization's data classification policy. Change: CLIENT, PROPRIETARY and CREDENTIALS cards added because the original list missed them.
+
+#17 slide 41 [vo] by Claude
+  anchored: "Use approved AI tools and follow organizational policies and permissions. Unapproved tools may not meet your organization's security requirements. If you are unsure whether information may be used with a tool, stop and c"
+  comment: Change: added a security line. The section was titled Security but had no security content. Slide 42 now explains 'during use', and new slide 42a covers what to do after a mistake.
+
+#18 slide 49 [vo] by Claude
+  anchored: 'Describe the result you want. You can specify format, structure, or other output expectations.'
+  comment: Change: removed 'length' from Output. Reason: slide 50 lists it under Constraints.
+
+#19 slide 51 [onscreen] by Claude
+  anchored: 'CONTEXT + TASK + AUDIENCE + OUTPUT + CONSTRAINTSA clearer instruction gives AI a clearer target. Review the result, then refine.'
+  comment: Change: added a review-and-refine step. Reason: prompting is iterative and this links to Weigh the Output in AWARE. New practice slide 52a follows slide 52.
+
+#20 slide 52 [onscreen] by Claude
+  anchored: 'VAGUEWrite an email.CLEAREROur annual compliance training takes 20 minutes and is in the learning portal. Draft a 100-word professional reminder to employees to complete it by Friday.'
+  comment: Change: the example now includes context. Reason: it demonstrates all five elements taught on slides 46 to 51. Slide 53 option C and slide 54 feedback updated to match.
+
+#21 slide 56 [vo] by Claude
+  anchored: 'At a high level, an AI agent is an AI system configured to carry out a defined task across multiple steps using instructions, context, and available capabilities. An agent can work through a defined task or sequence rath'
+  comment: Change: definition and chatbot contrast refined (multi-step, tools, actions need review; slide 57 notes the difference is not the interface). Reason: the original contrast oversimplified.
+
+#22 slide 60 [vo] by Claude
+  anchored: 'For the learner experience, use a simple meeting action tracker. Give the agent fictional sample meeting notes and ask it to identify the action, owner, and due date and return the information as a clear action-item tabl'
+  comment: Change: scenario is now multi-step (extract actions, then draft reminders) with fictional notes. Reason: the original was a single prompt and response that any chatbot does. Confirm the approved Atlas environment can run it. If not, choose a scenario it supports, but keep the multi-step element.
+
+#23 slide 63 [title] by Claude
+  anchored: 'Comprehensive Assessment'
+  comment: Assessment Q2, Q3, Q4 and Q6 (slides 66, 68, 70, 74) still closely mirror knowledge checks on slides 20, 36, 43 and 20. Q1, Q5, Q7 and Q8 were rewritten as fresh scenarios. Consider rewriting the rest, and equalize option lengths, since the correct answer is still often the longest.
+
+#24 slide 64 [onscreen] by Claude
+  anchored: 'A teammate says the language model looked up the verified answer. Which statement is most accurate?A  It retrieved a verified fact from a trusted databaseB  It understands the topic the way a human expert doesC  It guara'
+  comment: Change: Q1 rewritten as an LLM scenario. Reason: it duplicated the slide 12 check and did not test the LLM concept from slide 9.
+
+#25 slide 65 [onscreen] by Claude
+  anchored: 'CORRECTCorrect. A language model generates language from patterns learned from data. It does not check facts on its own, so important output still needs review.INCORRECTNot quite. A language model generates language from'
+  comment: Change: feedback layers 65 to 79 rewritten to be specific to each question. Reason: the generic text did not fit definition or prompting questions and gave no explanation.
+
+#26 slide 76 [onscreen] by Claude
+  anchored: "You are preparing for a team meeting. Which use of AI keeps it in an assisting role?A  AI drafts agenda options and you choose and adjust the final agendaB  AI decides which team member's idea is adoptedC  AI sends the a"
+  comment: Change: Q7 rewritten. Reason: it duplicated slide 27 almost verbatim.
+
+#27 slide 78 [onscreen] by Claude
+  anchored: 'A team sets up an AI agent that turns meeting notes into action items and drafts reminders. What should happen before the reminders are sent?A  Nothing, because completing the task means the output is correctB  The agent'
+  comment: Change: Q8 rewritten as a scenario about reviewing agent output. Reason: it duplicated slide 61 and was a pure definition question, not a scenario.
+
+#28 slide 81 [onscreen] by Claude
+  anchored: 'LEVEL 1  UnderstandBuild the foundationLEVEL 2  UseUse AI in everyday workLEVEL 3  ApplyApply AI within your functionLEVEL 4  Improve and TransformRedesign and scale AI-enabled work'
+  comment: Change: the Level 2 and Level 3 descriptions now use Use and Apply consistently. Reason: the verbs were swapped relative to the labels.
+
+#29 slide 30a [build] by Claude
+  anchored: 'Hotspot interaction with three clickable claims (date, dollar amount, section reference). Learner selects all that apply, then submits. Use fictional content only. Feedback layer. CORRECT: Specific dates, amounts, and re'
+  comment: New slide: practice on spotting claims to verify. Reason: the course taught verification but never had learners practice it. Uses fictional content.
+
+#30 slide 42a [build] by Claude
+  anchored: 'Use a three-step process with the lock icon motif from slide 42. Insert the approved contact and process from organizational policy. Do not guess at policy details.AWARE cue: A (Assess the Risk).'
+  comment: New slide: what to do after sharing information by mistake. Reason: the course covered prevention but not response. Insert the approved contact and process from policy.
+
+#31 slide 52a [build] by Claude
+  anchored: 'Drag-and-drop with four labeled slots in a prompt template and a bank of fictional options for each element (one correct, one distractor each). Feedback layer after submit. CORRECT: Each piece gives AI a clearer target. '
+  comment: New slide: drag-and-drop prompt practice. Reason: eight slides taught prompting without the learner building a prompt.
+
+#32 slide 79a [build] by Claude
+  anchored: 'Results slide with two layers (pass, not yet). Use a score variable and a passing score variable. Pass: record completion to the LMS and show a Continue button to slide 80. Not yet: show buttons that link back to each se'
+  comment: New slide: results with pass and not-yet layers. Reason: the storyboard had no results slide or pass logic. Confirm the pass mark and attempts.
+
+#33 slide 80a [build] by Claude
+  anchored: 'Attach a one-page job aid as a tagged, accessible PDF (AWARE; Before you share; Prompt checklist) with a Download button. Place after slide 80 and before slide 81.'
+  comment: New slide: downloadable quick reference. Reason: a job aid supports transfer to the job better than a recap slide alone.
+
+#34 slide 79a [build] by Claude
+  anchored: 'Results slide with two layers (pass, not yet). Use a score variable and a passing score variable. Pass: record completion to the LMS and show a Continue button to slide 80. Not yet: show buttons that link back to each se'
+  comment: New section: recommendations on audience, objective alignment, mastery rules, LMS tracking, sources, versioning, reviews, accessibility, narration, build and numbering. Items marked as suggested defaults need your confirmation.
+

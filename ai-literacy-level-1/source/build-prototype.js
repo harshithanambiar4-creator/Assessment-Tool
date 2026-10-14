@@ -28,7 +28,7 @@ ${css}
       <div class="legend" style="margin-top:10px">
         <span><i style="background:#4278bc"></i>AI: Process blue, dashed outline, mono type</span>
         <span><i style="background:#00b6bd"></i>People: Talent teal, solid</span>
-        <span><i style="background:#7a3cc8"></i>NEW: needs your approval</span>
+        <span><i style="background:#7a3cc8"></i>NEW / DRAFT: designer additions that need your approval</span>
         <span>Arrow keys move between screens.</span>
       </div></div>
     <aside class="notes" id="notes" aria-live="polite"></aside>

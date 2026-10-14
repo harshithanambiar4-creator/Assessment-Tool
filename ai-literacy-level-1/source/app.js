@@ -48,6 +48,8 @@
     const vw = (v.match(/Incorrect feedback:\s*([\s\S]*)$/) || [])[1] || w;
     return { c: c.trim(), w: w.trim(), vc: vc.trim(), vw: vw.trim() };
   }
+  const answerKey = n => { const m = sb(n).build.match(/ANSWER KEY:\s*([A-D])/); return m ? 'ABCD'.indexOf(m[1]) : -1; };
+  const awareCue = n => { const m = sb(n).build.match(/AWARE cue:\s*([AWRE])\s*\(([^)]+)\)/); return m ? { L: m[1], w: m[2] } : null; };
   function cardLines(n) { // "TERM\ndesc"
     const t = sb(n).onscreen.split('\n');
     return [t[0], t.slice(1).join(' ').trim()];
@@ -67,9 +69,9 @@
     });
     return h + '</div>';
   }
-  function badgeHTML(sec) {
-    if (sec == null || !SECTIONS[sec].aware) return '';
-    return `<div class="badge"><span>${esc(SECTIONS[sec].awareWord)}</span><b>${SECTIONS[sec].aware}</b></div>`;
+  function badgeHTML(scr) {
+    const c = scr.n.length ? awareCue(scr.n[0]) : null;
+    return c ? `<div class="badge"><span>${esc(c.w)}</span><b>${c.L}</b></div>` : '';
   }
   const head = (n, eyebrow) => `<div class="eyebrow">${esc(eyebrow || sb(n).section)}</div><h2 class="h in">${esc(sb(n).title)}</h2>`;
   // entrance delay (stand-in for Storyline cue points); applied after render so it never clashes with inline styles
@@ -192,15 +194,16 @@
       <button class="navbtn next submit" data-act="submit" ${sel == null || locked ? 'disabled' : ''}>Submit</button></div>`;
   }
   L.kc = (s, idx) => {
-    const q = parseQ(s.n[0]), fb = parseFb(s.n[1]);
-    const k = state.kc[idx] || {};
-    const res = k.result;
+    const q = parseQ(s.n[0]), fb = parseFb(s.n[1]), key = answerKey(s.n[0]);
+    const k = state.kc[idx] || { tries: 0 };
+    const res = k.result, last = res === 'bad' && k.tries >= 2;
     return { gate: !!state.kcDone[idx], html: `<div class="content"><div class="kc">
       <div><div class="kc-tag">Knowledge check · not scored</div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Select one answer.</p></div>
       ${optsHTML(q, k.sel, !!res)}</div></div>
       ${res ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Not quite'}</p><p>${esc(res === 'ok' ? fb.c : fb.w)}</p>
-        ${res === 'ok' ? '<button class="navbtn next" data-act="next">Continue</button>' : '<button class="navbtn next" data-act="retry">Try again</button>'}</div></div>` : ''}`,
-      onSubmit: () => { const ok = k.sel === s.correct; k.result = ok ? 'ok' : 'bad'; state.kc[idx] = k; if (ok) state.kcDone[idx] = true; render(); speak(ok ? fb.vc : fb.vw); } };
+        ${last ? `<p class="answer">The answer is <b>${'ABCD'[key]}: ${esc(q.opts[key])}</b></p>` : ''}
+        ${res === 'ok' || last ? '<button class="navbtn next" data-act="next">Continue</button>' : '<button class="navbtn next" data-act="retry">Try again</button>'}</div></div>` : ''}`,
+      onSubmit: () => { const ok = k.sel === key; k.tries++; k.result = ok ? 'ok' : 'bad'; state.kc[idx] = k; if (ok || k.tries >= 2) state.kcDone[idx] = true; render(); speak(ok ? fb.vc : fb.vw); } };
   };
 
   L.quiz = (s, idx) => {
@@ -213,34 +216,45 @@
       <div class="kc"><div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Read the scenario and select the response that best reflects the principles from this course.</p></div>
       ${optsHTML(q, a.sel, !!res)}</div></div>
       ${res && state.layer !== 'closed' ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Incorrect'}</p><p>${esc(res === 'ok' ? fb.c.replace(/^Correct\.\s*/, '') : fb.w)}</p><button class="navbtn next" data-act="next">Continue</button></div></div>` : ''}`,
-      onSubmit: () => { a.result = a.sel === s.correct ? 'ok' : 'bad'; state.quiz[idx] = a; render(); speak(a.result === 'ok' ? fb.vc : fb.vw); } };
+      onSubmit: () => { a.result = a.sel === answerKey(s.n[0]) ? 'ok' : 'bad'; state.quiz[idx] = a; render(); speak(a.result === 'ok' ? fb.vc : fb.vw); } };
   };
 
   L.twoCol = s => ({ html: `<div class="content">${head(25)}<div class="twocol">
     <div class="card ai in" ${st(0, .4)}><span class="term">${esc(s.left[0])}</span><p>${esc(s.left[1])}</p></div>
-    <div class="card human in" ${st(0, 1.4)}><span class="term">${esc(s.right[0])}</span><p>${esc(s.right[1])}</p></div></div></div>` });
-
-  L.handoff = s => ({ html: `<div class="content">${head(26)}<div class="lanes2">
-    <div class="lane ai"><span class="who">AI</span><div class="verbs">${s.ai.map((v, k) => `<span class="verb" ${st(k, .3, .3)}>${esc(v)}</span>`).join('')}</div></div>
-    <div class="handarrow in" ${st(0, 1.4)}>↓ output handed to a person ↓</div>
-    <div class="lane hu"><span class="who">HUMAN</span><div class="verbs">${s.human.map((v, k) => `<span class="verb" ${st(k, 1.8, .35)}>${esc(v)}</span>`).join('')}</div></div></div></div>` });
+    <div class="card human in" ${st(0, 1.4)}><span class="term">${esc(s.right[0])}</span><p>${esc(s.right[1])}</p></div></div>
+    <div class="handoff"><span class="outcard"><span class="lines-skel"><i></i><i style="width:70%"></i></span></span><span class="tick">✓</span></div></div>` });
 
   L.pair = s => ({ html: `<div class="content">${head(s.n[0])}<div class="twocol">${s.cards.map(([t, d], k) =>
     `<div class="card ai in" ${st(k, .4, 1)}>${I[s.icons[k]].replace('<svg', '<svg width="48" height="48"')}<span class="term" style="margin-top:14px;font-size:20px">${esc(t)}</span><p style="font-size:26px">${esc(d)}</p></div>`).join('')}</div></div>` });
 
-  L.steps = s => ({ html: `<div class="content">${head(30)}<div class="steps" style="grid-template-columns:1fr 60px 1fr 60px 1fr">
-    ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><span class="no">STEP ${k + 1}</span><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div></div>` });
+  L.steps = s => ({ html: `<div class="content">${head(30)}<div class="steps" style="grid-template-columns:1fr 60px 1fr 60px 1fr;margin-top:0">
+    ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><span class="no">STEP ${k + 1}</span><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div>
+    <div class="warnrow in" ${st(0, 2.6)}><div class="warncard small"><div class="lines-skel"><i></i><i style="width:85%"></i><i></i><i style="width:60%"></i></div><span class="mark">≠</span></div><p>${esc(s.warning)}</p></div></div>` });
 
-  L.warning = s => ({ html: `<div class="content">${head(31)}<div class="row" style="align-items:center;gap:60px;margin-top:10px">
-    <div class="warncard in"><div class="lines-skel"><i></i><i></i><i style="width:85%"></i><i></i><i style="width:60%"></i><i></i><i style="width:75%"></i></div><span class="mark">≠</span></div>
-    <div><p class="lead in" ${st(0, .6)} style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1.4)} style="margin-top:20px;color:#c63b6a;font-weight:600">${esc(s.sub)}</p></div></div></div>` });
+  L.hotspot = (s, idx) => {
+    const g = state.gate[idx] || { sel: [], tries: 0, result: null };
+    state.gate[idx] = g;
+    const build = sb(s.n[0]).build;
+    const fbc = (build.match(/CORRECT:\s*(.*?)\s*INCORRECT:/) || [])[1] || '';
+    const fbw = (build.match(/INCORRECT:\s*(.*?)\s*Allow one retry/) || [])[1] || '';
+    let text = esc(s.text);
+    s.claims.forEach((c, k) => { text = text.replace(esc(c), `<button class="claim ${g.sel.includes(k) || (g.result === 'bad' && g.tries >= 2) ? 'on' : ''}" data-act="claim" data-k="${k}" ${g.result ? 'disabled' : ''}>${esc(c)}</button>`); });
+    const last = g.result === 'bad' && g.tries >= 2;
+    return { gate: g.result === 'ok' || last, html: `<div class="content">${head(s.n[0], 'Practice · not scored')}
+      <p class="lead in">${esc(s.intro)}</p>
+      <div class="aidraft in" ${st(0, .4)}><span class="term">AI DRAFT</span><p>${text}</p></div>
+      <p class="lead in" ${st(0, .8)} style="margin-top:22px;font-weight:600">${esc(s.prompt)}</p>
+      <button class="navbtn next submit" style="margin-top:14px" data-act="hsubmit" ${!g.sel.length || g.result ? 'disabled' : ''}>Submit</button></div>
+      ${g.result ? `<div class="fb"><div class="box ${g.result === 'ok' ? '' : 'bad'}"><p class="ttl">${g.result === 'ok' ? 'Correct' : 'Look again'}</p><p>${esc(g.result === 'ok' ? fbc : fbw)}</p>
+        ${g.result === 'ok' || last ? '<button class="navbtn next" data-act="hclose">Continue</button>' : '<button class="navbtn next" data-act="hretry">Try again</button>'}</div></div>` : ''}` };
+  };
 
   L.balance = s => ({ html: `<div class="content">${head(32)}<div class="row" style="align-items:center;gap:40px">
     <div class="in" style="width:200px;flex:none">${I.balance.replace('<svg', '<svg width="200" height="200"')}</div>
     <div class="twocol" style="flex:1;margin:0">${s.cards.map(([t, d], k) => `<div class="card ${k ? 'human' : 'ai'} in" ${st(k, .5, .9)}><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div></div></div>` });
 
   L.checks3 = s => ({ html: `<div class="content">${head(33)}<p class="lead in">${esc(s.intro)}</p>
-    <div class="steps" style="grid-template-columns:repeat(3,1fr);gap:20px">${s.checks.map((c, k) => `<div class="step" ${st(k, .6, .6)} style="text-align:center;padding:40px 20px"><div style="width:64px;height:64px;border-radius:50%;background:#4f7a1c;color:#fff;display:grid;place-items:center;margin:0 auto 18px;font:800 30px var(--f-body)">✓</div><span class="term" style="font-size:24px">${c}</span></div>`).join('')}</div></div>` });
+    <div class="steps" style="grid-template-columns:repeat(3,1fr);gap:20px">${s.checks.map(([t, q], k) => `<div class="step" ${st(k, .6, .6)}><div class="okdot">✓</div><span class="term" style="font-size:22px">${t}</span><p>${esc(q)}</p></div>`).join('')}</div></div>` });
 
   L.gate = s => ({ html: `<div class="content">${head(34)}<div class="row" style="align-items:center;gap:50px">
     <svg viewBox="0 0 420 260" width="420" height="260" aria-hidden="true">
@@ -249,10 +263,8 @@
       <path d="M10 190h400" stroke="#00b6bd" stroke-width="6"/><text x="10" y="172" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#00777c">HUMAN</text>
       <path d="M396 178l14 12-14 12" fill="none" stroke="#00b6bd" stroke-width="6"/>
     </svg>
-    <div><p class="lead in" style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1)} style="margin-top:16px">${esc(s.sub)}</p></div></div></div>` });
-
-  L.statement = s => ({ dark: true, html: `<div class="content" style="justify-content:center"><div class="eyebrow">${esc(sb(35).title)}</div>
-    <p class="statement"><span class="a in">${esc(s.lines[0])}</span><span class="h2 in" ${st(0, 1.2)}>${esc(s.lines[1])}</span></p></div>` });
+    <div><p class="lead in" style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1)} style="margin-top:16px">${esc(s.sub)}</p></div></div>
+    <div class="band in" ${st(0, 2.2)}><span class="a">${esc(s.closing[0])}</span> <span class="h2">${esc(s.closing[1])}</span></div></div>` });
 
   L.checklist = (s, idx) => {
     const on = state.gate[idx] || [];
@@ -261,12 +273,43 @@
       <div class="instr">${esc(s.instruction)} <span class="added-tag" style="position:static">NEW</span></div></div>` };
   };
 
-  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00b6bd')}${t}</div>`).join('')}</div></div>` });
+  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats" style="grid-template-columns:repeat(${s.items.length > 5 ? 4 : s.items.length},1fr)">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00b6bd')}${t}</div>`).join('')}</div></div>` });
 
   L.threeGate = s => ({ html: `<div class="content">${head(41)}<div class="gate3">${s.parts.map((p, k) => `${k ? '<div class="plus">+</div>' : ''}<div class="gpart" ${st(k, .4, .8)}>${I.open}${esc(p)}</div>`).join('')}</div></div>` });
 
   L.stages = s => ({ html: `<div class="content">${head(42)}<div class="stages">${s.stages.map((t, k) => `${k ? `<div class="ln" style="animation-delay:${(k * .8).toFixed(1)}s"></div>` : ''}<div class="stg" ${st(k, .3, .8)}><div class="lock">${I.lock('#00b6bd')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>
     <p class="lead in" ${st(0, 2.6)} style="margin-top:44px;text-align:center;max-width:none;font-weight:600">${esc(s.sub)}</p></div>` });
+
+  L.recover = s => ({ html: `<div class="content">${head(s.n[0])}<div class="steps" style="grid-template-columns:1fr 60px 1fr 60px 1fr">
+    ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><div class="lock sm">${I.lock('#00b6bd')}</div><span class="term">${esc(t)}</span><p>${esc(d).replace('[approved contact]', '<span class="ph">[approved contact]</span>')}</p></div>`).join('')}</div></div>` });
+
+  L.dragPrompt = (s, idx) => {
+    const g = state.gate[idx] || { pick: {}, active: null, tries: 0, result: null };
+    state.gate[idx] = g;
+    const build = sb(s.n[0]).build;
+    const fbc = (build.match(/CORRECT:\s*(.*?)\s*INCORRECT:/) || [])[1] || '';
+    const fbw = (build.match(/INCORRECT:\s*(.*?)\s*Allow one retry/) || [])[1] || '';
+    const bank = []; s.slots.forEach((sl, k) => { bank.push({ k, t: sl.right, ok: true }); bank.push({ k, t: sl.wrong, ok: false }); });
+    const order = [0, 3, 5, 6, 1, 2, 4, 7].map(i => bank[i]);
+    const used = Object.values(g.pick).map(v => v.t);
+    const last = g.result === 'bad' && g.tries >= 2;
+    const full = `${s.slots[0].right} ${s.base} ${s.slots.slice(1).map(x => x.right).join(' ')}`;
+    return { gate: g.result === 'ok' || last, html: `<span class="added-tag" style="right:24px;top:64px">NEW · OPTION CARDS NEED APPROVAL</span><div class="content">${head(s.n[0], 'Practice · not scored')}
+      <div class="dp">
+        <div><div class="dp-base"><span class="term">START WITH</span><p>${esc(s.base)}</p></div>
+          <div class="dp-slots">${s.slots.map((sl, k) => `<button class="dslot ${g.pick[k] ? 'full' : ''} ${g.active != null ? 'armed' : ''}" data-act="dslot" data-k="${k}" ${g.result ? 'disabled' : ''}><span class="term">${sl.part}</span><span>${g.pick[k] ? esc(g.pick[k].t) : 'Drop a piece here'}</span></button>`).join('')}</div></div>
+        <div><p class="bank-label">Drag the missing pieces into the prompt</p><div class="bank">${order.map((b, i) => `<button class="chipbtn ${g.active === i ? 'sel' : ''}" data-act="dchip" data-k="${i}" ${used.includes(b.t) || g.result ? 'disabled' : ''}>${esc(b.t)}</button>`).join('')}</div>
+          <button class="navbtn next" style="margin-top:16px" data-act="dsubmit" ${Object.keys(g.pick).length < 4 || g.result ? 'disabled' : ''}>Submit</button>
+          <p class="src" style="font-size:13px;color:#5a5c61;margin-top:10px">Prototype: select a piece, then a slot. In Storyline this is drag and drop.</p></div>
+      </div></div>
+      ${g.result ? `<div class="fb"><div class="box ${g.result === 'ok' ? '' : 'bad'}"><p class="ttl">${g.result === 'ok' ? 'Correct' : 'Not quite'}</p><p>${esc(g.result === 'ok' ? fbc : fbw)}</p>
+        ${g.result === 'ok' || last ? `<p class="answer"><b>Stronger prompt:</b> ${esc(full)}</p><button class="navbtn next" data-act="hclose">Continue</button>` : '<button class="navbtn next" data-act="dretry">Try again</button>'}</div></div>` : ''}`,
+      order };
+  };
+
+  L.download = s => ({ html: `<div class="content">${head(s.n[0], 'Close')}<div class="dl">
+    <div class="dl-card in"><span class="term">DOWNLOAD</span><p>One-page Level 1 quick reference</p><button class="navbtn next" data-act="noop">Download PDF</button></div>
+    <div class="dl-list">${s.items.map(([t, d], k) => `<div class="dl-item in" ${st(k, .4, .4)}><span class="term">${esc(t)}</span><span>${esc(d)}</span></div>`).join('')}</div></div></div>` });
 
   L.promptPart = s => {
     const n = s.n[0], [t, d] = cardLines(n);
@@ -307,19 +350,19 @@
     `<div class="step" ${st(k, .3, .5)}><span class="no">STEP ${k + 1}</span><p style="font:700 26px/1.2 var(--f-display)">${esc(t)}</p><span class="vid">▶ Screen recording ${k + 1}</span></div>`).join('')}</div></div>` });
 
   L.tryIt = (s, idx) => {
-    const g = state.gate[idx] || { seen: [], cur: null, sub: null };
+    const g = state.gate[idx] || { seen: [], cur: null };
     state.gate[idx] = g;
+    const draft = '<span class="added-tag" style="position:static;margin-left:8px">DRAFT · NEEDS APPROVAL</span>';
     const panes = [
-      `<h3>Talent meeting summary</h3><p>We will create an agent that turns meeting notes into a completed meeting summary using the approved Talent meeting-summary template.</p><p><b>The rule:</b> the agent must use only the information in the meeting notes. If an owner, deadline, decision, minority view, or other detail is not provided, it must not invent one.</p>`,
-      `<h3>${esc(s.notesTitle)}</h3><ul>${s.notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul><p class="src" style="color:#5a5c61;font-size:14px;margin-top:12px">Names are fictional.</p>`,
-      `<h3>Right prompt for Atlas</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
-      `<h3>Expected output check</h3><p>${esc(s.check)}</p><p><b>Example action items</b></p><ol>${s.actions.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
-       <p style="margin-top:14px"><b>Before you accept the output, ask:</b></p><ol>${s.review.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
+      `<h3>${esc(s.tabs[0][1])}</h3><p>${esc(s.tabs[2][1])}.</p><p><b>${esc(s.tabs[3][1])}.</b></p>`,
+      `<h3>${esc(s.notesTitle)}${draft}</h3><ul>${s.notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul><p style="color:#5a5c61;font-size:14px;margin-top:12px">Names are fictional.</p>`,
+      `<h3>Prompt for Atlas${draft}</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
+      `<h3>Review before you use it${draft}</h3><ol>${s.check.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
     ];
-    return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on · Guided Atlas activity')}
+    return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on or guided practice')}
       <div class="tryit"><div class="tabs">${s.tabs.map(([t, d], k) => `<button class="tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="tab" data-k="${k}"><span class="term">${t}</span><span>${esc(d)}</span></button>`).join('')}
         <p style="font-size:14px;color:#5a5c61;margin:6px 2px">Open all four tabs, then try it in Atlas.</p></div>
-      <div class="tpane">${g.cur == null ? '<h3>Select a tab to begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to check the output.</p>' : panes[g.cur]}</div></div></div>` };
+      <div class="tpane">${g.cur == null ? '<h3>Select a tab to begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to review the output.</p>' : panes[g.cur]}</div></div></div>` };
   };
 
   L.assessIntro = s => ({ dark: true, html: `<div class="content opener" style="justify-content:center">
@@ -329,15 +372,20 @@
 
   L.results = (s, idx) => {
     const answered = qScreens.filter(i => state.quiz[i] && state.quiz[i].result);
-    const right = qScreens.filter(i => state.quiz[i] && state.quiz[i].result === 'ok').length;
+    const wrong = qScreens.filter(i => state.quiz[i] && state.quiz[i].result === 'bad');
+    const right = answered.length - wrong.length;
     const pct = Math.round(right / 8 * 100), pass = pct >= 80;
-    return { gate: pass || state.review, html: `<span class="added-tag" style="right:24px;top:70px">NEW · NEEDS APPROVAL</span><div class="content">
-      <div class="eyebrow">Assessment result</div>
+    const lines = sb(s.n[0]).onscreen.split('\n');
+    const pl = (lines.find(l => /^PASS/.test(l)) || '').replace(/^PASS\s+/, ''), nl = (lines.find(l => /^NOT YET/.test(l)) || '').replace(/^NOT YET\s+/, '');
+    const missed = new Set(wrong.map(i => SCREENS[i].reviewSection));
+    return { gate: pass || state.review, html: `<div class="content">
+      <div class="eyebrow">${esc(sb(s.n[0]).title)}</div>
       ${answered.length < 8 ? `<h2 class="h">Answer all 8 questions to see your result</h2><p class="lead">You have answered ${answered.length} of 8.</p>` : `
-      <div class="row" style="align-items:center;gap:60px;margin-top:20px"><div class="score ${pass ? 'pass' : 'fail'}">${pct}%</div>
-      <div><h2 class="h" style="margin-bottom:12px">${esc(pass ? s.pass.title : s.fail.title)}</h2><p class="lead">${esc(pass ? s.pass.text : s.fail.text)}</p>
-      <p class="lead" style="font-size:18px;margin-top:10px;color:#5a5c61">${right} of 8 correct · pass mark 80%</p>
-      ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : '<button class="navbtn next" style="margin-top:22px" data-act="retake">Retry assessment</button>'}</div></div>`}</div>` };
+      <div class="row" style="align-items:flex-start;gap:56px;margin-top:6px"><div><div class="score ${pass ? 'pass' : 'fail'}">${pct}%</div><p class="lead" style="font-size:17px;margin-top:8px;color:#5a5c61">Your score: ${right} of 8 · Passing score: 80%</p></div>
+      <div style="flex:1;min-width:0"><h2 class="h" style="margin-bottom:10px">${pass ? 'Pass' : 'Not yet'}</h2><p class="lead">${esc(pass ? pl : nl)}</p>
+      ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : `
+        <div class="secbtns">${SECTIONS.slice(0, 7).map((sec, k) => `<button class="secbtn ${missed.has(k) ? 'miss' : ''}" data-act="gosec" data-k="${k}" ${missed.has(k) ? '' : 'hidden'}>Review: ${esc(sec.label)}</button>`).join('')}</div>
+        <button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment</button>`}</div></div>`}</div>` };
   };
 
   L.awareClose = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">${esc(sb(80).title)}</div>
@@ -381,20 +429,22 @@
   function notesHTML(s, idx) {
     const ns = s.n;
     const flags = FLAGS.filter(f => f.slides.some(x => ns.includes(x) || (x === 'results' && s.layout === 'results')));
-    const original = ns.length ? ns.map(n => `<b>${n}</b> ${esc(sb(n).title)}`).join('<br>') : '<b>New slide</b> (not in storyboard)';
+    const original = ns.map(n => `<b>${n}</b> ${esc(sb(n).title)}${/[a-z]$/.test(n) ? ' <i>(new slide from the review)</i>' : ''}`).join('<br>');
+    const merged = { 25: 26, 30: 31, 34: 35 }[ns[0]];
     const vo = ns.length ? sb(ns[0]).vo : '';
     const added = [];
     if (s.meera) added.push(`<b>${CHARACTER.name}'s moment</b> (layer). Voiceover: “${esc(s.meera.vo)}”`);
     if (s.instructionAdded) added.push(`Instruction line: “${esc(s.instruction)}”`);
     if (s.infoAdded) added.push(`Info chips: ${s.info.map(esc).join(' · ')}`);
-    if (s.added) added.push('The whole slide is new: Storyline needs a results slide to pass the 80% score to your LMS.');
-    if (s.renamed) added.push(esc(s.renamed));
-    return `<h2>Screen ${idx + 1} of ${SCREENS.length}</h2><p class="src">Storyboard slide${ns.length > 1 ? 's' : ''}:<br>${original}</p>
+    if (s.layout === 'dragPrompt') added.push('The eight option cards and the "stronger prompt" are designer drafts. The review asked for them but did not write them.');
+    if (s.layout === 'tryIt') added.push('Sample notes, prompt and review questions are designer drafts. The review removed the old example and did not supply new ones.');
+    if (s.layout === 'kc') added.push('After a second wrong answer the layer shows the correct answer and Continue (the review limits retries to one).');
+    return `<h2>Screen ${idx + 1} of ${SCREENS.length}</h2><p class="src">Storyboard slide${ns.length > 1 ? 's' : ''}:<br>${original}${merged ? `<br>Includes old slide ${merged} (merged by the review)` : ''}</p>
       ${added.length ? `<h3>Added — needs your approval</h3>${added.map(a => `<div class="new">${a}</div>`).join('')}` : ''}
-      ${flags.length ? `<h3>Flag for your decision</h3>${flags.map(f => `<div class="flag"><b>${esc(f.text)}</b>Suggestion: ${esc(f.fix)}</div>`).join('')}` : ''}
+      ${flags.length ? `<h3>Flag for your decision</h3>${flags.map(f => `<div class="flag"><b>${esc(f.text)}</b>Suggestion: ${esc(f.fix)}<br><span class="who">Decision: ${esc(f.who)}</span></div>`).join('')}` : ''}
       <h3>How to build it in Storyline</h3><p>${esc(s.storyline || '')}</p>
       ${ns.length ? `<h3>Storyboard build note</h3><p class="src">${esc(sb(ns[0]).build.split('\n\n')[0])}</p>` : ''}
-      ${vo ? `<h3>Voiceover (signed off)</h3><p class="vo">${esc(vo)}</p>` : ''}`;
+      ${vo ? `<h3>Voiceover (reviewed storyboard)</h3><p class="vo">${esc(vo)}</p>` : ''}`;
   }
 
   // ---------- render ----------
@@ -408,7 +458,7 @@
     stage.className = 'stage' + (out.dark ? ' dark' : '') + (state.shown === state.i ? ' static' : '');
     state.shown = state.i;
     const canNext = state.review || out.gate === undefined || out.gate;
-    stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s.section)}${out.html}
+    stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s)}${out.html}
       <div class="footer"><span class="brand">AI Literacy · Level 1</span><span>${state.i + 1} / ${SCREENS.length}</span><span class="sp"></span>
         <button class="iconbtn" data-act="cc" aria-pressed="${state.cc}" title="Closed captions">CC</button>
         <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
@@ -437,9 +487,18 @@
     else if (act === 'hl') { state.gate[state.i] = true; render(); }
     else if (act === 'tab') { const g = state.gate[state.i]; g.cur = k; if (!g.seen.includes(k)) g.seen.push(k); render(); }
     else if (act === 'copy') { const t = s.prompt; navigator.clipboard && navigator.clipboard.writeText(t).then(() => { b.textContent = 'Copied'; }).catch(() => { const r = document.createRange(); r.selectNodeContents($('#prompt-box')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected: press Ctrl+C'; }); }
-    else if (act === 'opt') { const store = s.layout === 'quiz' ? state.quiz : state.kc; const a = store[state.i] || {}; a.sel = k; store[state.i] = a; render(); }
+    else if (act === 'opt') { const store = s.layout === 'quiz' ? state.quiz : state.kc; const a = store[state.i] || { tries: 0 }; a.sel = k; store[state.i] = a; render(); }
     else if (act === 'submit') cur.onSubmit();
-    else if (act === 'retry') { state.kc[state.i] = {}; render(); }
+    else if (act === 'claim') { const g = state.gate[state.i]; g.sel = g.sel.includes(k) ? g.sel.filter(x => x !== k) : g.sel.concat(k); render(); }
+    else if (act === 'hsubmit') { const g = state.gate[state.i]; g.tries++; g.result = g.sel.length === s.claims.length ? 'ok' : 'bad'; render(); }
+    else if (act === 'hretry') { const g = state.gate[state.i]; g.result = null; render(); }
+    else if (act === 'hclose') { const g = state.gate[state.i]; g.closed = true; go(state.i + 1); }
+    else if (act === 'dchip') { const g = state.gate[state.i]; g.active = g.active === k ? null : k; render(); }
+    else if (act === 'dslot') { const g = state.gate[state.i]; if (g.active != null) { g.pick[k] = cur.order[g.active]; g.active = null; } else delete g.pick[k]; render(); }
+    else if (act === 'dsubmit') { const g = state.gate[state.i]; g.tries++; g.result = s.slots.every((sl, j) => g.pick[j] && g.pick[j].ok && g.pick[j].k === j) ? 'ok' : 'bad'; render(); }
+    else if (act === 'dretry') { const g = state.gate[state.i]; g.result = null; Object.keys(g.pick).forEach(j => { if (!(g.pick[j].ok && g.pick[j].k === +j)) delete g.pick[j]; }); render(); }
+    else if (act === 'gosec') go(SCREENS.findIndex(x => x.layout === 'opener' && x.section === k));
+    else if (act === 'retry') { state.kc[state.i] = { tries: state.kc[state.i].tries }; render(); }
     else if (act === 'retake') { qScreens.forEach(i => delete state.quiz[i]); go(qScreens[0]); }
   });
   document.addEventListener('keydown', e => {
@@ -450,7 +509,7 @@
 
   // ---------- toolbar ----------
   const jump = $('#jump');
-  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${i + 1}. ${esc(s.n.length ? sb(s.n[0]).title : 'Assessment results (new)')}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
+  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${i + 1}. ${esc(sb(s.n[0]).title)}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
   jump.addEventListener('change', () => go(+jump.value));
   const tog = (id, key, fn) => { const b = $(id); b.setAttribute('aria-pressed', state[key]); b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', state[key]); fn && fn(); render(); }); };
   tog('#t-review', 'review', () => { jump.disabled = !state.review; });
