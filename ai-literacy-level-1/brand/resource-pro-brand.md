@@ -29,7 +29,7 @@ PowerPoint theme "2024": dk1 `021F62`, lt1 `FFFFFF`, lt2 `7EBD30`, accent1 `01BB
 
 ## Rules from the template's "How to use" slides
 - **General:** keep it simple, clean and uncluttered; leave empty space around text and graphics; avoid flashy transitions and text fly-ins.
-- **Text:**
+- **Text:** (course decision: **headings in Title Case**; body text and labels in sentence case)
   - Use Aptos.
   - Limit the words on each screen and keep only the essentials.
   - **Use sentence case, not ALL CAPITALS.**

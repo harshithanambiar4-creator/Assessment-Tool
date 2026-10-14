@@ -324,7 +324,7 @@ S.push({ n: [59], layout: 'atlasSteps', section: 6,
   storyline: 'Four step cards. If you record one video per step, put each on its own layer and open it from the matching card.' });
 
 S.push({ n: [60], layout: 'tryIt', section: 6,
-  tabs: [['SCENARIO', 'Meeting action tracker'], ['INPUT', 'Fictional sample meeting notes (no real names or data)'], ['TASK', 'Identify action, owner, and due date, then draft a reminder for each owner'], ['OUTPUT', 'Action-item table and draft reminders for human review']],
+  tabs: [['SCENARIO', 'Meeting action tracker'], ['INPUT', 'Sample meeting notes'], ['TASK', 'Identify action, owner, and due date, then draft a reminder for each owner'], ['OUTPUT', 'Action-item table and draft reminders for human review']],
   voOverride: 'Now it is your turn to try the concept using a familiar Talent workflow. We will create an agent that turns meeting notes into an action-item table, with the action, owner, and due date, and then drafts a reminder for each owner. The important rule is that the agent must use only the information in the meeting notes. If an owner or due date is not provided, it must not invent one. Then review the result before you use it.',
   scenario: 'Turn the notes from a team meeting into an action-item table, then draft a reminder for each owner. The agent must use only the information in the notes. If an owner or due date is not provided, it must not invent one.',
   notesTitle: 'Sample meeting notes',
@@ -338,6 +338,7 @@ S.push({ n: [60], layout: 'tryIt', section: 6,
     'The November Tip 4 topic still needs to be finalized.',
     'No announcements or minority views were recorded.',
   ],
+  inputLabel: 'Tab label changed from "Fictional sample meeting notes (no real names or data)" to "Sample meeting notes": the notes are real and approved for use by the course owner (names changed).',
   noOwnerLine: 'The November Tip 4 topic still needs to be finalized.',
   prompt: 'Create an action-item table from the meeting notes below, with three columns: Action, Owner, and Due date. Then draft a short reminder for each owner. Use only information explicitly stated in the meeting notes. Do not infer or invent owners, deadlines, decisions, or other details. If an owner or due date is not supported by the notes, mark it as Not specified, and do not draft a reminder for that action. Keep the wording concise and professional while preserving the meaning of the original notes.',
   expected: [
@@ -389,6 +390,7 @@ S.push({ n: [81], layout: 'levels', section: null,
 
 // Still open after the course owner's decisions. `who` says who has to answer.
 const FLAGS = [
+  { slides: [60], who: 'Team lead', text: 'The notes on slide 60 are real meeting notes (approved for use by the course owner, names changed), so the INPUT tab now reads "Sample meeting notes" instead of the reviewed "Fictional sample meeting notes (no real names or data)".', fix: 'Let the team lead know about this wording change.' },
   { slides: [10, 11, 15, 16, 23, 24, 30, 32, 33, 40, 41, 46, 47, 48, 49, 50, 51, 52, 56, 57, 58, 60], who: 'Team lead', text: 'The brand template says to avoid ALL CAPITALS, but the storyboard writes labels such as PROMPT, CONTEXT, CHECK and CONFIDENTIAL in capitals.', fix: 'Approve sentence case (Prompt, Context, Check, Confidential). It is a styling change only, with no change to wording.' },
   { slides: [60], who: 'Team lead', text: 'The slide 60 voiceover has been replaced with a learner-facing version built from the original script (the reviewed text was written to the course builder).', fix: 'Team lead to confirm the new wording before audio is recorded.' },
   { slides: [55], who: 'Team lead', text: 'Added the one-line Atlas description the review asked for.', fix: 'Team lead to confirm the wording.' },

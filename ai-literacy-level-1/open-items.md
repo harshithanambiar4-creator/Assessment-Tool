@@ -13,7 +13,11 @@ Marked ⚑ in the prototype's screen list and with an orange tag on the slide.
 - **Slide 55:** one-line Atlas description added, as the review requested.
 
 ## Course owner to confirm
-- **Slide 79a:** message after two failed attempts ("contact your L&D team").
+- **Slide 79a:** message after two failed attempts: "You have used both attempts. Your result has been recorded. Please contact your L&D team for next steps."
+
+## Team lead to know
+- **Slide 60:** the notes are real (approved for use, names changed), so the INPUT tab now reads "Sample meeting notes" instead of "Fictional sample meeting notes (no real names or data)".
+- Storyboard labels in ALL CAPS (PROMPT, CONTEXT…) conflict with the brand's no-capitals rule; sentence case suggested.
 
 ## Decided
 - Assessment: 80% pass mark (7 of 8), 2 attempts, answer order shuffled, review buttons for missed sections.
@@ -21,4 +25,5 @@ Marked ⚑ in the prototype's screen list and with an orange tag on the slide.
 - Slide 30a uses rupees (₹2,000 per day).
 - Slide 60 uses the original meeting notes (Karthika renamed Neha) plus one action with no owner. Atlas can run the task.
 - Slide 52a option cards match assessment question 5.
+- Headings use Title Case.
 - Meera moments stay. Brand colours: Resource Pro palette. Brand font: Aptos.

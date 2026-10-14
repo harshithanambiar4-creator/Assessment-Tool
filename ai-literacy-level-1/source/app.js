@@ -73,7 +73,25 @@
     const c = scr.n.length ? awareCue(scr.n[0]) : null;
     return c ? `<div class="badge"><span>${esc(c.w)}</span><b>${c.L}</b></div>` : '';
   }
-  const head = (n, eyebrow) => `<div class="eyebrow">${esc(eyebrow || sb(n).section)}</div><h2 class="h in">${esc(sb(n).title)}</h2>`;
+  // Title case for headings (course owner decision). Short articles, conjunctions and prepositions stay
+  // lower case unless first, last, or after a colon or dash; acronyms (AI, LLM, AWARE) are kept as written.
+  const MINOR = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'so', 'yet', 'as', 'at', 'by', 'in', 'of', 'on', 'to', 'up', 'via', 'vs', 'vs.', 'versus', 'with', 'from', 'into', 'per']);
+  const capWord = w => w.replace(/^([^A-Za-z]*)([a-z])/, (m, p, c) => p + c.toUpperCase());
+  const tc = str => {
+    const words = String(str).split(' ');
+    let startNext = true;
+    return words.map((w, i) => {
+      const bare = w.toLowerCase().replace(/[^a-z.]/g, '');
+      const last = i === words.length - 1;
+      let out;
+      if (/[A-Z]/.test(w.slice(1)) || /^[^a-z]*$/.test(w)) out = w;                      // AI, LLM, R&R, 01
+      else if (!startNext && !last && MINOR.has(bare)) out = w.toLowerCase();
+      else out = w.split('-').map(capWord).join('-');
+      startNext = /[:—–-]$/.test(w) || w === '—' || w === '–';
+      return out;
+    }).join(' ');
+  };
+  const head = (n, eyebrow) => `<div class="eyebrow">${esc(eyebrow || sb(n).section)}</div><h2 class="h in">${esc(tc(sb(n).title))}</h2>`;
   // entrance delay (stand-in for Storyline cue points); applied after render so it never clashes with inline styles
   const st = (i, base = 0.15, step = 0.35) => `data-d="${(base + i * step).toFixed(2)}"`;
 
@@ -99,7 +117,7 @@
   L.journey = s => ({ html: `<div class="content">${head(3, 'Your route')}
     <div class="jpath">${s.steps.map((t, k) => `<div class="jstop in" ${st(k, .3, .25)}><div class="n">${k + 1}</div><div class="t">${esc(t)}</div></div>`).join('')}</div></div>` });
 
-  L.aware = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">Your mental model</div><h2 class="h in" style="color:#fff">${esc(sb(4).title)}</h2>
+  L.aware = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">Your mental model</div><h2 class="h in" style="color:#fff">${esc(tc(sb(4).title))}</h2>
     <div class="aware">${s.letters.map(([l, w], k) => `<div class="aw" ${st(k, .4, .5)}><div class="L">${l}</div><div class="w" style="color:#e6ebf3">${esc(w)}</div></div>`).join('')}</div></div>` });
 
   L.opener = (s, idx) => {
@@ -107,7 +125,7 @@
     const done = state.meera[idx] != null;
     return { dark: true, gate: done, html: `<div class="content opener">
       <div class="secno in">${String(s.sectionNo).padStart(2, '0')}</div>
-      <h2 class="h in" ${st(1, .1, .2)}>${esc(sb(n).title)}</h2>
+      <h2 class="h in" ${st(1, .1, .2)}>${esc(tc(sb(n).title))}</h2>
       <ul>${s.lines.map((t, k) => `<li class="in" ${st(k, .5, .4)}>${esc(t)}</li>`).join('')}</ul>
       ${s.atlasLine ? `<p class="atlas-line in" ${st(0, 1.2)}>${esc(s.atlasLine)} <span class="added-tag" style="position:static">NEW · TEAM LEAD TO CONFIRM</span></p>` : ''}
       ${s.meera ? `<button class="navbtn next meera-cta in" ${st(0, 1.6)} data-act="meera">${done ? 'Revisit' : 'Meet'} ${CHARACTER.name}'s moment</button>` : ''}
@@ -208,7 +226,7 @@
     return { gate: !!state.kcDone[idx], html: `<div class="content"><div class="kc">
       <div><div class="kc-tag">Knowledge check · not scored</div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Select one answer.</p></div>
       ${optsHTML(q, k.sel, !!res)}</div></div>
-      ${res ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Not quite'}</p><p>${esc(res === 'ok' ? fb.c : fb.w)}</p>
+      ${res ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Not Quite'}</p><p>${esc(res === 'ok' ? fb.c : fb.w)}</p>
         ${last ? `<p class="answer">The answer is <b>${'ABCD'[key]}: ${esc(q.opts[key])}</b></p>` : ''}
         ${res === 'ok' || last ? '<button class="navbtn next" data-act="next">Continue</button>' : '<button class="navbtn next" data-act="retry">Try again</button>'}</div></div>` : ''}`,
       onSubmit: () => { const ok = k.sel === key; k.tries++; k.result = ok ? 'ok' : 'bad'; state.kc[idx] = k; if (ok || k.tries >= 2) state.kcDone[idx] = true; render(); speak(ok ? fb.vc : fb.vw); } };
@@ -253,7 +271,7 @@
       <div class="aidraft in" ${st(0, .4)}><span class="term">AI DRAFT</span><p>${text}</p></div>
       <p class="lead in" ${st(0, .8)} style="margin-top:22px;font-weight:600">${esc(s.prompt)}</p>
       <button class="navbtn next submit" style="margin-top:14px" data-act="hsubmit" ${!g.sel.length || g.result ? 'disabled' : ''}>Submit</button></div>
-      ${g.result ? `<div class="fb"><div class="box ${g.result === 'ok' ? '' : 'bad'}"><p class="ttl">${g.result === 'ok' ? 'Correct' : 'Look again'}</p><p>${esc(g.result === 'ok' ? fbc : fbw)}</p>
+      ${g.result ? `<div class="fb"><div class="box ${g.result === 'ok' ? '' : 'bad'}"><p class="ttl">${g.result === 'ok' ? 'Correct' : 'Look Again'}</p><p>${esc(g.result === 'ok' ? fbc : fbw)}</p>
         ${g.result === 'ok' || last ? '<button class="navbtn next" data-act="hclose">Continue</button>' : '<button class="navbtn next" data-act="hretry">Try again</button>'}</div></div>` : ''}` };
   };
 
@@ -310,7 +328,7 @@
           <button class="navbtn next" style="margin-top:16px" data-act="dsubmit" ${Object.keys(g.pick).length < 4 || g.result ? 'disabled' : ''}>Submit</button>
           <p class="src" style="font-size:13px;color:#5a5c61;margin-top:10px">Prototype: select a piece, then a slot. In Storyline this is drag and drop.</p></div>
       </div></div>
-      ${g.result ? `<div class="fb"><div class="box ${g.result === 'ok' ? '' : 'bad'}"><p class="ttl">${g.result === 'ok' ? 'Correct' : 'Not quite'}</p><p>${esc(g.result === 'ok' ? fbc : fbw)}</p>
+      ${g.result ? `<div class="fb"><div class="box ${g.result === 'ok' ? '' : 'bad'}"><p class="ttl">${g.result === 'ok' ? 'Correct' : 'Not Quite'}</p><p>${esc(g.result === 'ok' ? fbc : fbw)}</p>
         ${g.result === 'ok' || last ? `<p class="answer"><b>Stronger prompt:</b> ${esc(full)}</p><button class="navbtn next" data-act="hclose">Continue</button>` : '<button class="navbtn next" data-act="dretry">Try again</button>'}</div></div>` : ''}`,
       order };
   };
@@ -361,20 +379,20 @@
     const g = state.gate[idx] || { seen: [], cur: null };
     state.gate[idx] = g;
     const panes = [
-      `<h3>${esc(s.tabs[0][1])}</h3><p>${esc(s.scenario)}</p><p><b>${esc(s.tabs[3][1])}.</b></p>`,
-      `<h3>${esc(s.notesTitle)}</h3><ul>${s.notes.map(t => `<li${t === s.noOwnerLine ? ' class="noowner"' : ''}>${esc(t)}</li>`).join('')}</ul><p style="color:#5a5c61;font-size:14px;margin-top:12px">Names are fictional.</p>`,
+      `<h3>${esc(tc(s.tabs[0][1]))}</h3><p>${esc(s.scenario)}</p><p><b>${esc(s.tabs[3][1])}.</b></p>`,
+      `<h3>${esc(tc(s.notesTitle))}</h3><ul>${s.notes.map(t => `<li${t === s.noOwnerLine ? ' class="noowner"' : ''}>${esc(t)}</li>`).join('')}</ul><p style="color:#5a5c61;font-size:14px;margin-top:12px">Names have been changed.</p>`,
       `<h3>Prompt for Atlas</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
-      `<h3>Expected action items</h3><table class="xtab"><thead><tr><th>Action</th><th>Owner</th><th>Due date</th></tr></thead><tbody>${s.expected.map(r => `<tr>${r.map(c => `<td${c === 'Not specified' ? ' class="ns"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+      `<h3>Expected Action Items</h3><table class="xtab"><thead><tr><th>Action</th><th>Owner</th><th>Due date</th></tr></thead><tbody>${s.expected.map(r => `<tr>${r.map(c => `<td${c === 'Not specified' ? ' class="ns"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
        <p style="margin:14px 0 6px"><b>Before you use the output, ask:</b></p><ol>${s.check.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
     ];
     return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on or guided practice')}
       <div class="tryit"><div class="tabs">${s.tabs.map(([t, d], k) => `<button class="tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="tab" data-k="${k}"><span class="term">${t}</span><span>${esc(d)}</span></button>`).join('')}
         <p style="font-size:14px;color:#5a5c61;margin:6px 2px">Open all four tabs, then try it in Atlas.</p></div>
-      <div class="tpane">${g.cur == null ? '<h3>Select a tab to begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to review the output.</p>' : panes[g.cur]}</div></div></div>` };
+      <div class="tpane">${g.cur == null ? '<h3>Select a Tab to Begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to review the output.</p>' : panes[g.cur]}</div></div></div>` };
   };
 
   L.assessIntro = s => ({ dark: true, html: `<div class="content opener" style="justify-content:center">
-    <div class="eyebrow">${esc(sb(63).title)}</div><h2 class="h in" style="font-size:72px">${esc(s.lines[0])}</h2>
+    <div class="eyebrow">${esc(sb(63).title)}</div><h2 class="h in" style="font-size:72px">${esc(tc(s.lines[0]))}</h2>
     <p class="lead in" ${st(0, .6)}>${esc(s.lines[1])}</p>
     <div class="chips in" ${st(0, 1.2)}>${s.info.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>` });
 
@@ -388,9 +406,9 @@
     const missed = new Set(wrong.map(i => SCREENS[i].reviewSection));
     return { gate: pass || state.review, html: `<div class="content">
       <div class="eyebrow">${esc(sb(s.n[0]).title)}</div>
-      ${answered.length < 8 ? `<h2 class="h">Answer all 8 questions to see your result</h2><p class="lead">You have answered ${answered.length} of 8.</p>` : `
+      ${answered.length < 8 ? `<h2 class="h">Answer All 8 Questions to See Your Result</h2><p class="lead">You have answered ${answered.length} of 8.</p>` : `
       <div class="row" style="align-items:flex-start;gap:56px;margin-top:6px"><div><div class="score ${pass ? 'pass' : 'fail'}">${pct}%</div><p class="lead" style="font-size:17px;margin-top:8px;color:#5a5c61">Your score: ${right} of 8 · Passing score: 80%</p></div>
-      <div style="flex:1;min-width:0"><h2 class="h" style="margin-bottom:10px">${pass ? 'Pass' : 'Not yet'}</h2><p class="lead">${esc(pass ? pl : nl)}</p>
+      <div style="flex:1;min-width:0"><h2 class="h" style="margin-bottom:10px">${pass ? 'Pass' : 'Not Yet'}</h2><p class="lead">${esc(pass ? pl : nl)}</p>
       ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : `
         <div class="secbtns">${SECTIONS.slice(0, 7).map((sec, k) => `<button class="secbtn ${missed.has(k) ? 'miss' : ''}" data-act="gosec" data-k="${k}" ${missed.has(k) ? '' : 'hidden'}>Review: ${esc(sec.label)}</button>`).join('')}</div>
         ${state.attempt < 2 ? `<button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment (attempt 2 of 2)</button>` : `<p class="outof">${esc(s.outOfAttempts)} <span class="added-tag" style="position:static">NEW · CONFIRM</span></p>`}`}</div></div>`}</div>` };
@@ -447,6 +465,7 @@
     if (s.designed) added.push(esc(s.designed));
     if (s.override) added.push(esc(s.override));
     if (s.atlasLine) added.push(`Atlas description: “${esc(s.atlasLine)}” (requested by the review; team lead to confirm)`);
+    if (s.inputLabel) added.push(esc(s.inputLabel));
     if (s.layout === 'tryIt') added.push('Notes, prompt and expected output come from the original Atlas practical example (Karthika renamed Neha). Added one action with no owner: “' + esc(s.noOwnerLine) + '”.');
     if (s.layout === 'kc') added.push('After a second wrong answer the layer shows the correct answer and Continue (the review limits retries to one).');
     if (s.outOfAttempts) added.push(`Message after two failed attempts: “${esc(s.outOfAttempts)}”`);
@@ -521,7 +540,7 @@
 
   // ---------- toolbar ----------
   const jump = $('#jump');
-  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${s.pending ? '⚑ ' : ''}${i + 1}. ${esc(sb(s.n[0]).title)}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
+  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${s.pending ? '⚑ ' : ''}${i + 1}. ${esc(tc(sb(s.n[0]).title))}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
   jump.addEventListener('change', () => go(+jump.value));
   const tog = (id, key, fn) => { const b = $(id); b.setAttribute('aria-pressed', state[key]); b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', state[key]); fn && fn(); render(); }); };
   tog('#t-review', 'review', () => { jump.disabled = !state.review; });
