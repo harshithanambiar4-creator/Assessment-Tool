@@ -43,6 +43,33 @@ const TITLE = (n) => `Title: click the title area and type ${q(T(n))} (Aptos Dis
 const END = (extra = '') => `${extra}Finish with <b>Routines V, T, N and H</b> (voice, timing, Next lock, hover).`;
 const BADGE = n => { const c = cue(n); return c ? `AWARE badge: paste the badge group (from screen ${scr(6)}), set the letter to ${b(c.L)} and the word to ${q(c.w)}.` : ''; };
 
+// ---------- Next lock on screens where the learner must do something (Routine G) ----------
+// Each gated screen gets its own True/False variable so a learner who comes back (Previous, or the
+// Review buttons on the results screen) is not locked again: Storyline re-runs "timeline starts" on a
+// revisit, but an unlock event such as "all cards are Open" does not fire a second time.
+const doneVar = s => 'Done_' + String(s.n[0]).replace(/[^0-9a-z]/gi, '');
+const GATE = {
+  opener: s => ({ what: 'explores Meera\'s moment: picks a choice, reads the reply and clicks <b>Continue</b>', when: '<b>when the user clicks</b> Continue <b>on the Meera layer</b> (add both triggers on the Meera layer; Continue only appears after a choice)' }),
+  awareClose: s => ({ what: 'reads Meera\'s last word and clicks <b>Continue</b>', when: '<b>when the user clicks</b> Continue <b>on the Meera layer</b> (add both triggers on the Meera layer)' }),
+  reveal: s => ({ what: `opens all ${s.cards.length} cards`, when: `<b>when the state of all of</b> ${s.cards.map((_, k) => 'Card ' + (k + 1)).join(', ')} <b>is</b> Open` }),
+  explorer: s => ({ what: `opens all ${s.tabs.length} tabs (${s.tabs.map(t => q(t.label)).join(', ')})`, when: `<b>when the state of all of</b> ${s.tabs.map((_, k) => 'Tab ' + (k + 1)).join(', ')} <b>is</b> Visited` }),
+  checklist: s => ({ what: 'ticks all four questions', when: '<b>when the state of all of</b> Row 1–4 <b>is</b> Ticked' }),
+  tryIt: s => ({ what: 'opens all four tabs', when: '<b>when the state of all of</b> the Scenario, Input, Task and Output tabs <b>is</b> Visited' }),
+  compare: s => ({ what: 'clicks <b>Show what was added</b> and sees the highlights', when: '<b>when the timeline ends on the Highlights layer</b> (add both triggers on that layer)' }),
+  hotspot: s => ({ what: 'gets the claims right, or uses the retry', when: '<b>when the timeline starts on the Correct layer</b>; and on the Incorrect layer <b>when the timeline starts if</b> Tries30a ≥ 2' }),
+  dragPrompt: s => ({ what: 'builds the prompt correctly, or uses the retry', when: '<b>when the timeline starts on the Correct layer</b> and <b>when the timeline starts on the Incorrect layer</b> (not on Try Again)' }),
+  kc: s => ({ what: 'answers correctly, or answers wrong twice and sees the answer', when: '<b>when the timeline starts on the Correct layer</b> and <b>when the timeline starts on the Incorrect layer</b> (not on Try Again)' }),
+  quiz: s => ({ what: 'submits an answer', when: '<b>when the timeline starts on the Correct layer</b> and <b>when the timeline starts on the Incorrect layer</b>' }),
+  atlasVideo: s => ({ what: 'plays all four clips to the end', when: '<b>when</b> Played58 <b>changes, if</b> Played58 = 4. To count each clip once, give each clip a True/False variable (Clip1Played…Clip4Played); on layer Clip 1: Adjust Played58 Add 1 when media completes <b>if</b> Clip1Played = False, then set Clip1Played = True when media completes' }),
+  results: s => ({ what: 'passes', when: '<b>when the timeline starts on the Success layer</b>. On the Failure layer Next stays disabled: the learner retries or reviews, and after three attempts the message tells them to contact Talent Development' }),
+};
+function gateStep(s) {
+  const g = GATE[s.layout] && GATE[s.layout](s);
+  if (!g) return null;
+  const v = doneVar(s);
+  return `<span class="gate">Next button (Routine G)</span> Next stays disabled until the learner ${g.what}. Create a True/False variable <code>${v}</code> (default False; if you duplicated this screen, make a new one and switch the copied triggers to it). Base layer: <b>Change state of</b> Next <b>to</b> Disabled <b>when the timeline starts if</b> ${v} = False. Unlock: <b>Adjust variable</b> ${v} = True, then <b>Change state of</b> Next <b>to</b> Normal, ${g.when}. Do <b>not</b> add Routine N here.`;
+}
+
 const W = {};
 W.title = s => [
   NEW('Cover') + ' Delete Storyline\'s original blank slide (right-click it in Story View &gt; Delete).',
@@ -84,9 +111,9 @@ W.opener = s => {
     meeraTexts.replace('On the Meera layer: ', 'Text on the panel: '),
     'Choice buttons: rounded rectangles 460 × 40, white with grey outline. <b>Edit States</b>: add Hover and Selected (Selected = fill <code>D9F5F6</code>, Pro Teal outline). Select all three, right-click &gt; <b>Button Set</b>.',
     'Three reply text boxes stacked in the same spot under the choices, each with Initial State <b>Hidden</b>. A <b>Continue</b> button (Pro Teal), Initial State Hidden.',
-    'Triggers on the Meera layer: <b>Change state of</b> Reply 1 to Normal, Reply 2 and 3 to Hidden, Continue to Normal <b>when the user clicks</b> Choice 1 (same for choices 2 and 3). <b>Hide this layer</b> when the user clicks Continue. <b>Change state of</b> Next to Normal <b>when the state of any of</b> Choice 1–3 is Selected.',
+    'Triggers on the Meera layer: <b>Change state of</b> Reply 1 to Normal, Reply 2 and 3 to Hidden, Continue to Normal <b>when the user clicks</b> Choice 1 (same for choices 2 and 3). <b>Hide this layer</b> when the user clicks Continue.',
     'Triggers on the base layer: <b>Show layer</b> Meera <b>when the timeline ends</b>. Add a small "Meet Meera\'s moment" button bottom left that shows the layer when clicked.',
-    'Voice: base layer = storyboard voiceover; Meera layer = Meera voiceover (below). Next lock: only the "Disabled when the timeline starts" trigger (the Meera choice unlocks Next).'];
+    'Voice: base layer = storyboard voiceover; Meera layer = Meera voiceover (below).'];
 };
 W.defineCards = s => [
   NEW('Content S1'), TITLE(6), BADGE(6),
@@ -123,8 +150,8 @@ W.reveal = s => {
     `Ctrl+D for card 2. Cards: ${cards}.`,
     `Text box under the cards: ${q(s.instruction)} (14 pt grey).`,
     COUNTER('viewed', s.cards.length, 'Viewed' + n),
-    `Triggers: <b>Adjust variable</b> Viewed${n} <b>Add</b> 1 <b>when the user clicks</b> Card 1 <b>if</b> Card 1 <b>is not equal to</b> Open, then <b>Change state of</b> Card 1 <b>to</b> Open <b>when the user clicks</b> Card 1 (the order matters: count first). Same for Card 2. <b>Change state of</b> Next <b>to</b> Normal <b>when the state of all of</b> Card 1, Card 2 <b>is</b> Open.`,
-    END('Next lock: only the "Disabled when the timeline starts" trigger. ')];
+    `Triggers: <b>Adjust variable</b> Viewed${n} <b>Add</b> 1 <b>when the user clicks</b> Card 1 <b>if</b> Card 1 <b>is not equal to</b> Open, then <b>Change state of</b> Card 1 <b>to</b> Open <b>when the user clicks</b> Card 1 (the order matters: count first). Same for Card 2.`,
+    END()];
 };
 W.kc = s => {
   const [qn, ln] = s.n, Q = parseQ(qn), F = parseFb(ln), first = idxOf(s) === firstOf('kc');
@@ -139,7 +166,6 @@ W.kc = s => {
     fb,
     'Slide View: small tag "Knowledge check · not scored" top left; question left (Aptos Display semibold 26 pt); answers right as white rounded rows with a letter tile. Feedback layers: white panel 760 wide, green top band (Correct) or coral top band (Try Again / Incorrect).',
     'Submit: select the Submit button &gt; Initial State <b>Disabled</b>. Trigger: <b>Change state of</b> Submit <b>to</b> Normal <b>when the state of any of</b> Option A–D <b>is</b> Selected. Learners can then only submit once they have chosen.',
-    'Next: Disabled when the timeline starts; Normal when the timeline starts on the Correct layer and on the Incorrect layer.',
     'Voice: question voiceover on the base layer; the correct line on Correct; the incorrect line on Try Again and Incorrect.'];
 };
 W.beforeAfter = s => [NEW('Content S2'), TITLE(15),
@@ -170,14 +196,14 @@ W.explorer = s => {
   const n = s.n[0], first = idxOf(s) === firstOf('explorer'), v = 'Viewed' + n;
   const tabs = s.tabs.map((t, k) => `Tab ${k + 1} ${q(t.label)} = storyboard slide ${t.screen.n[0]}`).join(' · ');
   const layers = `One layer per tab, named after the tab. On each layer's cog tick <b>Hide other slide layers</b>. Into each layer, paste that tab's content from its LAYER slide in the import deck (or rebuild it: ${s.tabs.map(t => q(T(t.screen.n[0])) + ' ' + t.screen.layout).join(', ')}). Use that slide's own voiceover on its layer (Routine V on the layer).`;
-  const trig = `Triggers on each tab: <b>Adjust variable</b> ${v} <b>Add</b> 1 <b>when the user clicks</b> the tab <b>if</b> the tab <b>is not equal to</b> Visited, then <b>Show layer</b> &lt;tab&gt; <b>when the user clicks</b> the tab. <b>Change state of</b> Next <b>to</b> Normal <b>when</b> ${v} <b>changes</b> <b>if</b> ${v} = ${s.tabs.length}.`;
+  const trig = `Triggers on each tab: <b>Adjust variable</b> ${v} <b>Add</b> 1 <b>when the user clicks</b> the tab <b>if</b> the tab <b>is not equal to</b> Visited, then <b>Show layer</b> &lt;tab&gt; <b>when the user clicks</b> the tab.`;
   if (!first) return [DUP(firstOf('explorer')), `Title ${q(s.title)}. Delete the third tab; rename the tabs: ${tabs}.`, layers, `Rename the counter variable to <code>${v}</code> (pill text ${q('%' + v + '% of ' + s.tabs.length + ' viewed')}) and update the triggers to match.`, 'Base-layer voice: ' + q(s.introVo)];
   return [NEW('Content ' + SEC[s.section]), `Title: type ${q(s.title)} (new title: this screen combines storyboard slides ${s.tabs.map(t => t.screen.n[0]).join(', ')}).`,
     `Tab row under the title: rounded rectangles 44 px high, white, grey outline, Aptos bold 15 pt navy: ${tabs}. Edit States: <code>Selected</code> (Pro Blue outline, fill <code>E8EEFB</code>) and <code>Visited</code> (add a small green "✓"). Select all tabs, right-click &gt; <b>Button Set</b>.`,
     `Next to the tabs: ${q(s.instruction)} (14 pt grey) and the counter.`, COUNTER('viewed', s.tabs.length, v),
     'Below: a large dashed grey rounded rectangle with "Select a tab to begin." (18 pt grey). The tab layers cover it.',
     layers, trig,
-    END('Base-layer voice (Routine V): ' + q(s.introVo) + '. Next lock: only "Disabled when the timeline starts". ')];
+    END('Base-layer voice (Routine V): ' + q(s.introVo) + ' ')];
 };
 W.twoCol = s => [NEW('Content S3'), TITLE(25),
   `Left card (AI): dashed Pro Blue outline, fill <code>E8EEFB</code>, label "AI" (Aptos Mono bold Pro Blue), text ${q(s.left[1])} (27 pt).`,
@@ -195,7 +221,7 @@ W.hotspot = s => [NEW('Content S4'), TITLE('30a'), BADGE('30a'),
   'Layers: <code>Correct</code> (white panel, green band, CORRECT text from the storyboard, Continue = jump to next slide) and <code>Incorrect</code> (coral band, INCORRECT text, Try Again = hide layer, Continue starting Hidden).',
   'Submit triggers, in order: <b>Adjust variable</b> Tries30a Add 1 · <b>Show layer</b> Correct <b>if</b> Claim 1 <i>and</i> Claim 2 <i>and</i> Claim 3 are Selected · <b>Show layer</b> Incorrect <b>if</b> Claim 1 <i>or</i> 2 <i>or</i> 3 is not Selected.',
   'Incorrect layer, when its timeline starts <b>if</b> Tries30a ≥ 2: change all three claims to Selected, Try Again to Hidden, Continue to Normal.',
-  END('Next lock: Disabled at start; Normal when the timeline starts on Correct, or on Incorrect if Tries30a ≥ 2. ')];
+  END()];
 W.balance = s => [NEW('Content S4'), TITLE(32), BADGE(32),
   'Left: a balance-scale icon (Insert &gt; Icons, search "scale"), Pro Blue, about 200 × 200.',
   `Right: two cards: ${q(s.cards[0][0])} ${q(s.cards[0][1])} (dashed Pro Blue) and ${q(s.cards[1][0])} ${q(s.cards[1][1])} (solid Pro Teal).`, END()];
@@ -213,8 +239,8 @@ W.checklist = s => [NEW('Content S5'), TITLE(39), BADGE(39),
   'Edit States &gt; New State <code>Ticked</code>: green outline, fill <code>EEF5E1</code>, the small box filled green with a white "✓".',
   `Ctrl+D three times, stack 84 px apart: ${s.items.map(q).join(' · ')}. Instruction text ${q(s.instruction)}.`,
   COUNTER('ticked', 4, 'Ticked39'),
-  'Triggers: on each row, <b>Adjust variable</b> Ticked39 Add 1 <b>if</b> the row is not Ticked, then change the row to Ticked when the user clicks it; Next to Normal when the state of all of the four rows is Ticked.',
-  END('Next lock: only "Disabled when the timeline starts". ')];
+  'Triggers: on each row, <b>Adjust variable</b> Ticked39 Add 1 <b>if</b> the row is not Ticked, then change the row to Ticked when the user clicks it.',
+  END()];
 W.categories = s => [NEW('Content S5'), TITLE(40),
   `Eight navy cards 266 × 120 in two rows of four. Each: a small lock icon in Pro Teal and the word (Aptos Mono bold 17 pt, white): ${s.items.join(' · ')}. Build one, Ctrl+D, Distribute Horizontally per row.`,
   END('⚑ Pending Privacy check of Client, Proprietary, Credentials. ')];
@@ -241,9 +267,10 @@ W.assemble = s => [DUP(scr(50)), TITLE(51), BADGE(51),
   'Optional: give each slot a short motion path from the bottom position to the middle (slow, 1 s).',
   `Under the bar: ${q(s.sub)} (Aptos Display bold 34 pt, centred).`, END()];
 W.compare = s => [NEW('Content S6'), TITLE(52),
+  'Under the cards, a button <b>Show what was added</b> (white, navy outline, 14 pt). Edit States: Disabled (grey) for after it is clicked.',
   `Left card "VAGUE": ${q(s.vague)} (Aptos Mono 30 pt, grey). Right card "CLEARER" (dashed Pro Blue): ${q(s.clear)} (Aptos Mono 30 pt).`,
-  `Highlights: for each added detail, draw a light-teal rectangle (60% transparent) behind the words with a tiny label above: ${s.highlights.map(([w, l]) => `${q(w)} = ${l}`).join(' · ')}.`,
-  END('Each highlight fades on its cue. ')];
+  `New layer <code>Highlights</code> (the base layer stays visible under it). On it, for each added detail, draw a light-teal rectangle (60% transparent) behind the words with a tiny label above: ${s.highlights.map(([w, l]) => `${q(w)} = ${l}`).join(' · ')}.`,
+  'Trigger: <b>Show layer</b> Highlights and <b>Change state of</b> the button <b>to</b> Disabled <b>when the user clicks</b> it. On the layer, stagger the highlights 0.5 s apart on its timeline (Fade 0.5 s).', END()];
 W.dragPrompt = s => [NEW('Content S6'), TITLE('52a'), BADGE('52a'),
   `Left: card "START WITH" ${q(s.base)}; under it four drop slots 540 × 66 (dashed grey) labelled ${s.slots.map(x => x.part).join(', ')}.`,
   `Right: eight option cards (white, grey outline, Aptos Mono 15 pt). Correct: ${s.slots.map(x => q(x.right)).join(' · ')}. Distractors: ${s.slots.map(x => q(x.wrong)).join(' · ')}.`,
@@ -262,7 +289,7 @@ W.atlasVideo = s => [NEW('Content S7'), TITLE(58),
   `Clip buttons: four small rounded tags ${s.process.join(' → ')} (white, grey outline, Aptos Mono bold 12 pt). Edit States: <code>Selected</code> (navy fill, white text) and <code>Visited</code> (add "✓"). Make them a Button Set. To the right: ${q(s.clipInstruction)} (13 pt grey) and the counter.`,
   COUNTER('played', 4, 'Played58'),
   'Four layers <code>Clip 1</code>–<code>Clip 4</code>, each with <b>Hide other slide layers</b> ticked. On each: <b>Insert &gt; Video &gt; Video from File</b> &gt; that clip, sized to the area under the buttons; Video Tools &gt; Options &gt; Show Video Controls below video. Callouts point only at real Atlas labels.',
-  'Triggers: each clip button shows its layer. On each layer: <b>Adjust variable</b> Played58 Add 1 <b>when media completes</b> (that clip; add the condition that its button was not Visited before, or use one True/False variable per clip). Next to Normal when Played58 = 4.',
+  'Triggers: each clip button shows its layer. On each layer, the counter and Next triggers below (Routine G).',
   'Voice: storyboard voiceover on the base layer, before the learner picks a clip.'];
 W.atlasSteps = s => [NEW('Content S7'), TITLE(59),
   `Four white cards in a row: "STEP 1–4" and ${s.steps.map(q).join(' · ')} (Aptos Display bold 26 pt). Card 4 gets a Pro Teal outline and light-teal fill. Each card has "▶ Screen recording n" at the bottom.`,
@@ -272,8 +299,8 @@ W.tryIt = s => [NEW('Content S7'), TITLE(60),
   COUNTER('viewed', 4, 'Viewed60') + ' Put it under the instruction "Open all four tabs, then try it in Atlas." and add +1 to Viewed60 on each tab the first time it is clicked.',
   'Right: a white panel 860 × 480. Create four layers (Scenario, Input, Task, Output), each with <b>Hide other slide layers</b> ticked, containing the text from <code>Slide-60-Atlas-Activity-Text.docx</code>.',
   `Scenario layer: ${q(s.scenario)}. Input layer: the eight note lines (bold the Tip 4 line) + "Names have been changed." Task layer: the Atlas prompt in a dashed blue box (Aptos Mono 15 pt). Output layer: the expected table + the five review questions.`,
-  'Triggers: <b>Show layer</b> Scenario when the user clicks the Scenario tab (same for the others). Next to Normal when the state of all of the four tabs is Visited.',
-  'Voice: use the designer rewrite (below), not the reviewed text.', END('Next lock: only "Disabled when the timeline starts". ')];
+  'Triggers: <b>Show layer</b> Scenario when the user clicks the Scenario tab (same for the others).',
+  'Voice: use the designer rewrite (below), not the reviewed text.', END()];
 W.assessIntro = s => [DUP(4),
   'Delete the AWARE tiles and the title.',
   `Big heading ${q('Show What You Know.')} (Aptos Display bold 72 pt, Pro Green) and ${q(s.lines[1])} (24 pt, white).`,
@@ -309,8 +336,8 @@ W.awareClose = s => [DUP(4), 'Change the title to "Carry AWARE Forward" (16 pt, 
   `Paste the closing band from screen ${scr(34)} under the tiles (AI can assist. Humans remain accountable.).`,
   `Meera's last word: copy the <code>Meera</code> layer from screen ${scr(5)} (Slide Layers &gt; right-click &gt; Duplicate is not available across slides, so copy the layer's objects and paste them into a new layer named <code>Meera</code>). Delete the three choices and replies. Text: ${q(s.meeraClose.recall)} (16 pt grey) and ${q(s.meeraClose.line)} (Aptos Display bold 22 pt navy). Keep Continue visible from the start.`,
   `Meera layer voice (Routine V): ${q(s.meeraClose.vo)}`,
-  'Triggers: base layer <b>Show layer</b> Meera <b>when the timeline ends</b>; a "Meera\'s last word" button (bottom left, Pro Teal) also shows it. On the layer: Continue <b>Hide this layer</b> and <b>Change state of</b> Next <b>to</b> Normal.',
-  END('Tiles fade in turn, then the band. Next lock: only "Disabled when the timeline starts". ')];
+  'Triggers: base layer <b>Show layer</b> Meera <b>when the timeline ends</b>; a "Meera\'s last word" button (bottom left, Pro Teal) also shows it. On the layer: Continue <b>Hide this layer</b>.',
+  END('Tiles fade in turn, then the band. ')];
 W.download = s => [NEW('Content S0'), TITLE('80a'),
   'Left: navy card 380 × 230: "DOWNLOAD" (Pro Teal mono), "One-page Level 1 quick reference" (Aptos Display bold 30 pt, white), and a Pro Teal "Download PDF" button.',
   `Right: three white rows: ${s.items.map(([t, d]) => `${q(t)} ${q(d)}`).join(' · ')}.`,
@@ -353,7 +380,10 @@ const cards = S.map((s, i) => {
   const no = i + 1, n = s.n[0];
   const img = fs.readFileSync(path.join(imgDir, `s${String(no).padStart(2, '0')}.jpg`)).toString('base64');
   const vo = s.layout === 'explorer' ? [s.introVo].concat(s.tabs.map(t => `[${t.label} layer] ${sb(t.screen.n[0]).vo}`)).join('\n\n') : s.voOverride || sb(n).vo;
-  const steps = (W[s.layout] ? W[s.layout](s) : []).filter(Boolean);
+  const g = gateStep(s);
+  const steps = (W[s.layout] ? W[s.layout](s) : []).filter(Boolean)
+    .map(t => g ? t.replace('Finish with <b>Routines V, T, N and H</b> (voice, timing, Next lock, hover).', 'Finish with <b>Routines V, T and H</b> (voice, timing, hover). Next is set by Routine G below, not Routine N.') : t)
+    .concat(g ? [g] : []);
   const c = cue(n);
   const layers = layersFor(s);
   return `<article class="card" id="s${no}" data-sec="${esc(secName(s))}">
@@ -426,6 +456,7 @@ pre.vo { font-style:italic; }
 .done span { display:block; width:26px; height:26px; border:2px solid var(--line); border-radius:7px; }
 .done input:checked + span { background:var(--teal); border-color:var(--teal); }
 .done input:checked + span::after { content:"✓"; color:#fff; font-weight:800; display:grid; place-items:center; height:100%; }
+.gate { display:inline-block; font:700 12px var(--f-body); letter-spacing:.04em; color:#fff; background:var(--teal-ink); border-radius:4px; padding:1px 7px; margin-right:6px; }
 .done input:focus-visible + span { outline:3px solid var(--blue); outline-offset:2px; }
 </style>
 <div class="wrap">
@@ -437,7 +468,8 @@ pre.vo { font-style:italic; }
 <section class="routines"><h2>Routines used on every screen</h2><dl>
 <dt>Routine V</dt><dd>Voice. <b>Insert &gt; Audio &gt; Text-to-Speech</b>, paste the voiceover shown on the card, Language English (India), the same Neural voice every time, tick <b>Create closed captions</b>, Insert.</dd>
 <dt>Routine T</dt><dd>Timing. Play the timeline and press <b>C</b> where each item should appear. Right-click each object in the Timeline &gt; <b>Align to Cue Point</b>. Animations &gt; Entrance &gt; <b>Fade</b>, 0.5 s. Drag every bar to the end of the timeline.</dd>
-<dt>Routine N</dt><dd>Next lock. Copy the two triggers from screen 2 (Disabled when the timeline starts; Normal when the timeline ends) and paste them. Set <b>When revisiting: Resume saved state</b>.</dd>
+<dt>Routine N</dt><dd>Next lock on screens with nothing to click. Copy the two triggers from screen 2 (Disabled when the timeline starts; Normal when the timeline ends) and paste them. Set <b>When revisiting: Resume saved state</b>.</dd>
+<dt>Routine G</dt><dd>Next lock on screens where the learner must do something first (${S.filter(x => GATE[x.layout]).length} screens: ${S.filter(x => GATE[x.layout]).map(idxOf).join(', ')}). Each card's last step names the variable and the exact unlock trigger. The pattern is always: a True/False variable <code>Done_…</code>; <b>Change state of</b> Next <b>to</b> Disabled <b>when the timeline starts if</b> Done_… = False; and when the learner finishes, set Done_… = True and change Next to Normal. The variable stops a learner who comes back to the screen from being locked out again. Set <b>When revisiting: Resume saved state</b>, and never add Routine N's "Normal when the timeline ends" to these screens.</dd>
 <dt>Routine H</dt><dd>Hover. Every object a learner can click (cards, options, tabs, buttons) gets a <b>Hover</b> state: select it &gt; Edit States &gt; New State "Hover" (Pro Blue outline, or fill <code>D9F5F6</code> on teal buttons). Hand cursor is on by default.</dd>
 <dt>Player</dt><dd><b>Home &gt; Player</b>. Features: tick Captions, Volume and Resources (for the quick-reference PDF); untick Menu, Seekbar, Glossary and Notes, so there is no slide counter. Other: <b>Resume on restart: Prompt to resume</b> (the course information on screen 2 promises learners can pick up where they left off). Navigation: Restricted.</dd>
 <dt>Quickest start</dt><dd>When a card says "Duplicate screen N", always do that rather than building from scratch: the layout, styles, triggers and timing come with the copy.</dd>

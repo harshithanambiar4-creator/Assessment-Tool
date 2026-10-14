@@ -263,7 +263,7 @@ def L_opener(sc):
     write(b, "Meet Meera’s moment", size=13, bold=True, color='navy', align='c', anchor='m')
     notes(s, *std_notes(sc, 'Base layer. Show layer "Meera" when the timeline ends; the button reopens it.'))
     m = sc['meera']
-    ly = layer_slide(sc, 'Meera', f"MEERA VOICEOVER\n{m['vo']}\n\nTriggers: each choice shows its reply and the Continue button; Continue hides this layer; Next unlocks when any choice is Selected.", dark=True)
+    ly = layer_slide(sc, 'Meera', f"MEERA VOICEOVER\n{m['vo']}\n\nTriggers: each choice shows its reply and the Continue button; Continue hides this layer. Next unlocks when Continue is clicked (build book, Routine G).", dark=True)
     ov = box(ly, 0, 36, 1280, 684, 'navy', shape=MSO_SHAPE.RECTANGLE, name='Dim overlay', alpha=70)
     box(ly, 120, 110, 1040, 470, 'white', radius=0.04, name='Meera panel')
     icon(ly, 'meera', 150, 150, 170, 'Meera')
@@ -621,7 +621,9 @@ def L_compare(sc):
     card(s, 500, 150, 705, 260, 'CLEARER', sc['clear'], 'ai', 14, 22)
     text(s, 75, 430, 1130, 60, 'Highlights to add on cue: ' + ' · '.join(f'“{w}” = {l}' for w, l in sc['highlights']),
          name='DELETE ME: highlight list', size=12, italic=True, color='grey')
-    notes(s, *std_notes(sc, 'For each added detail draw a light-teal rectangle behind the words with a tiny label; fade each on its cue.'))
+    b = box(s, 75, 500, 230, 40, 'white', 'navy', radius=0.2, name='Show what was added button (state Disabled after click)')
+    write(b, 'Show what was added', size=14, bold=True, color='navy', align='c', anchor='m')
+    notes(s, *std_notes(sc, 'The button shows layer "Highlights". On that layer, for each added detail draw a light-teal rectangle behind the words with a tiny label, staggered 0.5 s apart. Next unlocks when the Highlights layer timeline ends (build book, Routine G).'))
 
 def L_dragPrompt(sc):
     s = new(sc)

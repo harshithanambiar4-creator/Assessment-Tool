@@ -129,7 +129,7 @@
   L.opener = (s, idx) => {
     const n = s.n[0];
     const done = state.meera[idx] != null;
-    return { dark: true, gate: done, html: `<div class="content opener">
+    return { dark: true, gate: !!state.meeraOk[idx], html: `<div class="content opener">
       ${s.icon ? `<div class="op-icon in" ${st(0, .6)} aria-hidden="true">${teal(typeof I[s.icon] === 'function' ? I[s.icon]('#00bbc2') : I[s.icon])}</div>` : ''}
       <div class="secno in">${String(s.sectionNo).padStart(2, '0')}</div>
       <h2 class="h in" ${st(1, .1, .2)}>${esc(tc(sb(n).title))}</h2>
@@ -524,7 +524,7 @@
   }
 
   // ---------- render ----------
-  state.kc = {}; state.autoMeera = {}; state.layer = null;
+  state.kc = {}; state.autoMeera = {}; state.meeraOk = {}; state.layer = null;
   let cur = null;
   function render() {
     const s = SCREENS[state.i];
@@ -558,7 +558,7 @@
     else if (act === 'cc') { state.cc = !state.cc; render(); }
     else if (act === 'meera') { state.layer = 'meera'; render(); speak(s.meera.vo); }
     else if (act === 'mpick') { state.meera[state.i] = k; render(); speak(s.meera.options[k].reply); }
-    else if (act === 'mclose') { state.layer = null; render(); }
+    else if (act === 'mclose') { state.meeraOk[state.i] = true; state.layer = null; render(); }
     else if (act === 'rev') { const g = state.gate[state.i] || []; if (!g.includes(k)) g.push(k); state.gate[state.i] = g; render(); }
     else if (act === 'hl') { state.gate[state.i] = true; render(); }
     else if (act === 'tab') { const g = state.gate[state.i]; g.cur = k; if (!g.seen.includes(k)) g.seen.push(k); render(); }
