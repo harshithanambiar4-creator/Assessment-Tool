@@ -4,13 +4,13 @@
 
 const SECTIONS = [
   { key: 'understand', label: 'Understand AI' },
-  { key: 'limits', label: 'Understand its capabilities and limits' },
-  { key: 'work', label: 'See where AI supports work' },
+  { key: 'limits', label: 'Capabilities and limits' },
+  { key: 'work', label: 'AI at work' },
   { key: 'responsible', label: 'Use AI responsibly' },
   { key: 'data', label: 'Protect information' },
   { key: 'prompting', label: 'Prompt with purpose' },
-  { key: 'agents', label: 'Experience an AI agent' },
-  { key: 'assessment', label: 'Demonstrate your judgment' },
+  { key: 'agents', label: 'AI agents and Atlas' },
+  { key: 'assessment', label: 'Assessment' },
 ];
 
 const CHARACTER = {
