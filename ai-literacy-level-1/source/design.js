@@ -23,7 +23,7 @@ const S = []; // screens
 
 // ---------- Opening ----------
 S.push({ n: [1], layout: 'title', section: null,
-  storyline: 'Title slide. Entrance animation: title Fade + Grow (0.75s), subtitle Fade 0.5s later. Disable Next until timeline ends.' });
+  storyline: 'Title slide on the template\'s COVER layout. Entrance animation: title Fade (0.75s), subtitle Fade 0.5s later. Disable Next until timeline ends.' });
 
 S.push({ n: [2], layout: 'outcomes', section: null,
   intro: 'By the end of this course, you will be able to:',
@@ -57,7 +57,7 @@ S.push({ n: [5], layout: 'opener', section: 0, sectionNo: 1,
     ],
     vo: 'Meet Meera, a Talent Partner. Her manager has told her to just ask the AI, because it knows everything. What would you want to understand first? Choose an option.',
   },
-  storyline: 'Section opener on the dark "Section" layout. Base layer: section number, title, three questions (Fade in on cues). Then show layer "Meera" automatically when the base timeline ends. Meera layer: character + speech panel + 3 choice buttons. Each button shows its own reply layer and changes variable MeeraDone = True. Next is disabled until MeeraDone = True.' });
+  storyline: 'Section opener on the template\'s dark CHAPTER TITLE layout (title in Pro Green). Base layer: section number, title, three questions (Fade in on cues). Then show layer "Meera" automatically when the base timeline ends. Meera layer: character + speech panel + 3 choice buttons. Each button shows its own reply layer and changes variable MeeraDone = True. Next is disabled until MeeraDone = True.' });
 
 S.push({ n: [6], layout: 'defineCards', section: 0,
   definition: 'AI is technology that enables systems to perform tasks that typically require some form of human intelligence.',
@@ -67,12 +67,12 @@ S.push({ n: [6], layout: 'defineCards', section: 0,
 S.push({ n: [7], layout: 'umbrella', section: 0,
   statement: 'AI is not one single tool.', sub: 'Different systems can be designed for different capabilities.',
   tiles: 6,
-  storyline: 'Six plain system tiles (no product names) Fly In from the bottom and join one "AI" umbrella shape. Use Fly In entrances with a 0.2s stagger.' });
+  storyline: 'Six plain system tiles (no product names) Fade in under one "AI" umbrella shape, 0.2s apart (brand rule: no fly-ins).' });
 
 S.push({ n: [8], layout: 'radial', section: 0,
   definition: 'Generative AI creates new content from instructions and context.',
   types: ['TEXT', 'IMAGES', 'AUDIO', 'VIDEO', 'CODE'],
-  storyline: 'Definition stays on screen throughout. Five output chips Fly In from the centre, 0.25s apart.' });
+  storyline: 'Definition stays on screen throughout. Five output chips Fade in around the centre, 0.25s apart (brand rule: no fly-ins).' });
 
 S.push({ n: [9], layout: 'flow', section: 0,
   text: 'A large language model (LLM) learns patterns from large amounts of data and uses those patterns to generate language.',
@@ -269,7 +269,7 @@ const PROMPT_PARTS = ['CONTEXT', 'TASK', 'AUDIENCE', 'OUTPUT', 'CONSTRAINTS'];
     : 'Duplicate of slide 46 with the next builder slot filled.' }));
 
 S.push({ n: [51], layout: 'assemble', section: 5, parts: PROMPT_PARTS, sub: 'A clearer instruction gives AI a clearer target. Review the result, then refine.',
-  storyline: 'The five builder slots fly up (motion paths) and lock together into one prompt bar. Then the subline Fades in, with a small circular "refine" arrow after "Review the result, then refine."' });
+  storyline: 'The five builder slots move up on short, slow motion paths and join into one prompt bar. Then the subline Fades in, with a small circular "refine" arrow after "Review the result, then refine."' });
 
 S.push({ n: [52], layout: 'compare', section: 5,
   vague: 'Write an email.',
@@ -389,6 +389,7 @@ S.push({ n: [81], layout: 'levels', section: null,
 
 // Still open after the course owner's decisions. `who` says who has to answer.
 const FLAGS = [
+  { slides: [10, 11, 15, 16, 23, 24, 30, 32, 33, 40, 41, 46, 47, 48, 49, 50, 51, 52, 56, 57, 58, 60], who: 'Team lead', text: 'The brand template says to avoid ALL CAPITALS, but the storyboard writes labels such as PROMPT, CONTEXT, CHECK and CONFIDENTIAL in capitals.', fix: 'Approve sentence case (Prompt, Context, Check, Confidential). It is a styling change only, with no change to wording.' },
   { slides: [60], who: 'Team lead', text: 'The slide 60 voiceover has been replaced with a learner-facing version built from the original script (the reviewed text was written to the course builder).', fix: 'Team lead to confirm the new wording before audio is recorded.' },
   { slides: [55], who: 'Team lead', text: 'Added the one-line Atlas description the review asked for.', fix: 'Team lead to confirm the wording.' },
   { slides: ['79a'], who: 'You', text: 'With 2 attempts, learners who fail twice need a next step. The prototype shows a drafted message pointing them to the L&D team.', fix: 'Confirm the message and who learners should contact.' },

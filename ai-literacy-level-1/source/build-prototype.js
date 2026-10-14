@@ -26,8 +26,8 @@ ${css}
     <div><div class="stage-wrap"><div class="stage" id="stage"></div></div>
       <div class="ccbar"><div class="cc" id="cc" hidden></div></div>
       <div class="legend" style="margin-top:10px">
-        <span><i style="background:#4278bc"></i>AI: Process blue, dashed outline, mono type</span>
-        <span><i style="background:#00b6bd"></i>People: Talent teal, solid</span>
+        <span><i style="background:#497edc"></i>AI: Process blue, dashed outline, mono type</span>
+        <span><i style="background:#00bbc2"></i>People: Talent teal, solid</span>
         <span><i style="background:#e07a1f"></i>⚑ Pending sign-off (Legal, HR, Privacy, policy)</span>
         <span><i style="background:#7a3cc8"></i>NEW: still to confirm</span>
         <span>Fonts: Aptos family (shown in Aptos if installed on your computer)</span>

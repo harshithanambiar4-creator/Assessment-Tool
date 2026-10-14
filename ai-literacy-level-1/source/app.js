@@ -8,28 +8,28 @@
 
   // ---------- icons (same shapes ship in the asset pack) ----------
   const I = {
-    warn: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linejoin="round"><path d="M24 6 44 41H4Z"/><path d="M24 19v11M24 35v1" stroke-linecap="round"/></svg>',
-    balance: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v36M12 42h24M8 14h32"/><path d="M8 14 3 28h10ZM40 14l-5 14h10Z"/></svg>',
-    agent: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="32" height="24" rx="6"/><path d="M24 6v8M18 26h.01M30 26h.01M4 24v6M44 24v6"/></svg>',
-    idea: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 30a12 12 0 1 1 14 0v6H17Z"/><path d="M19 42h10"/></svg>',
-    draft: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M16 22h16M16 29h16M16 36h9"/></svg>',
-    doc: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M30 6v8h8M16 24h16M16 31h12"/></svg>',
-    search: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3" stroke-linecap="round"><circle cx="21" cy="21" r="12"/><path d="m30 30 12 12"/></svg>',
+    warn: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linejoin="round"><path d="M24 6 44 41H4Z"/><path d="M24 19v11M24 35v1" stroke-linecap="round"/></svg>',
+    balance: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v36M12 42h24M8 14h32"/><path d="M8 14 3 28h10ZM40 14l-5 14h10Z"/></svg>',
+    agent: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="32" height="24" rx="6"/><path d="M24 6v8M18 26h.01M30 26h.01M4 24v6M44 24v6"/></svg>',
+    idea: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 30a12 12 0 1 1 14 0v6H17Z"/><path d="M19 42h10"/></svg>',
+    draft: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M16 22h16M16 29h16M16 36h9"/></svg>',
+    doc: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h20l8 8v28H10Z"/><path d="M30 6v8h8M16 24h16M16 31h12"/></svg>',
+    search: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3" stroke-linecap="round"><circle cx="21" cy="21" r="12"/><path d="m30 30 12 12"/></svg>',
     lock: c => `<svg viewBox="0 0 48 48" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 18 0v6M24 30v4"/></svg>`,
     open: '<svg viewBox="0 0 48 48" fill="none" stroke="#4f7a1c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="21" width="30" height="21" rx="4"/><path d="M15 21v-6a9 9 0 0 1 17-4"/><path d="m18 31 4 4 8-8"/></svg>',
-    play: '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7Z" fill="#192952"/></svg>',
-    sys: '<svg viewBox="0 0 48 48" fill="none" stroke="#4278bc" stroke-width="3"><rect x="8" y="8" width="32" height="32" rx="8"/><circle cx="24" cy="24" r="6"/></svg>',
+    play: '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7Z" fill="#021f62"/></svg>',
+    sys: '<svg viewBox="0 0 48 48" fill="none" stroke="#497edc" stroke-width="3"><rect x="8" y="8" width="32" height="32" rx="8"/><circle cx="24" cy="24" r="6"/></svg>',
   };
   const MEERA = `<svg viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Meera">
-    <circle cx="80" cy="80" r="78" fill="#d9f4f5"/>
-    <path d="M30 150c4-30 24-46 50-46s46 16 50 46Z" fill="#00b6bd"/>
+    <circle cx="80" cy="80" r="78" fill="#d9f5f6"/>
+    <path d="M30 150c4-30 24-46 50-46s46 16 50 46Z" fill="#00bbc2"/>
     <path d="M66 100h28v14c-4 6-24 6-28 0Z" fill="#9c6b4a"/>
     <circle cx="80" cy="70" r="30" fill="#b07a55"/>
     <path d="M48 70c0-24 14-38 33-38s31 14 31 34c-10-2-22-10-28-20-6 12-20 22-36 24Z" fill="#1e1a22"/>
     <circle cx="104" cy="42" r="12" fill="#1e1a22"/>
     <circle cx="70" cy="74" r="2.6" fill="#1e1a22"/><circle cx="91" cy="74" r="2.6" fill="#1e1a22"/>
     <path d="M72 86c5 4 11 4 16 0" stroke="#5a3826" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <circle cx="80.5" cy="60" r="2" fill="#c63b6a"/>
+    <circle cx="80.5" cy="60" r="2" fill="#fb4671"/>
   </svg>`;
 
   // ---------- parsing helpers for signed-off text ----------
@@ -81,13 +81,13 @@
   const L = {};
   L.title = s => ({ dark: true, chrome: false, html: `
     <svg class="title-art" viewBox="0 0 560 560" aria-hidden="true">
-      <circle cx="300" cy="280" r="220" fill="none" stroke="#4278bc" stroke-width="2" stroke-dasharray="6 10"/>
-      <circle cx="300" cy="280" r="150" fill="none" stroke="#4278bc" stroke-width="2" stroke-dasharray="6 10"/>
-      <circle cx="300" cy="280" r="80" fill="#00b6bd"/>
-      <circle cx="520" cy="280" r="10" fill="#8fb0e0"/><circle cx="150" cy="170" r="10" fill="#8fb0e0"/><circle cx="300" cy="430" r="10" fill="#8fb0e0"/>
+      <circle cx="300" cy="280" r="220" fill="none" stroke="#497edc" stroke-width="2" stroke-dasharray="6 10"/>
+      <circle cx="300" cy="280" r="150" fill="none" stroke="#497edc" stroke-width="2" stroke-dasharray="6 10"/>
+      <circle cx="300" cy="280" r="80" fill="#00bbc2"/>
+      <circle cx="520" cy="280" r="10" fill="#9db8ee"/><circle cx="150" cy="170" r="10" fill="#9db8ee"/><circle cx="300" cy="430" r="10" fill="#9db8ee"/>
     </svg>
     <div class="content title-slide" style="justify-content:center">
-      <div class="level in">${esc(sb(1).onscreen.split('\n')[0].toUpperCase())}</div>
+      <div class="level in">${esc(sb(1).onscreen.split('\n')[0])}</div>
       <h2 class="big in" ${st(1, .1, .2)}>AI<br><span>LITERACY</span></h2>
       <div class="tag in" ${st(2, .1, .3)}>${esc(sb(1).onscreen.split('\n')[1]).replace('Use It Responsibly.', '<b>Use It Responsibly.</b>')}</div>
     </div>` });
@@ -178,8 +178,8 @@
     const grp = [0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 1, 0];
     const cen = [[110, 90], [250, 240], [360, 100]];
     return { html: `<div class="content">${head(17)}<div class="pattern">
-      <svg viewBox="0 0 440 330" aria-hidden="true">${cen.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="62" fill="#e6eef8" stroke="#4278bc" stroke-width="2" stroke-dasharray="5 6" class="in" style="animation-delay:1.4s"/>`).join('')}
-        ${pts.map(([x, y], k) => { const [cx, cy] = cen[grp[k]]; const tx = cx + ((k * 37) % 50) - 25, ty = cy + ((k * 23) % 50) - 25; return `<circle r="9" fill="#4278bc" cx="${tx}" cy="${ty}"><animate attributeName="cx" from="${x}" to="${tx}" dur="1.2s" begin="0.2s" fill="freeze"/><animate attributeName="cy" from="${y}" to="${ty}" dur="1.2s" begin="0.2s" fill="freeze"/></circle>`; }).join('')}
+      <svg viewBox="0 0 440 330" aria-hidden="true">${cen.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="62" fill="#e8eefb" stroke="#497edc" stroke-width="2" stroke-dasharray="5 6" class="in" style="animation-delay:1.4s"/>`).join('')}
+        ${pts.map(([x, y], k) => { const [cx, cy] = cen[grp[k]]; const tx = cx + ((k * 37) % 50) - 25, ty = cy + ((k * 23) % 50) - 25; return `<circle r="9" fill="#497edc" cx="${tx}" cy="${ty}"><animate attributeName="cx" from="${x}" to="${tx}" dur="1.2s" begin="0.2s" fill="freeze"/><animate attributeName="cy" from="${y}" to="${ty}" dur="1.2s" begin="0.2s" fill="freeze"/></circle>`; }).join('')}
       </svg>
       <div class="card ai in" ${st(0, 1.6)}><span class="term" style="font-size:20px">${esc(s.card[0])}</span><p style="font-size:26px">${esc(s.card[1])}</p></div></div></div>` };
   };
@@ -266,10 +266,10 @@
 
   L.gate = s => ({ html: `<div class="content">${head(34)}<div class="row" style="align-items:center;gap:50px">
     <svg viewBox="0 0 420 260" width="420" height="260" aria-hidden="true">
-      <path d="M10 70h250" stroke="#4278bc" stroke-width="4" stroke-dasharray="10 8"/><text x="10" y="50" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#4278bc">AI</text>
-      <rect x="262" y="40" width="16" height="60" rx="3" fill="#c63b6a"/>
-      <path d="M10 190h400" stroke="#00b6bd" stroke-width="6"/><text x="10" y="172" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#00777c">HUMAN</text>
-      <path d="M396 178l14 12-14 12" fill="none" stroke="#00b6bd" stroke-width="6"/>
+      <path d="M10 70h250" stroke="#497edc" stroke-width="4" stroke-dasharray="10 8"/><text x="10" y="50" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#497edc">AI</text>
+      <rect x="262" y="40" width="16" height="60" rx="3" fill="#fb4671"/>
+      <path d="M10 190h400" stroke="#00bbc2" stroke-width="6"/><text x="10" y="172" font-family="IBM Plex Mono" font-weight="700" font-size="16" fill="#00777c">HUMAN</text>
+      <path d="M396 178l14 12-14 12" fill="none" stroke="#00bbc2" stroke-width="6"/>
     </svg>
     <div><p class="lead in" style="font-size:30px;font-weight:600">${esc(s.text)}</p><p class="lead in" ${st(0, 1)} style="margin-top:16px">${esc(s.sub)}</p></div></div>
     <div class="band in" ${st(0, 2.2)}><span class="a">${esc(s.closing[0])}</span> <span class="h2">${esc(s.closing[1])}</span></div></div>` });
@@ -281,15 +281,15 @@
       <div class="instr">${esc(s.instruction)}</div></div>` };
   };
 
-  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats" style="grid-template-columns:repeat(${s.items.length > 5 ? 4 : s.items.length},1fr)">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00b6bd')}${t}</div>`).join('')}</div></div>` });
+  L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats" style="grid-template-columns:repeat(${s.items.length > 5 ? 4 : s.items.length},1fr)">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00bbc2')}${t}</div>`).join('')}</div></div>` });
 
   L.threeGate = s => ({ html: `<div class="content">${head(41)}<div class="gate3">${s.parts.map((p, k) => `${k ? '<div class="plus">+</div>' : ''}<div class="gpart" ${st(k, .4, .8)}>${I.open}${esc(p)}</div>`).join('')}</div></div>` });
 
-  L.stages = s => ({ html: `<div class="content">${head(42)}<div class="stages">${s.stages.map((t, k) => `${k ? `<div class="ln" style="animation-delay:${(k * .8).toFixed(1)}s"></div>` : ''}<div class="stg" ${st(k, .3, .8)}><div class="lock">${I.lock('#00b6bd')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>
+  L.stages = s => ({ html: `<div class="content">${head(42)}<div class="stages">${s.stages.map((t, k) => `${k ? `<div class="ln" style="animation-delay:${(k * .8).toFixed(1)}s"></div>` : ''}<div class="stg" ${st(k, .3, .8)}><div class="lock">${I.lock('#00bbc2')}</div><div class="t">${esc(t)}</div></div>`).join('')}</div>
     <p class="lead in" ${st(0, 2.6)} style="margin-top:44px;text-align:center;max-width:none;font-weight:600">${esc(s.sub)}</p></div>` });
 
   L.recover = s => ({ html: `<div class="content">${head(s.n[0])}<div class="steps" style="grid-template-columns:1fr 60px 1fr 60px 1fr">
-    ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><div class="lock sm">${I.lock('#00b6bd')}</div><span class="term">${esc(t)}</span><p>${esc(d).replace('[approved contact]', '<span class="ph">[approved contact]</span>')}</p></div>`).join('')}</div></div>` });
+    ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><div class="lock sm">${I.lock('#00bbc2')}</div><span class="term">${esc(t)}</span><p>${esc(d).replace('[approved contact]', '<span class="ph">[approved contact]</span>')}</p></div>`).join('')}</div></div>` });
 
   L.dragPrompt = (s, idx) => {
     const g = state.gate[idx] || { pick: {}, active: null, tries: 0, result: null };
@@ -343,7 +343,7 @@
 
   L.agentModel = s => ({ html: `<div class="content">${head(56)}<p class="lead in">${esc(s.text)}</p>
     <div class="agent"><div class="inputs">${s.inputs.map((t, k) => `<div class="inp" ${st(k, .5, .5)}>${esc(t)}</div>`).join('')}</div>
-      <div class="funnel"><svg viewBox="0 0 120 260" aria-hidden="true"><path d="M0 40 C60 40 60 130 110 130 M0 130 H110 M0 220 C60 220 60 130 110 130" fill="none" stroke="#4278bc" stroke-width="3" class="in" style="animation-delay:1.8s"/><path d="M104 122l12 8-12 8" fill="#4278bc"/></svg></div>
+      <div class="funnel"><svg viewBox="0 0 120 260" aria-hidden="true"><path d="M0 40 C60 40 60 130 110 130 M0 130 H110 M0 220 C60 220 60 130 110 130" fill="none" stroke="#497edc" stroke-width="3" class="in" style="animation-delay:1.8s"/><path d="M104 122l12 8-12 8" fill="#497edc"/></svg></div>
       <div class="task in" ${st(0, 2.1)}>A defined task</div></div></div>` });
 
   L.lanes = s => ({ html: `<div class="content">${head(57)}<div class="lanes">
@@ -471,7 +471,7 @@
     state.shown = state.i;
     const canNext = state.review || out.gate === undefined || out.gate;
     stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s)}${s.pending ? '<span class="pending-tag">⚑ PENDING SIGN-OFF</span>' : ''}${out.html}
-      <div class="footer"><span class="brand">AI Literacy · Level 1</span><span>${state.i + 1} / ${SCREENS.length}</span><span class="sp"></span>
+      <div class="logo-ph" aria-hidden="true">Logo</div><div class="brandline"></div><div class="footer"><span class="brand">AI Literacy · Level 1</span><span class="conf">Proprietary • Confidential</span><span>${state.i + 1} / ${SCREENS.length}</span><span class="sp"></span>
         <button class="iconbtn" data-act="cc" aria-pressed="${state.cc}" title="Closed captions">CC</button>
         <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
         <button class="navbtn next" data-act="next" ${!canNext || state.i === SCREENS.length - 1 ? 'disabled' : ''}>Next</button></div>`;
