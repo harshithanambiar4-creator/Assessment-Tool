@@ -101,7 +101,7 @@ def notes(s, *parts):
 SEC_LABELS = [x['label'] for x in data['sections']]
 def progress(s, sec):
     if sec is None: return
-    x0, y0, gap = 75, 16, 100
+    x0, y0, gap = 75, 26, 100
     line(s, x0 + 6, y0 + 6, x0 + 6 + gap * 7, y0 + 6, 'line', 1.5, 'Progress line')
     if sec > 0: line(s, x0 + 6, y0 + 6, x0 + 6 + gap * sec, y0 + 6, 'teal', 1.5, 'Progress line done')
     for k in range(8):
@@ -110,33 +110,37 @@ def progress(s, sec):
             box(s, x0 + k * gap - 5, y0 - 5, 22, 22, 'tealsoft', shape=MSO_SHAPE.OVAL, name='Current dot halo')
             box(s, x0 + k * gap, y0, 12, 12, 'white', 'teal', shape=MSO_SHAPE.OVAL, lw=1.5, name=f'Dot {k+1}')
         else: box(s, x0 + k * gap, y0, 12, 12, 'line', shape=MSO_SHAPE.OVAL, name=f'Dot {k+1}')
-    text(s, x0 + sec * gap - 74, y0 + 15, 160, 14, SEC_LABELS[sec], name='Progress label', size=8, color='grey', align='c')
+    text(s, x0 + sec * gap - 74, y0 + 15, 160, 14, SEC_LABELS[sec], name='Progress label', size=10, color='grey', align='c')
 
 def badge(s, sc):
     c = sc['cue']
     if not c: return
-    sq = box(s, 1169, 96, 36, 36, 'navy', radius=0.15, name='AWARE badge letter')
+    sq = box(s, 1169, 100, 36, 36, 'navy', radius=0.15, name='AWARE badge letter')
     write(sq, c['L'], size=20, bold=True, color='teal', font=HEAD, align='c', anchor='m')
-    text(s, 860, 104, 300, 20, c['w'], name='AWARE badge word', size=11, color='grey', align='r')
+    text(s, 860, 108, 300, 20, c['w'], name='AWARE badge word', size=11, color='grey', align='r')
 
-def title_light(s, t, eyebrow=None):
+TITLE_Y, SHIFT = 96, 35                           # title sits well below the progress bar; content moves down to match
+CHROME = ('Title', 'Progress', 'Dot ', 'Current dot', 'AWARE badge')
+
+def title_light(s, t):
     ph = s.placeholders[10]; ph.text_frame.text = ''
-    ph.left, ph.top, ph.width, ph.height = px(74), px(70), px(900), px(44)
+    ph.left, ph.top, ph.width, ph.height = px(74), px(TITLE_Y), px(900), px(44)
     write(ph, t, size=30 if len(t) <= 40 else 26, bold=True, color='navy', font=HEAD)
     ph.name = 'Title'
-    if eyebrow: text(s, 75, 50, 700, 16, eyebrow, name='Section label', size=11, bold=True, color='tealink')
 
 def title_dark(s, t, y=60, size=40):
     text(s, 75, y, 1000, 60, t, name='Title', size=size, bold=True, color='green', font=HEAD)
+
+LIGHT_BASE = []                                   # light base slides whose content shifts down below the title
 
 def solid_bg(s, dark):
     # The template's light background is white at 0% opacity; Storyline renders that as black, so set it explicitly.
     s.background.fill.solid(); s.background.fill.fore_color.rgb = C['navy' if dark else 'snow']
 
-def new(sc, dark=False, eyebrow=None):
+def new(sc, dark=False):
     s = prs.slides.add_slide(L_DARK if dark else L_LIGHT)
     solid_bg(s, dark)
-    if not dark: title_light(s, sc['title'], eyebrow or sc.get('section_name'))
+    if not dark: title_light(s, sc['title']); LIGHT_BASE.append(s)
     progress(s, sc['section'] if sc['layout'] not in ('opener', 'assessIntro') else None)
     if not dark: badge(s, sc)
     return s
@@ -213,7 +217,6 @@ def aware_tiles(s, letters, y=210):
 
 def L_aware(sc):
     s = new(sc, dark=True)
-    text(s, 75, 60, 600, 24, 'Your mental model', name='Label', size=14, color='green')
     title_dark(s, sc['title'], y=88)
     aware_tiles(s, sc['letters'])
     notes(s, *std_notes(sc, 'Each tile fades in when the narrator says its word.'))
@@ -546,7 +549,7 @@ def L_recover(sc):
     notes(s, *std_notes(sc, '⚑ Pending: the real contact and process. Hold the voice.'))
 
 def L_promptPart(sc):
-    s = new(sc, eyebrow=f"Prompt element {sc['part']+1} of 5")
+    s = new(sc)
     t, d = [x.strip() for x in sc['onscreen'].split('\n')][:2]
     c = box(s, 230, 160, 820, 200, 'white', 'line', name='Element card')
     write(c, [[(t, dict(size=24, bold=True, color='blue', font=MONO))], [(d, dict(size=28, bold=True, color='navy', font=HEAD))]], align='c', anchor='m', spacing=8)
@@ -674,7 +677,6 @@ def L_tryIt(sc):
 
 def L_assessIntro(sc):
     s = new(sc, dark=True)
-    text(s, 75, 150, 600, 24, 'Comprehensive Assessment', name='Label', size=14, color='green')
     title_dark(s, 'Show What You Know.', y=180, size=60)
     text(s, 75, 290, 1000, 40, sc['lines'][1], name='Sub', size=22, color='white')
     x = 75
@@ -742,5 +744,10 @@ for sc in SCREENS:
     globals()['L_' + sc['layout']](sc)
 
 prs.core_properties.title = 'AI Literacy Level 1 – Storyline import'
+for sl in LIGHT_BASE:
+    for sh in sl.shapes:
+        if not sh.name.startswith(CHROME): sh.top = sh.top + px(SHIFT)
+for sh in L_LIGHT.shapes:                         # template logo: centre it on the progress bar line
+    if sh.shape_type == 13: sh.top = px(32 - sh.height / 9525 / 2)
 prs.save(OUT)
 print('slides', len(prs.slides))
