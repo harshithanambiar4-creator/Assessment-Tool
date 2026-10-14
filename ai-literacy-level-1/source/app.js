@@ -92,7 +92,11 @@
       return out;
     }).join(' ');
   };
-  const head = (n, eyebrow) => `<div class="eyebrow">${esc(eyebrow || sb(n).section)}</div><h2 class="h in">${esc(tc(sb(n).title))}</h2>`;
+  // Headings only: the small labels above titles were removed (course owner decision).
+  const titleOf = s => s.title || tc(sb(s.n[0]).title);
+  const head = n => `<h2 class="h in">${esc(tc(sb(n).title))}</h2>`;
+  const counter = (done, total, word) => `<span class="counter" aria-live="polite">${done} of ${total} ${word}</span>`;
+  const teal = svg => svg.replace(/#497edc/g, '#00bbc2');
   // entrance delay (stand-in for Storyline cue points); applied after render so it never clashes with inline styles
   const st = (i, base = 0.15, step = 0.35) => `data-d="${(base + i * step).toFixed(2)}"`;
 
@@ -113,18 +117,20 @@
 
   L.outcomes = s => ({ html: `<div class="content">${head(2, 'Before we begin')}
     <p class="lead in" style="margin-bottom:18px">${esc(s.intro)}</p>
-    <div>${s.items.map((t, k) => `<div class="outcome in" ${st(k, .5, .6)}><span class="num">${k + 1}</span><span>${esc(t)}</span></div>`).join('')}</div></div>` });
+    <div>${s.items.map((t, k) => `<div class="outcome in" ${st(k, .5, .6)}><span class="num">${k + 1}</span><span>${esc(t)}</span></div>`).join('')}</div>
+    ${s.courseInfo ? `<p class="course-info in" ${st(0, 3)}>${esc(s.courseInfo)}</p>` : ''}</div>` });
 
   L.journey = s => ({ html: `<div class="content">${head(3, 'Your route')}
     <div class="jpath">${s.steps.map((t, k) => `<div class="jstop in" ${st(k, .3, .25)}><div class="n">${k + 1}</div><div class="t">${esc(t)}</div></div>`).join('')}</div></div>` });
 
-  L.aware = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">Your mental model</div><h2 class="h in" style="color:#fff">${esc(tc(sb(4).title))}</h2>
+  L.aware = s => ({ dark: true, html: `<div class="content"><h2 class="h in" style="color:#fff">${esc(tc(sb(4).title))}</h2>
     <div class="aware">${s.letters.map(([l, w], k) => `<div class="aw" ${st(k, .4, .5)}><div class="L">${l}</div><div class="w" style="color:#e6ebf3">${esc(w)}</div></div>`).join('')}</div></div>` });
 
   L.opener = (s, idx) => {
     const n = s.n[0];
     const done = state.meera[idx] != null;
     return { dark: true, gate: done, html: `<div class="content opener">
+      ${s.icon ? `<div class="op-icon in" ${st(0, .6)} aria-hidden="true">${teal(typeof I[s.icon] === 'function' ? I[s.icon]('#00bbc2') : I[s.icon])}</div>` : ''}
       <div class="secno in">${String(s.sectionNo).padStart(2, '0')}</div>
       <h2 class="h in" ${st(1, .1, .2)}>${esc(tc(sb(n).title))}</h2>
       <ul>${s.lines.map((t, k) => `<li class="in" ${st(k, .5, .4)}>${esc(t)}</li>`).join('')}</ul>
@@ -146,7 +152,8 @@
 
   L.defineCards = s => ({ html: `<div class="content">${head(6)}
     <div class="define">${s.caps.map((c, k) => `<div class="capc in" ${st(k, .8, .5)}>${esc(c)}</div>`).join('')}
-      <div class="core in"><span class="term">AI</span>${esc(s.definition)}</div></div></div>` });
+      <div class="core in"><span class="term">AI</span>${esc(s.definition)}</div></div>
+    ${s.colourKey ? `<div class="colour-key in" ${st(0, 2.6)}><span>${esc(s.colourKey[0])}</span><span class="sw ai"></span>${esc(s.colourKey[1])}<span class="sw human"></span>${esc(s.colourKey[2])}</div>` : ''}</div>` });
 
   L.umbrella = s => ({ html: `<div class="content">${head(7)}
     <div class="umb-top" style="animation-delay:1.6s">AI</div>
@@ -177,7 +184,7 @@
         return `<button class="rcard in ${o ? 'open' : ''}" ${st(k, .3, .2)} data-act="rev" data-k="${k}" aria-expanded="${o}">
           ${s.icons ? I[s.icons[k]] : ''}<span class="term">${esc(t)}</span>${o ? `<span class="def">${esc(d)}</span>` : '<span class="hint">Select to reveal</span>'}</button>`;
       }).join('')}</div>
-      <div class="instr">${esc(s.instruction)}</div></div>` };
+      <div class="instr">${esc(s.instruction)}${s.counter ? counter(open.length, s.cards.length, s.counter) : ''}</div></div>` };
   };
 
   L.beforeAfter = s => ({ html: `<div class="content">${head(15)}<div class="ba">
@@ -225,7 +232,7 @@
     const k = state.kc[idx] || { tries: 0 };
     const res = k.result, last = res === 'bad' && k.tries >= 2;
     return { gate: !!state.kcDone[idx], html: `<div class="content"><div class="kc">
-      <div><div class="kc-tag">Knowledge check · not scored</div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Select one answer.</p></div>
+      <div><div class="kc-tag">Knowledge check · not scored</div>${s.meeraAsk ? `<div class="ask in"><span class="ask-fig">${MEERA}</span><p class="bubble"><b>${CHARACTER.name}:</b> ${esc(s.meeraAsk)}</p></div>` : ''}<p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Select one answer.</p></div>
       ${optsHTML(q, k.sel, !!res)}</div></div>
       ${res ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Not Quite'}</p><p>${esc(res === 'ok' ? fb.c : fb.w)}</p>
         ${last ? `<p class="answer">The answer is <b>${'ABCD'[key]}: ${esc(q.opts[key])}</b></p>` : ''}
@@ -253,6 +260,18 @@
 
   L.pair = s => ({ html: `<div class="content">${head(s.n[0])}<div class="twocol">${s.cards.map(([t, d], k) =>
     `<div class="card ai in" ${st(k, .4, 1)}>${I[s.icons[k]].replace('<svg', '<svg width="48" height="48"')}<span class="term" style="margin-top:14px;font-size:20px">${esc(t)}</span><p style="font-size:26px">${esc(d)}</p></div>`).join('')}</div></div>` });
+
+  // Tab explorer: several signed-off slides shown as tabs on one screen; each tab reuses its slide's own layout.
+  L.explorer = (s, idx) => {
+    const g = state.gate[idx] || { seen: [], cur: null };
+    state.gate[idx] = g;
+    const sub = g.cur == null ? null : s.tabs[g.cur].screen;
+    const pane = sub ? L[sub.layout](sub, idx).html.replace(/^\s*<div class="content">\s*<h2 class="h in">[\s\S]*?<\/h2>/, '<div class="xp-pane">') : '<div class="xp-pane xp-empty">Select a tab to begin.</div>';
+    return { gate: g.seen.length === s.tabs.length, html: `<div class="content"><h2 class="h in">${esc(s.title)}</h2>
+      <div class="xp-tabs" role="tablist">${s.tabs.map((t, k) => `<button class="xp-tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" role="tab" aria-selected="${g.cur === k}" data-act="xtab" data-k="${k}">${esc(t.label)}</button>`).join('')}
+        <span class="instr" style="margin:0 0 0 8px">${esc(s.instruction)}${counter(g.seen.length, s.tabs.length, 'viewed')}</span></div>
+      ${pane}</div>` };
+  };
 
   L.steps = s => ({ html: `<div class="content">${head(30)}<div class="steps" style="grid-template-columns:1fr 60px 1fr 60px 1fr;margin-top:0">
     ${s.steps.map(([t, d], k) => `${k ? `<div class="conn in" ${st(k, .2, .8)}>→</div>` : ''}<div class="step" ${st(k, .4, .8)}><span class="no">STEP ${k + 1}</span><span class="term">${esc(t)}</span><p>${esc(d)}</p></div>`).join('')}</div>
@@ -297,7 +316,7 @@
     const on = state.gate[idx] || [];
     return { gate: on.length === s.items.length, html: `<div class="content">${head(39)}<div class="check-list">${s.items.map((t, k) =>
       `<button class="chk in ${on.includes(k) ? 'on' : ''}" ${st(k, .3, .3)} data-act="rev" data-k="${k}" aria-pressed="${on.includes(k)}"><span class="box">✓</span><span><span class="n">0${k + 1}</span>${esc(t)}</span></button>`).join('')}</div>
-      <div class="instr">${esc(s.instruction)}</div></div>` };
+      <div class="instr">${esc(s.instruction)}${s.counter ? counter(on.length, s.items.length, s.counter) : ''}</div></div>` };
   };
 
   L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats" style="grid-template-columns:repeat(${s.items.length > 5 ? 4 : s.items.length},1fr)">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00bbc2')}${t}</div>`).join('')}</div></div>` });
@@ -369,9 +388,15 @@
     <div class="lanerow"><span class="who">CHATBOT</span><div class="seq"><span class="pill">You ask</span>→<span class="pill solid" style="animation-delay:.6s">AI responds</span></div><span class="cap">${esc(s.chatbot)}</span></div>
     <div class="lanerow"><span class="who">AGENT</span><div class="seq"><span class="pill" style="animation-delay:1.2s">You define a task</span>→${['Step 1', 'Step 2', 'Step 3'].map((p, k) => `<span class="pill solid" style="animation-delay:${1.6 + k * .4}s">${p}</span>`).join('→')}</div><span class="cap">${esc(s.agent)}</span></div></div></div>` });
 
-  L.atlasVideo = s => ({ html: `<div class="content">${head(58)}
-    <div class="proc">${s.process.map(p => `<span>${p}</span>`).join('<b>→</b>')}</div>
-    <div class="video"><div><div class="play">${I.play}</div>Your Atlas screen recording goes here<small>${esc(s.note)}</small><small>Callouts point to real Atlas labels only.</small></div></div></div>` });
+  L.atlasVideo = (s, idx) => {
+    const g = state.gate[idx] || { seen: [], cur: null };
+    state.gate[idx] = g;
+    return { gate: g.seen.length === s.process.length, html: `<div class="content">${head(58)}
+    <div class="proc">${s.process.map((p, k) => `<button class="clip ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="clip" data-k="${k}">${p}</button>`).join('<b>→</b>')}
+</div>
+    <div class="instr clip-instr">${esc(s.clipInstruction)}${counter(g.seen.length, s.process.length, s.counter)}</div>
+    <div class="video"><div><div class="play">${I.play}</div>${g.cur == null ? 'Your four Atlas clips go here' : `Clip ${g.cur + 1}: ${tc(s.process[g.cur].toLowerCase())} (under 90 seconds)`}<small>${esc(s.note)}</small><small>Callouts point to real Atlas labels only.</small></div></div></div>` };
+  };
 
   L.atlasSteps = s => ({ html: `<div class="content">${head(59)}<div class="stepcards">${s.steps.map((t, k) =>
     `<div class="step" ${st(k, .3, .5)}><span class="no">STEP ${k + 1}</span><p style="font:700 26px/1.2 var(--f-display)">${esc(t)}</p><span class="vid">▶ Screen recording ${k + 1}</span></div>`).join('')}</div></div>` });
@@ -388,12 +413,12 @@
     ];
     return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on or guided practice')}
       <div class="tryit"><div class="tabs">${s.tabs.map(([t, d], k) => `<button class="tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="tab" data-k="${k}"><span class="term">${t}</span><span>${esc(d)}</span></button>`).join('')}
-        <p style="font-size:14px;color:#5a5c61;margin:6px 2px">Open all four tabs, then try it in Atlas.</p></div>
+        <p class="instr" style="margin:6px 2px">Open all four tabs, then try it in Atlas.${counter(g.seen.length, 4, 'viewed')}</p></div>
       <div class="tpane">${g.cur == null ? '<h3>Select a Tab to Begin</h3><p>Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to review the output.</p>' : panes[g.cur]}</div></div></div>` };
   };
 
   L.assessIntro = s => ({ dark: true, html: `<div class="content opener" style="justify-content:center">
-    <div class="eyebrow">${esc(sb(63).title)}</div><h2 class="h in" style="font-size:72px">${esc(tc(s.lines[0]))}</h2>
+    <h2 class="h in" style="font-size:72px">${esc(tc(s.lines[0]))}</h2>
     <p class="lead in" ${st(0, .6)}>${esc(s.lines[1])}</p>
     <div class="chips in" ${st(0, 1.2)}>${s.info.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>` });
 
@@ -415,12 +440,21 @@
         ${state.attempt < MAX_ATTEMPTS ? `<button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment (attempt ${state.attempt + 1} of ${MAX_ATTEMPTS})</button>` : `<p class="outof">${esc(s.outOfAttempts)}</p>`}`}</div></div>`}</div>` };
   };
 
-  L.awareClose = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">${esc(sb(80).title)}</div>
+  L.awareClose = (s, idx) => {
+    const m = s.meeraClose, done = !!state.meera[idx];
+    return { dark: true, gate: !m || done, html: `<div class="content"><div class="eyebrow">${esc(sb(80).title)}</div>
     <div class="aware" style="margin-top:10px">${s.letters.map(([l, w], k) => `<div class="aw" ${st(k, .3, .45)}><div class="L">${l}</div><div class="w" style="color:#e6ebf3">${esc(w)}</div></div>`).join('')}</div>
-    <p class="statement in" ${st(0, 2.8)} style="font-size:56px;margin-top:44px"><span class="a" style="display:inline">AI can assist.</span> <span class="h2" style="display:inline">Humans remain accountable.</span></p></div>` });
+    <p class="statement in" ${st(0, 2.8)} style="font-size:56px;margin-top:44px"><span class="a" style="display:inline">AI can assist.</span> <span class="h2" style="display:inline">Humans remain accountable.</span></p>
+    ${m ? `<button class="navbtn next meera-cta in" ${st(0, 3.2)} data-act="mlast">${CHARACTER.name}'s last word</button>` : ''}</div>
+    ${m && state.layer === 'meera' ? `<div class="layer"><div class="panel">
+      <div class="meera-fig">${MEERA}<div class="nm">${CHARACTER.name}</div><div class="rl">${CHARACTER.role}</div></div>
+      <div><p class="sit">${esc(m.recall)}</p><p class="quote">${esc(m.line)}</p><button class="navbtn next" style="margin-top:18px" data-act="mlastclose">Continue</button></div></div></div>` : ''}`,
+      after: () => { if (m && !done && state.layer !== 'meera' && !state.autoMeera[idx]) { state.autoMeera[idx] = true; setTimeout(() => { if (state.i === idx) { state.layer = 'meera'; render(); speak(m.vo); } }, 4200); } } };
+  };
 
   L.levels = s => ({ html: `<div class="content">${head(81, 'Close')}<div class="levels">${s.levels.map(([a, b, c], k) =>
-    `<div class="lvl" ${st(k, .3, .45)}><span class="term">${a}</span><span class="nm">${esc(b)}</span><p>${esc(c)}</p>${k === 0 ? '<span class="done-tag">Complete</span>' : ''}</div>`).join('')}</div></div>` });
+    `<div class="lvl" ${st(k, .3, .45)}><span class="term">${a}</span><span class="nm">${esc(b)}</span><p>${esc(c)}</p>${k === 0 ? '<span class="done-tag">Complete</span>' : ''}</div>`).join('')}</div>
+    ${s.commit ? `<div class="commit in" ${st(0, 2.2)}><label for="commit-box"><span class="term">${esc(s.commit.label.toUpperCase())}</span>${esc(s.commit.question)}</label><textarea id="commit-box" rows="2" placeholder="${esc(s.commit.placeholder)}"></textarea></div>` : ''}</div>` });
 
   // ---------- narration + captions ----------
   let ccTimer = null, voices = [];
@@ -449,6 +483,7 @@
   }
   function screenVO(s) {
     if (s.layout === 'results') return '';
+    if (s.layout === 'explorer') return s.introVo;
     return s.voOverride || (s.n.length ? sb(s.n[0]).vo : '');
   }
 
@@ -458,7 +493,7 @@
     const flags = FLAGS.filter(f => f.slides.some(x => ns.includes(x) || (x === 'results' && s.layout === 'results')));
     const original = ns.map(n => `<b>${n}</b> ${esc(sb(n).title)}${/[a-z]$/.test(n) ? ' <i>(new slide from the review)</i>' : ''}`).join('<br>');
     const merged = { 25: 26, 30: 31, 34: 35 }[ns[0]];
-    const vo = s.voOverride || sb(ns[0]).vo;
+    const vo = s.layout === 'explorer' ? [s.introVo].concat(s.tabs.map(t => `[${t.label}] ${sb(t.screen.n[0]).vo}`)).join('\n\n') : s.voOverride || sb(ns[0]).vo;
     const added = [];
     if (s.meera) added.push(`<b>${CHARACTER.name}'s moment</b> (layer). Voiceover: “${esc(s.meera.vo)}”`);
     if (s.instructionAdded) added.push(`Instruction line: “${esc(s.instruction)}”`);
@@ -469,6 +504,15 @@
     if (s.inputLabel) added.push(esc(s.inputLabel));
     if (s.layout === 'tryIt') added.push('Notes, prompt and expected output come from the original Atlas practical example (Karthika renamed Neha). Added one action with no owner: “' + esc(s.noOwnerLine) + '”.');
     if (s.layout === 'kc') added.push('After a second wrong answer the layer shows the correct answer and Continue (the review limits retries to one).');
+    if (s.signedOff) added.push(`${esc(s.signedOff.field)} shortened. Signed-off text: “${s.signedOff.was.map(esc).join(' / ')}”. ${esc(s.signedOff.why)}`);
+    if (s.merged) added.push(`${esc(s.merged)} New title “${esc(s.title)}”, tab labels ${s.tabs.map(t => '“' + esc(t.label) + '”').join(', ')}, opening voiceover “${esc(s.introVo)}”.`);
+    if (s.courseInfo) added.push(`Course information line: “${esc(s.courseInfo)}”`);
+    if (s.colourKey) added.push(`Colour key: “${s.colourKey.map(esc).join(' ')}”`);
+    if (s.counter) added.push(`Progress counter, for example “1 of 2 ${esc(s.counter)}”.`);
+    if (s.meeraAsk) added.push(`${CHARACTER.name} asks the question: “${esc(s.meeraAsk)}”`);
+    if (s.clipInstruction) added.push(`Four short clips instead of one recording. Instruction: “${esc(s.clipInstruction)}”`);
+    if (s.meeraClose) added.push(`<b>${CHARACTER.name}'s last word</b> (layer). “${esc(s.meeraClose.recall)}” / “${esc(s.meeraClose.line)}” Voiceover: “${esc(s.meeraClose.vo)}”`);
+    if (s.commit) added.push(`Optional reflection: “${esc(s.commit.question)}” (placeholder “${esc(s.commit.placeholder)}”)`);
     if (s.outOfAttempts) added.push(`Message after three failed attempts (approved): “${esc(s.outOfAttempts)}”`);
     return `<h2>Screen ${idx + 1} of ${SCREENS.length}</h2><p class="src">Storyboard slide${ns.length > 1 ? 's' : ''}:<br>${original}${merged ? `<br>Includes old slide ${merged} (merged by the review)` : ''}</p>
       ${s.pending ? `<h3>Pending sign-off before build</h3><div class="pend">${esc(s.pending)}</div>` : ''}
@@ -491,7 +535,7 @@
     state.shown = state.i;
     const canNext = state.review || out.gate === undefined || out.gate;
     stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s)}${s.pending ? '<span class="pending-tag">⚑ PENDING SIGN-OFF</span>' : ''}${out.html}
-      <div class="logo-ph" aria-hidden="true">Logo</div><div class="brandline"></div><div class="footer"><span class="brand">AI Literacy · Level 1</span><span class="conf">Proprietary • Confidential</span><span>${state.i + 1} / ${SCREENS.length}</span><span class="sp"></span>
+      <div class="logo-ph" aria-hidden="true">Logo</div><div class="brandline"></div><div class="footer"><span class="brand">AI Literacy · Level 1</span><span class="conf">Proprietary • Confidential</span><span class="sp"></span>
         <button class="iconbtn" data-act="cc" aria-pressed="${state.cc}" title="Closed captions">CC</button>
         <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
         <button class="navbtn next" data-act="next" ${!canNext || state.i === SCREENS.length - 1 ? 'disabled' : ''}>Next</button></div>`;
@@ -518,6 +562,9 @@
     else if (act === 'rev') { const g = state.gate[state.i] || []; if (!g.includes(k)) g.push(k); state.gate[state.i] = g; render(); }
     else if (act === 'hl') { state.gate[state.i] = true; render(); }
     else if (act === 'tab') { const g = state.gate[state.i]; g.cur = k; if (!g.seen.includes(k)) g.seen.push(k); render(); }
+    else if (act === 'xtab' || act === 'clip') { const g = state.gate[state.i]; g.cur = k; if (!g.seen.includes(k)) g.seen.push(k); render(); if (act === 'xtab') speak(sb(s.tabs[k].screen.n[0]).vo); }
+    else if (act === 'mlast') { state.layer = 'meera'; render(); speak(s.meeraClose.vo); }
+    else if (act === 'mlastclose') { state.meera[state.i] = true; state.layer = null; render(); }
     else if (act === 'copy') { const t = s.prompt; navigator.clipboard && navigator.clipboard.writeText(t).then(() => { b.textContent = 'Copied'; }).catch(() => { const r = document.createRange(); r.selectNodeContents($('#prompt-box')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected: press Ctrl+C'; }); }
     else if (act === 'opt') { const store = s.layout === 'quiz' ? state.quiz : state.kc; const a = store[state.i] || { tries: 0 }; a.sel = k; store[state.i] = a; render(); }
     else if (act === 'submit') cur.onSubmit();
@@ -541,7 +588,7 @@
 
   // ---------- toolbar ----------
   const jump = $('#jump');
-  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${s.pending ? '⚑ ' : ''}${i + 1}. ${esc(tc(sb(s.n[0]).title))}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
+  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${s.pending ? '⚑ ' : ''}${i + 1}. ${esc(titleOf(s))}${s.n.length > 1 && s.layout !== 'explorer' ? ' + feedback' : ''}</option>`).join('');
   jump.addEventListener('change', () => go(+jump.value));
   const tog = (id, key, fn) => { const b = $(id); b.setAttribute('aria-pressed', state[key]); b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', state[key]); fn && fn(); render(); }); };
   tog('#t-review', 'review', () => { jump.disabled = !state.review; });

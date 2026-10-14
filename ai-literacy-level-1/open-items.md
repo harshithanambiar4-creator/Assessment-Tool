@@ -12,6 +12,13 @@ Marked ⚑ in the prototype's screen list and with an orange tag on the slide.
 - **Slide 60 voiceover:** replaced with a learner-facing version built from the original script.
 - **Slide 55:** one-line Atlas description added, as the review requested.
 
+## UX round 2: approve before recording audio
+Full before-and-after text is in `AI-Literacy-L1-Design-Changes.docx` (each row has Approve / Change boxes).
+- **Signed-off text shortened** (voiceover unchanged): slides 2 (outcomes), 6 (AI definition), 9 (LLM sentence), 56 (agent sentence).
+- **Slides combined into tab screens:** 15 + 16 + 17 → "What AI Can Do"; 23 + 24 → "How AI Can Help You Work". New titles, tab labels and short opening voiceovers.
+- **New content:** course information line (slide 2), colour key (slide 6), progress counters, Meera's questions on knowledge checks 43 and 53, Atlas clip instruction (slide 58), Meera's last word (slide 80), reflection box (slide 81).
+- **Check after the first test run:** the "About 35 minutes" estimate on slide 2.
+
 ## Team lead to know
 - **Slide 60:** the notes are real (approved for use, names changed), so the INPUT tab now reads "Sample meeting notes" instead of "Fictional sample meeting notes (no real names or data)".
 - Storyboard labels in ALL CAPS (PROMPT, CONTEXT…) conflict with the brand's no-capitals rule; sentence case suggested.

@@ -28,11 +28,14 @@ S.push({ n: [1], layout: 'title', section: null,
 S.push({ n: [2], layout: 'outcomes', section: null,
   intro: 'By the end of this course, you will be able to:',
   items: [
-    'Use AI effectively and understand its limitations',
+    'Use AI effectively, within its limits',
     'Use AI responsibly and protect sensitive information',
-    'Use basic prompting techniques to guide AI outputs',
-    'Describe what an AI agent is and why its work still needs human review',
+    'Use basic prompting to guide AI outputs',
+    'Describe AI agents and why their work needs human review',
   ],
+  signedOff: { field: 'On-screen outcomes', was: ['Use AI effectively and understand its limitations', 'Use AI responsibly and protect sensitive information', 'Use basic prompting techniques to guide AI outputs', 'Describe what an AI agent is and why its work still needs human review'],
+    why: 'The voiceover reads these outcomes almost word for word. Shorter on-screen phrases let the voice carry the detail. The voiceover is unchanged.' },
+  courseInfo: 'About 35 minutes  ·  Complete the screens in order  ·  If you stop, you can pick up where you left off',
   storyline: 'Four outcome rows. Add each row\'s Fade entrance at a cue point that matches the narration.' });
 
 S.push({ n: [3], layout: 'journey', section: null,
@@ -45,7 +48,7 @@ S.push({ n: [4], layout: 'aware', section: null,
   storyline: 'Five letter tiles. Each tile Fades + Grows in on the cue point where the narrator says that word. Later, the letter appears as a small badge (top right) only on the slides the storyboard names as AWARE cues.' });
 
 // ---------- Understanding AI ----------
-S.push({ n: [5], layout: 'opener', section: 0, sectionNo: 1,
+S.push({ n: [5], layout: 'opener', section: 0, sectionNo: 1, icon: 'sys',
   lines: ['What is AI?', 'How does generative AI work at a high level?', 'What language will you hear when people talk about AI?'],
   meera: {
     situation: 'Meera\'s manager says, "Just ask the AI. It knows everything." Meera has used a chatbot twice and isn\'t sure what "the AI" actually is.',
@@ -60,7 +63,10 @@ S.push({ n: [5], layout: 'opener', section: 0, sectionNo: 1,
   storyline: 'Section opener on the template\'s dark CHAPTER TITLE layout (title in Pro Green). Base layer: section number, title, three questions (Fade in on cues). Then show layer "Meera" automatically when the base timeline ends. Meera layer: character + speech panel + 3 choice buttons. Each button shows its own reply layer and changes variable MeeraDone = True. Next is disabled until MeeraDone = True.' });
 
 S.push({ n: [6], layout: 'defineCards', section: 0,
-  definition: 'AI is technology that enables systems to perform tasks that typically require some form of human intelligence.',
+  definition: 'Technology that performs tasks that typically require human intelligence.',
+  signedOff: { field: 'On-screen definition', was: ['AI is technology that enables systems to perform tasks that typically require some form of human intelligence.'],
+    why: 'The voiceover reads the full definition word for word. The card keeps the key phrase. The voiceover is unchanged.' },
+  colourKey: ['Colour key:', 'AI', 'People'],
   caps: ['Recognize patterns', 'Interpret information', 'Generate content', 'Make predictions'],
   storyline: 'Central AI node with the definition dominant. Four capability cards Fade in around it on narration cues.' });
 
@@ -75,26 +81,28 @@ S.push({ n: [8], layout: 'radial', section: 0,
   storyline: 'Definition stays on screen throughout. Five output chips Fade in around the centre, 0.25s apart (brand rule: no fly-ins).' });
 
 S.push({ n: [9], layout: 'flow', section: 0,
-  text: 'A large language model (LLM) learns patterns from large amounts of data and uses those patterns to generate language.',
+  text: 'An LLM learns patterns from data and uses them to generate language.',
+  signedOff: { field: 'On-screen text', was: ['A large language model (LLM) learns patterns from large amounts of data and uses those patterns to generate language.'],
+    why: 'The voiceover reads this sentence word for word, and then explains it. The voiceover still spells out "large language model". The voiceover is unchanged.' },
   nodes: ['Data', 'Language model', 'Response'],
   storyline: 'Three-node flow: data patterns → language model → response. Animate the connecting arrows with Wipe. Do not add a "checked" or "verified" mark anywhere on the response.' });
 
 S.push({ n: [10], layout: 'reveal', section: 0,
   cards: [['PROMPT', 'The instruction you give AI'], ['CONTEXT', 'Information that helps AI interpret the task']],
-  instruction: 'Select each card.', instructionAdded: true,
+  instruction: 'Select each card.', instructionAdded: true, counter: 'viewed',
   storyline: 'Two large cards. Each card has states: Normal (term only) and Selected (term + definition). Trigger: when user clicks card, change state to Selected. Next is enabled when both cards are Selected.' });
 
 S.push({ n: [11], layout: 'reveal', section: 0,
   cards: [['HALLUCINATION', 'An inaccurate or unsupported AI output'], ['BIAS', 'A pattern that can lead to unfair or distorted outcomes'], ['AGENT', 'An AI system configured to carry out a defined task across multiple steps']],
   icons: ['warn', 'balance', 'agent'],
-  instruction: 'Select each card.', instructionAdded: true,
+  instruction: 'Select each card.', instructionAdded: true, counter: 'viewed',
   storyline: 'Same card pattern as slide 10, one icon per term. Next is enabled when all three cards are Selected.' });
 
 S.push({ n: [12, 13], layout: 'kc', section: 0,
   storyline: 'Freeform Pick One question (Insert > Convert to Freeform > Pick One). Four answer cards with Normal / Hover / Selected states. Submit button. Correct and Incorrect layers from slide 13. Unscored: in Form View set Score to None. Attempts: 2 (one retry, as the review recommends). The Incorrect layer shows Try Again on attempt 1; on attempt 2 it shows the correct answer and Continue.' });
 
 // ---------- Capabilities and limits ----------
-S.push({ n: [14], layout: 'opener', section: 1, sectionNo: 2,
+S.push({ n: [14], layout: 'opener', section: 1, sectionNo: 2, icon: 'search',
   lines: ['AI can support many kinds of work.', 'But capability does not equal reliability.'],
   meera: {
     situation: 'Meera asks AI to summarize 40 pages of survey comments. The summary is polished, and it includes a statistic she has not seen before.',
@@ -108,17 +116,20 @@ S.push({ n: [14], layout: 'opener', section: 1, sectionNo: 2,
   },
   storyline: 'Same opener pattern as slide 5.' });
 
-S.push({ n: [15], layout: 'beforeAfter', section: 1,
-  cards: [['GENERATE', 'Create a first draft or new content'], ['TRANSFORM', 'Rewrite, reformat, translate, or adapt existing content']],
-  storyline: 'Before/after visual: a blank page becoming a draft (Generate), and a page becoming a reformatted page (Transform). Cards Fade in on cues.' });
-
-S.push({ n: [16], layout: 'condense', section: 1,
-  cards: [['SUMMARIZE', 'Condense information into key points'], ['ORGANIZE', 'Group, structure, or extract information']],
-  storyline: 'A long document shape shrinks into a short summary, then into a structured list.' });
-
-S.push({ n: [17], layout: 'pattern', section: 1,
-  card: ['IDENTIFY PATTERNS', 'Spot themes, similarities, differences, or recurring information'],
-  storyline: 'Scattered dots move (motion paths) into three grouped clusters. One card beside them.' });
+S.push({ n: [15, 16, 17], layout: 'explorer', section: 1,
+  title: 'What AI Can Do',
+  introVo: 'AI can support many kinds of work. Select each tab to see three of them.',
+  instruction: 'Select each tab.',
+  tabs: [
+    { label: 'Generate and transform', screen: { n: [15], layout: 'beforeAfter', section: 1,
+      cards: [['GENERATE', 'Create a first draft or new content'], ['TRANSFORM', 'Rewrite, reformat, translate, or adapt existing content']] } },
+    { label: 'Summarize and organize', screen: { n: [16], layout: 'condense', section: 1,
+      cards: [['SUMMARIZE', 'Condense information into key points'], ['ORGANIZE', 'Group, structure, or extract information']] } },
+    { label: 'Identify patterns', screen: { n: [17], layout: 'pattern', section: 1,
+      card: ['IDENTIFY PATTERNS', 'Spot themes, similarities, differences, or recurring information'] } },
+  ],
+  merged: 'Storyboard slides 15, 16 and 17 (three separate "AI can…" slides) are now one screen with three tabs. All on-screen text and voiceover are unchanged; each tab plays its own slide\'s voiceover.',
+  storyline: 'Tab explorer. Base layer: title, three tab buttons, instruction and counter. One layer per tab (tick "Hide other slide layers"), holding that slide\'s visual, cards and voiceover. Tabs get Selected and Visited states. Next unlocks when all three tabs are Visited.' });
 
 S.push({ n: [18], layout: 'limits', section: 1,
   intro: 'AI cannot guarantee:',
@@ -132,7 +143,7 @@ S.push({ n: [19], layout: 'notEqual', section: 1,
 S.push({ n: [20, 21], layout: 'kc', section: 1, storyline: 'Same knowledge-check pattern as slide 12.' });
 
 // ---------- AI at work ----------
-S.push({ n: [22], layout: 'opener', section: 2, sectionNo: 3,
+S.push({ n: [22], layout: 'opener', section: 2, sectionNo: 3, icon: 'idea',
   lines: ['Think  •  Create  •  Understand  •  Explore', 'AI supports the work. People own the work.'],
   meera: {
     situation: 'Meera needs ideas for a learning campaign by Friday. A colleague suggests letting AI choose the campaign.',
@@ -146,13 +157,18 @@ S.push({ n: [22], layout: 'opener', section: 2, sectionNo: 3,
   },
   storyline: 'Same opener pattern as slide 5.' });
 
-S.push({ n: [23], layout: 'pair', section: 2,
-  cards: [['THINK', 'Brainstorm ideas and options'], ['CREATE', 'Draft or generate content']], icons: ['idea', 'draft'],
-  storyline: 'Two large cards with light motion: an idea shape moves (motion path) from the THINK card into the CREATE card.' });
-
-S.push({ n: [24], layout: 'pair', section: 2,
-  cards: [['UNDERSTAND', 'Summarize, explain, or clarify information'], ['EXPLORE', 'Look across information for themes, patterns, or questions']], icons: ['doc', 'search'],
-  storyline: 'Document and magnifying-glass icons (editable shapes or the supplied SVGs).' });
+S.push({ n: [23, 24], layout: 'explorer', section: 2,
+  title: 'How AI Can Help You Work',
+  introVo: 'Here are four ways AI can support your work. Select each tab to explore them.',
+  instruction: 'Select each tab.',
+  tabs: [
+    { label: 'Think and create', screen: { n: [23], layout: 'pair', section: 2,
+      cards: [['THINK', 'Brainstorm ideas and options'], ['CREATE', 'Draft or generate content']], icons: ['idea', 'draft'] } },
+    { label: 'Understand and explore', screen: { n: [24], layout: 'pair', section: 2,
+      cards: [['UNDERSTAND', 'Summarize, explain, or clarify information'], ['EXPLORE', 'Look across information for themes, patterns, or questions']], icons: ['doc', 'search'] } },
+  ],
+  merged: 'Storyboard slides 23 and 24 are now one screen with two tabs. All on-screen text and voiceover are unchanged; each tab plays its own slide\'s voiceover.',
+  storyline: 'Same tab explorer as the "What AI Can Do" screen, with two tabs.' });
 
 S.push({ n: [25], layout: 'twoCol', section: 2,
   left: ['AI', 'AI can suggest, generate, organize, and assist.'],
@@ -162,7 +178,7 @@ S.push({ n: [25], layout: 'twoCol', section: 2,
 S.push({ n: [27, 28], layout: 'kc', section: 2, storyline: 'Same knowledge-check pattern as slide 12.' });
 
 // ---------- Responsible AI ----------
-S.push({ n: [29], layout: 'opener', section: 3, sectionNo: 4,
+S.push({ n: [29], layout: 'opener', section: 3, sectionNo: 4, icon: 'balance',
   lines: ['Pause before you trust the output.', 'Check accuracy. Consider fairness. Respect intellectual property. Review use. Keep human accountability.'],
   meera: {
     situation: 'An AI tool recommends which three employees should join a leadership programme. Meera\'s manager wants the list today.',
@@ -208,7 +224,7 @@ S.push({ n: [34], layout: 'gate', section: 3,
 S.push({ n: [36, 37], layout: 'kc', section: 3, storyline: 'Same knowledge-check pattern as slide 12.' });
 
 // ---------- Data, privacy and security ----------
-S.push({ n: [38], layout: 'opener', section: 4, sectionNo: 5,
+S.push({ n: [38], layout: 'opener', section: 4, sectionNo: 5, icon: 'lock',
   lines: ['Before you share information with an AI tool, stop and assess the information, the tool, and your permission to use it.'],
   meera: {
     situation: 'Meera wants AI to help her draft feedback for a team member. The full performance review is open on her screen.',
@@ -224,7 +240,7 @@ S.push({ n: [38], layout: 'opener', section: 4, sectionNo: 5,
 
 S.push({ n: [39], layout: 'checklist', section: 4,
   items: ['What information is it?', 'Who owns it?', 'Is the tool approved?', 'Am I permitted to use it?'],
-  instruction: 'Select each question to tick it off.', instructionAdded: true,
+  instruction: 'Select each question to tick it off.', instructionAdded: true, counter: 'ticked',
   storyline: 'Four checklist rows, each a button with Normal and Selected (ticked) states. Next is enabled when all four are Selected. Make the list feel like a reusable mental checklist.' });
 
 S.push({ n: [40], layout: 'categories', section: 4,
@@ -245,10 +261,12 @@ S.push({ n: ['42a'], layout: 'recover', section: 4,
   pending: 'Replace [approved contact] in the on-screen text and voiceover with the real contact and process from policy.',
   storyline: 'New slide from the review. Three-step process reusing the lock motif from slide 42. Replace [approved contact] with the real contact from your policy before you build. Do not guess.' });
 
-S.push({ n: [43, 44], layout: 'kc', section: 4, storyline: 'Same knowledge-check pattern as slide 12.' });
+S.push({ n: [43, 44], layout: 'kc', section: 4,
+  meeraAsk: 'Can you help me think this through before I paste anything?',
+  storyline: 'Same knowledge-check pattern as slide 12, with Meera asking the question: a small Meera picture and speech bubble sit above the question text.' });
 
 // ---------- Prompting ----------
-S.push({ n: [45], layout: 'opener', section: 5, sectionNo: 6,
+S.push({ n: [45], layout: 'opener', section: 5, sectionNo: 6, icon: 'draft',
   lines: ['A useful prompt gives AI enough information to interpret what you need.'],
   meera: {
     situation: 'Meera typed "Write an email" and got something generic that she can\'t use.',
@@ -288,10 +306,12 @@ S.push({ n: ['52a'], layout: 'dragPrompt', section: 5,
   designed: 'Option cards written by the designer to match assessment question 5 (approved by course owner).',
   storyline: 'New slide from the review. Insert > Convert to Freeform > Drag and Drop. Drag items: the 8 option cards. Drop targets: 4 slots labelled CONTEXT, AUDIENCE, OUTPUT, CONSTRAINTS. In Form View, match each correct card to its slot; distractors have no target. Options: "Snap dropped items to drop target", "Allow only one item in each drop target". Attempts: 2. Correct/Incorrect layers use the slide 52a feedback; the Correct layer also shows the full stronger prompt. Unscored.' });
 
-S.push({ n: [53, 54], layout: 'kc', section: 5, storyline: 'Same knowledge-check pattern as slide 12.' });
+S.push({ n: [53, 54], layout: 'kc', section: 5,
+  meeraAsk: 'I have written a few prompts for the training reminder. Which one should I use?',
+  storyline: 'Same knowledge-check pattern as slide 12, with Meera asking the question (as on the Data, Privacy and Security knowledge check).' });
 
 // ---------- Agents ----------
-S.push({ n: [55], layout: 'opener', section: 6, sectionNo: 7,
+S.push({ n: [55], layout: 'opener', section: 6, sectionNo: 7, icon: 'agent',
   lines: ['From a single response to a defined task'],
   atlasLine: 'Atlas is our approved AI platform. Its Agent Builder lets you set up simple agents for defined tasks.',
   meera: {
@@ -307,7 +327,9 @@ S.push({ n: [55], layout: 'opener', section: 6, sectionNo: 7,
   storyline: 'Same opener pattern as slide 5.' });
 
 S.push({ n: [56], layout: 'agentModel', section: 6,
-  text: 'An AI agent is an AI system configured to carry out a defined task across multiple steps using:',
+  text: 'An AI agent carries out a defined task across multiple steps, using:',
+  signedOff: { field: 'On-screen text', was: ['An AI agent is an AI system configured to carry out a defined task across multiple steps using:'],
+    why: 'The voiceover reads this sentence word for word. The voiceover is unchanged.' },
   inputs: ['INSTRUCTIONS', 'CONTEXT', 'AVAILABLE CAPABILITIES'],
   storyline: 'Three inputs flow (Wipe arrows) into one "defined task" block. Keep it conceptual.' });
 
@@ -317,7 +339,8 @@ S.push({ n: [57], layout: 'lanes', section: 6,
 
 S.push({ n: [58], layout: 'atlasVideo', section: 6,
   process: ['DEFINE', 'CONFIGURE', 'TEST', 'REVIEW'], note: 'Use the approved Atlas environment for the demonstration.',
-  storyline: 'Insert > Video > From File: your Atlas screen recording. Add callouts (rounded rectangles) that point to the real Atlas interface labels. Do not invent labels. Show the four-step process bar above the video.' });
+  clipInstruction: 'Select each step to play its clip.', counter: 'played',
+  storyline: 'Record four short clips (Define, Configure, Test, Review), each under 90 seconds, with captions and zoom on each click. The four process tags are buttons; each shows a layer with its clip. Add callouts that point to the real Atlas interface labels; do not invent labels. Next unlocks when all four clips have played.' });
 
 S.push({ n: [59], layout: 'atlasSteps', section: 6,
   steps: ['Define the task', 'Add instructions and context', 'Test with a sample situation', 'Review the output'],
@@ -378,7 +401,12 @@ S.push({ n: ['79a'], layout: 'results', section: 7,
 S.push({ n: [80], layout: 'awareClose', section: null,
   letters: [['A', 'Appreciate AI'], ['W', 'Weigh the Output'], ['A', 'Assess the Risk'], ['R', 'Respond with the Right Prompt'], ['E', 'Ensure Human Accountability']],
   closing: 'AI can assist. Humans remain accountable.',
-  storyline: 'AWARE recap: the five tiles from slide 4 animate in again, then the closing band from slide 34.' });
+  meeraClose: {
+    recall: 'Remember when Meera\'s manager said, "Just ask the AI. It knows everything"?',
+    line: 'Here\'s what I\'d say now: AI doesn\'t know everything. It generates answers from patterns. So I check what matters, protect what\'s sensitive, give it a clear prompt, and stay accountable for the result.',
+    vo: 'Remember when Meera\'s manager said, just ask the AI, it knows everything? Here is what Meera would say now. AI doesn\'t know everything. It generates answers from patterns. So she checks what matters, protects what is sensitive, gives it a clear prompt, and stays accountable for the result.',
+  },
+  storyline: 'AWARE recap: the five tiles from slide 4 animate in again, then the closing band from slide 34. When the base timeline ends, show layer "Meera" (Meera\'s last word, closing the story from the first section). Next unlocks when the layer\'s Continue is clicked.' });
 
 S.push({ n: ['80a'], layout: 'download', section: null,
   items: [['AWARE', 'The five-part mental model'], ['BEFORE YOU SHARE', 'The four questions'], ['PROMPT', 'The five elements']],
@@ -386,7 +414,8 @@ S.push({ n: ['80a'], layout: 'download', section: null,
 
 S.push({ n: [81], layout: 'levels', section: null,
   levels: [['LEVEL 1', 'Understand', 'Build the foundation'], ['LEVEL 2', 'Use', 'Use AI in everyday work'], ['LEVEL 3', 'Apply', 'Apply AI within your function'], ['LEVEL 4', 'Improve and Transform', 'Redesign and scale AI-enabled work']],
-  storyline: 'Four connected level cards. Level 1 shows a "Complete" tick. Add an Exit Course button (trigger: Exit course) if your LMS needs one.' });
+  commit: { label: 'Before you go', question: 'What is one way you will use AI in your work this week?', placeholder: 'Type your idea here (optional, not scored)' },
+  storyline: 'Four connected level cards. Level 1 shows a "Complete" tick. Below them, an optional text-entry box (Insert > Input > Text Entry, variable Commitment) that is not scored or required. Add an Exit Course button (trigger: Exit course) if your LMS needs one.' });
 
 // Still open after the course owner's decisions. `who` says who has to answer.
 const FLAGS = [

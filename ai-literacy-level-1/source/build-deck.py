@@ -110,14 +110,14 @@ def progress(s, sec):
             box(s, x0 + k * gap - 5, y0 - 5, 22, 22, 'tealsoft', shape=MSO_SHAPE.OVAL, name='Current dot halo')
             box(s, x0 + k * gap, y0, 12, 12, 'white', 'teal', shape=MSO_SHAPE.OVAL, lw=1.5, name=f'Dot {k+1}')
         else: box(s, x0 + k * gap, y0, 12, 12, 'line', shape=MSO_SHAPE.OVAL, name=f'Dot {k+1}')
-    text(s, x0 + sec * gap - 74, y0 + 15, 160, 14, SEC_LABELS[sec], name='Progress label', size=10, color='grey', align='c')
+    text(s, x0 + sec * gap - 94, y0 + 15, 200, 18, SEC_LABELS[sec], name='Progress label', size=12, color='grey', align='c')
 
 def badge(s, sc):
     c = sc['cue']
     if not c: return
     sq = box(s, 1169, 100, 36, 36, 'navy', radius=0.15, name='AWARE badge letter')
     write(sq, c['L'], size=20, bold=True, color='teal', font=HEAD, align='c', anchor='m')
-    text(s, 860, 108, 300, 20, c['w'], name='AWARE badge word', size=11, color='grey', align='r')
+    text(s, 860, 107, 300, 22, c['w'], name='AWARE badge word', size=12, color='grey', align='r')
 
 TITLE_Y, SHIFT = 96, 35                           # title sits well below the progress bar; content moves down to match
 CHROME = ('Title', 'Progress', 'Dot ', 'Current dot', 'AWARE badge')
@@ -137,8 +137,13 @@ def solid_bg(s, dark):
     # The template's light background is white at 0% opacity; Storyline renders that as black, so set it explicitly.
     s.background.fill.solid(); s.background.fill.fore_color.rgb = C['navy' if dark else 'snow']
 
+NO_CENTRE = set()                                 # slide ids that get only the fixed shift (their layers are positioned to match)
+LAYER_SHIFT = []                                   # layer slides whose content must move with their base slide
+LAST = [None]
+
 def new(sc, dark=False):
     s = prs.slides.add_slide(L_DARK if dark else L_LIGHT)
+    LAST[0] = s
     solid_bg(s, dark)
     if not dark: title_light(s, sc['title']); LIGHT_BASE.append(s)
     progress(s, sc['section'] if sc['layout'] not in ('opener', 'assessIntro') else None)
@@ -166,6 +171,25 @@ def card(s, x, y, w, h, term, desc, kind='ai', term_size=14, desc_size=17, name=
     if desc: paras.append([(desc, dict(size=desc_size, color='navy'))])
     write(b, paras, spacing=6)
     return b
+
+def counter_box(s, x, y, total, word, var):
+    c = box(s, x, y, 150, 28, 'tealsoft', radius=0.5, name=f'Counter (text: %{var}% of {total} {word})')
+    write(c, f'0 of {total} {word}', size=13, bold=True, color='tealink', align='c', anchor='m')
+    return c
+
+def tick_badge(s, x, y, name='Viewed tick'):
+    t = box(s, x, y, 28, 28, 'teal', shape=MSO_SHAPE.OVAL, name=name)
+    write(t, '✓', size=13, bold=True, color='navy', align='c', anchor='m')
+
+def meera_panel(ly, paras, name='Meera panel'):
+    box(ly, 0, 36, 1280, 684, 'navy', shape=MSO_SHAPE.RECTANGLE, name='Dim overlay', alpha=70)
+    box(ly, 120, 150, 1040, 400, 'white', radius=0.04, name=name)
+    icon(ly, 'meera', 150, 190, 170, 'Meera')
+    text(ly, 150, 370, 170, 24, 'Meera', name='Meera name', size=18, bold=True, color='navy', font=HEAD, align='c')
+    text(ly, 150, 396, 170, 20, 'Talent Partner', name='Meera role', size=12, color='grey', align='c')
+    text(ly, 360, 190, 770, 260, paras, name='Meera text', color='navy', spacing=10)
+    cb = box(ly, 360, 480, 130, 36, 'teal', radius=0.2, name='Continue')
+    write(cb, 'Continue', size=13, bold=True, color='navy', align='c', anchor='m')
 
 def arrow(s, x, y, color='teal', size=24):
     text(s, x, y, 40, 30, '→', name='Arrow', size=size, bold=True, color=color, align='c')
@@ -196,7 +220,10 @@ def L_outcomes(sc):
         c = box(s, 75, y + 18, 52, 52, 'teal', shape=MSO_SHAPE.OVAL, name=f'Number {k+1}')
         write(c, str(k + 1), size=20, bold=True, color='navy', font=HEAD, align='c', anchor='m')
         text(s, 150, y + 26, 1040, 40, t, name=f'Outcome {k+1}', size=22, color='navy', anchor='m')
-    notes(s, *std_notes(sc, 'Each row fades in on its cue point.'))
+    if sc.get('courseInfo'):
+        line(s, 75, 543, 1205, 543, 'line', 1, 'Row line 5')
+        text(s, 75, 556, 1130, 26, sc['courseInfo'], name='Course information', size=15, color='grey')
+    notes(s, *std_notes(sc, 'Each row fades in on its cue point. The course information line fades in last.'))
 
 def L_journey(sc):
     s = new(sc)
@@ -223,12 +250,15 @@ def L_aware(sc):
 
 def L_opener(sc):
     s = new(sc, dark=True)
+    if sc.get('icon'):
+        box(s, 880, 170, 300, 300, None, 'tileline', dash=True, shape=MSO_SHAPE.OVAL, lw=2, name='Section icon ring')
+        icon(s, sc['icon'] + 'Teal', 955, 245, 150, 'Section icon')
     text(s, 75, 70, 400, 150, f"{sc['sectionNo']:02d}", name='Section number', size=110, bold=True, color='teal', font=HEAD)
     title_dark(s, sc['title'], y=230, size=44)
     for k, t in enumerate(sc['lines']):
-        text(s, 75, 310 + k * 44, 1000, 40, [('—  ', dict(color='green', bold=True)), (t, {})], name=f'Line {k+1}', size=20, color='white')
+        text(s, 75, 310 + k * 44, 770, 40, [('—  ', dict(color='green', bold=True)), (t, {})], name=f'Line {k+1}', size=20, color='white')
     if sc.get('atlasLine'):
-        text(s, 75, 310 + len(sc['lines']) * 44 + 10, 1000, 40, sc['atlasLine'], name='Atlas line', size=17, color='lightblue')
+        text(s, 75, 310 + len(sc['lines']) * 44 + 10, 770, 60, sc['atlasLine'], name='Atlas line', size=17, color='lightblue')
     b = box(s, 75, 560, 240, 38, 'teal', radius=0.25, name='Meet Meera button')
     write(b, "Meet Meera’s moment", size=13, bold=True, color='navy', align='c', anchor='m')
     notes(s, *std_notes(sc, 'Base layer. Show layer "Meera" when the timeline ends; the button reopens it.'))
@@ -261,8 +291,15 @@ def L_defineCards(sc):
         write(b, t, size=20, bold=True, color='navy', align='l' if k % 2 == 0 else 'r', anchor='m')
     c = box(s, 455, 220, 370, 200, 'navy', radius=0.1, name='Definition card')
     c.text_frame.margin_left = c.text_frame.margin_right = px(18)
-    write(c, [[('AI', dict(size=12, bold=True, color='teal', font=MONO))], [(sc['definition'], dict(size=17, color='white'))]], align='c', anchor='m', spacing=4)
-    notes(s, *std_notes(sc))
+    write(c, [[('AI', dict(size=12, bold=True, color='teal', font=MONO))], [(sc['definition'], dict(size=19, color='white'))]], align='c', anchor='m', spacing=4)
+    if sc.get('colourKey'):
+        lab, ai, ppl = sc['colourKey']
+        text(s, 75, 512, 110, 24, lab, name='Colour key label', size=14, color='grey', anchor='m')
+        box(s, 190, 514, 36, 20, 'bluesoft', 'blue', dash=True, radius=0.2, name='Key swatch AI')
+        text(s, 234, 512, 60, 24, ai, name='Key AI', size=14, color='grey', anchor='m')
+        box(s, 300, 514, 36, 20, 'tealsoft', 'teal', radius=0.2, name='Key swatch people')
+        text(s, 344, 512, 100, 24, ppl, name='Key people', size=14, color='grey', anchor='m')
+    notes(s, *std_notes(sc, 'The colour key fades in last.'))
 
 def L_umbrella(sc):
     s = new(sc)
@@ -310,12 +347,21 @@ def L_reveal(sc):
         o = box(s, x, 400, w, 150, 'bluesoft', 'blue', dash=True, name=f'Card {k+1} OPEN state (copy into the Open state, then delete)')
         o.text_frame.margin_left = px(24); o.text_frame.margin_top = px(16)
         write(o, [[(t, dict(size=16, bold=True, color='blue', font=MONO))], [(d, dict(size=17, color='navy'))]], spacing=6)
-    text(s, 75, 565, 600, 22, sc['instruction'], name='Instruction', size=13, color='grey')
-    notes(s, *std_notes(sc, 'Top row = cards as learners first see them. Bottom row = how each card looks in its "Open" state: select a card, Edit States > New State "Open", paste the bottom version in, Done. Then delete the bottom row.'))
+        tick_badge(s, x + w - 42, 412, f'Card {k+1} OPEN state tick')
+    text(s, 75, 565, 200, 28, sc['instruction'], name='Instruction', size=14, color='grey', anchor='m')
+    counter_box(s, 260, 565, n, 'viewed', f"Viewed{sc['n'][0]}")
+    notes(s, *std_notes(sc, 'Top row = cards as learners first see them. Bottom row = how each card looks in its "Open" state: select a card, Edit States > New State "Open", paste the bottom version in, Done. Then delete the bottom row. Counter: number variable Viewed{0}; on each card add "Adjust variable Viewed{0} Add 1 when the user clicks, if the card is not Open" ABOVE the change-state trigger.'.format(sc['n'][0])))
 
 def q_layout(s, sc, tag):
-    text(s, 75, 125, 430, 20, tag, name='Tag', size=11, bold=True, color='grey')
-    text(s, 75, 160, 400, 300, [[(l, {})] for l in sc['q']['stem']], name='Question', size=20, bold=True, color='navy', font=HEAD, spacing=12)
+    text(s, 75, 125, 430, 20, tag, name='Tag', size=12, bold=True, color='grey')
+    qy = 160
+    if sc.get('meeraAsk'):
+        icon(s, 'meera', 75, 155, 60, 'Meera small')
+        b = box(s, 145, 155, 355, 66, 'tealsoft', radius=0.2, name='Meera bubble')
+        b.text_frame.margin_left = b.text_frame.margin_right = px(12)
+        write(b, [('Meera: ', dict(bold=True)), (sc['meeraAsk'], {})], size=13, color='navy', anchor='m')
+        qy = 240
+    text(s, 75, qy, 400, 470 - qy, [[(l, {})] for l in sc['q']['stem']], name='Question', size=20 if qy == 160 else 18, bold=True, color='navy', font=HEAD, spacing=12)
     text(s, 75, 470, 400, 20, 'Select one answer.', name='Hint', size=13, color='grey')
     for k, o in enumerate(sc['q']['opts']):
         y = 150 + k * 82
@@ -505,7 +551,8 @@ def L_checklist(sc):
         r.text_frame.margin_left = px(84)
         write(r, [(f'0{k+1}  ', dict(size=12, bold=True, color='grey', font=MONO)), (t, dict(size=22, bold=True, font=HEAD))], color='navy', anchor='m')
         box(s, 95, y + 13, 44, 44, 'white', 'line', radius=0.2, name=f'Tick box {k+1}')
-    text(s, 75, 490, 600, 22, sc['instruction'], name='Instruction', size=13, color='grey')
+    text(s, 75, 490, 320, 28, sc['instruction'], name='Instruction', size=14, color='grey', anchor='m')
+    counter_box(s, 400, 490, len(sc['items']), 'ticked', 'Ticked39')
     tk = box(s, 1000, 145, 200, 70, 'greensoft', 'greentxt', name='TICKED state example (copy into each row’s "Ticked" state, then delete)')
     write(tk, '✓ Ticked state', size=14, bold=True, color='greentxt', align='c', anchor='m')
     notes(s, *std_notes(sc))
@@ -632,13 +679,15 @@ def L_atlasVideo(sc):
     s = new(sc)
     x = 75
     for k, p in enumerate(sc['process']):
-        b = box(s, x, 130, 150, 34, 'teal' if k == 3 else 'navy', radius=0.2, name=f'Process {p}')
-        write(b, p, size=12, bold=True, color='navy' if k == 3 else 'white', font=MONO, align='c', anchor='m')
+        b = box(s, x, 130, 150, 34, 'white', 'line', radius=0.2, name=f'Clip button {p} (states: Selected = navy fill, Visited = ✓)')
+        write(b, p, size=12, bold=True, color='navy', font=MONO, align='c', anchor='m')
         x += 150
         if k < 3: arrow(s, x + 2, 132, 'grey', 16); x += 44
-    v = box(s, 75, 185, 1130, 400, 'tile', 'tileline', dash=True, name='VIDEO PLACEHOLDER (replace with Insert > Video)')
-    write(v, [[('▶', dict(size=40, color='teal'))], [('Your Atlas screen recording goes here', dict(size=18, color='white'))], [(sc['note'], dict(size=13, color='lightblue'))]], align='c', anchor='m', spacing=6)
-    notes(s, *std_notes(sc, 'Insert > Video > Video from File. Next unlocks when media completes.'))
+    text(s, 830, 120, 380, 22, sc['clipInstruction'], name='Instruction', size=13, color='grey')
+    counter_box(s, 830, 144, 4, 'played', 'Played58')
+    v = box(s, 75, 185, 1130, 400, 'tile', 'tileline', dash=True, name='VIDEO PLACEHOLDER (one clip per layer)')
+    write(v, [[('▶', dict(size=40, color='teal'))], [('Clip 1 of 4 goes here (each clip under 90 seconds)', dict(size=18, color='white'))], [(sc['note'], dict(size=13, color='lightblue'))]], align='c', anchor='m', spacing=6)
+    notes(s, *std_notes(sc, 'Four layers, Clip 1 to Clip 4 (tick "Hide other slide layers"), each with its own video (Insert > Video > Video from File). Each clip button shows its layer. On each layer: Adjust variable Played58 Add 1 when the media completes. Next unlocks when Played58 = 4.'))
 
 def L_atlasSteps(sc):
     s = new(sc)
@@ -655,12 +704,15 @@ def L_tryIt(sc):
         b = box(s, 75, 140 + k * 92, 290, 80, 'white', 'line', name=f'Tab {t}')
         b.text_frame.margin_left = px(14)
         write(b, [[(t, dict(size=12, bold=True, color='blue', font=MONO))], [(d, dict(size=13, color='navy'))]], anchor='m')
-    text(s, 75, 515, 290, 20, 'Open all four tabs, then try it in Atlas.', name='Instruction', size=11, color='grey')
+    text(s, 75, 515, 290, 20, 'Open all four tabs, then try it in Atlas.', name='Instruction', size=12, color='grey')
+    counter_box(s, 75, 542, 4, 'viewed', 'Viewed60')
+    NO_CENTRE.add(s.slide_id)
     p = box(s, 390, 140, 815, 440, 'white', 'line', name='Tab panel')
     p.text_frame.margin_left = px(26); p.text_frame.margin_top = px(24)
     write(p, [[('Select a Tab to Begin', dict(size=22, bold=True, font=HEAD))], [('Each tab shows one part of the activity: the scenario, the sample notes, the prompt to use in Atlas, and how to review the output.', dict(size=15))]], color='navy', spacing=8)
     notes(s, *std_notes(sc, 'Four layers (Scenario, Input, Task, Output) with "Hide other slide layers" ticked. Next unlocks when all four tabs are Visited.'))
     def panel(ly, paras):
+        LAYER_SHIFT.append(ly)
         q = box(ly, 390, 140, 815, 440, 'white', 'line', name='Tab panel content')
         q.text_frame.margin_left = q.text_frame.margin_right = px(26); q.text_frame.margin_top = px(22)
         write(q, paras, color='navy', spacing=6)
@@ -688,17 +740,18 @@ def L_assessIntro(sc):
 
 def L_results(sc):
     s = new(sc)
+    NO_CENTRE.add(s.slide_id)
     text(s, 75, 150, 1000, 70, '%Results.ScorePercent%%', name='Score (built-in variable)', size=40, bold=True, color='greentxt', font=HEAD)
     text(s, 75, 250, 600, 24, 'Your score: %Results.ScorePoints% · Passing score: 80%', name='Score line', size=14, color='grey')
     notes(s, *std_notes(sc, 'Graded Result Slide: selected questions = the 8 assessment questions, pass 80%. Success and Failure layers follow.'))
     lines = sc['results'].split('\n')
     passline = [l for l in lines if l.startswith('PASS')][0].replace('PASS', '', 1).strip()
     notyet = [l for l in lines if l.startswith('NOT YET')][0].replace('NOT YET', '', 1).strip()
-    ly = layer_slide(sc, 'Success', 'Success layer: Continue jumps to the next slide.')
+    ly = layer_slide(sc, 'Success', 'Success layer: Continue jumps to the next slide.'); LAYER_SHIFT.append(ly)
     text(ly, 520, 160, 680, 50, 'Pass', name='Pass heading', size=36, bold=True, color='navy', font=HEAD)
     text(ly, 520, 220, 680, 40, passline, name='Pass text', size=20, color='navy')
     b = box(ly, 520, 280, 140, 38, 'navy', radius=0.2, name='Continue button'); write(b, 'Continue', size=13, bold=True, color='white', align='c', anchor='m')
-    ly = layer_slide(sc, 'Failure', 'Failure layer: Review buttons start Hidden and show if their Missed_S variable is True; Retry hides and the message shows when QuizAttempts >= 3.')
+    ly = layer_slide(sc, 'Failure', 'Failure layer: Review buttons start Hidden and show if their Missed_S variable is True; Retry hides and the message shows when QuizAttempts >= 3.'); LAYER_SHIFT.append(ly)
     text(ly, 520, 150, 680, 50, 'Not Yet', name='Not yet heading', size=36, bold=True, color='navy', font=HEAD)
     text(ly, 520, 205, 680, 40, notyet, name='Not yet text', size=18, color='navy')
     labels = ['Understand AI', 'Capabilities and limits', 'AI at work', 'Use AI responsibly', 'Protect information', 'Prompt with purpose', 'AI agents and Atlas']
@@ -718,7 +771,14 @@ def L_awareClose(sc):
     b = box(s, 75, 360, 1130, 90, 'tile', radius=0.12, name='Principle band')
     b.text_frame.margin_left = px(30)
     write(b, [('AI can assist. ', dict(color='lightblue')), ('Humans remain accountable.', dict(color='teal'))], size=34, bold=True, font=HEAD, anchor='m')
-    notes(s, *std_notes(sc))
+    m = sc.get('meeraClose')
+    if m:
+        mb = box(s, 75, 560, 240, 38, 'teal', radius=0.25, name='Meera last word button')
+        write(mb, "Meera’s last word", size=13, bold=True, color='navy', align='c', anchor='m')
+    notes(s, *std_notes(sc, 'Show layer "Meera" when the timeline ends; the button reopens it. Next unlocks when the layer\'s Continue is clicked.' if m else ''))
+    if m:
+        ly = layer_slide(sc, 'Meera', f"MEERA VOICEOVER\n{m['vo']}\n\nTriggers: Continue hides this layer and changes Next to Normal.", dark=True)
+        meera_panel(ly, [[(m['recall'], dict(size=16, color='grey'))], [(m['line'], dict(size=22, bold=True, font=HEAD))]])
 
 def L_download(sc):
     s = new(sc)
@@ -737,16 +797,66 @@ def L_levels(sc):
         b = box(s, x, 180, 283, 260, 'navy' if k == 0 else 'white', 'navy' if k == 0 else 'line', shape=MSO_SHAPE.RECTANGLE, name=f'Level {k+1}')
         b.text_frame.margin_left = b.text_frame.margin_right = px(22); b.text_frame.margin_top = px(24)
         write(b, [[(a, dict(size=12, bold=True, color='teal' if k == 0 else 'grey', font=MONO))], [(n, dict(size=22, bold=True, color='white' if k == 0 else 'navy', font=HEAD))], [(d, dict(size=15, color='lightblue' if k == 0 else 'grey'))]], spacing=8)
-    t = box(s, 97, 390, 110, 30, 'teal', radius=0.5, name='Complete tag'); write(t, 'Complete', size=11, bold=True, color='navy', align='c', anchor='m')
-    notes(s, *std_notes(sc))
+    t = box(s, 97, 390, 110, 30, 'teal', radius=0.5, name='Complete tag'); write(t, 'Complete', size=12, bold=True, color='navy', align='c', anchor='m')
+    c = sc.get('commit')
+    if c:
+        text(s, 75, 470, 700, 20, c['label'].upper(), name='Reflection label', size=12, bold=True, color='tealink', font=MONO)
+        text(s, 75, 492, 900, 30, c['question'], name='Reflection question', size=20, bold=True, color='navy', font=HEAD)
+        e = box(s, 75, 530, 760, 56, 'white', 'line', radius=0.12, name='TEXT ENTRY PLACEHOLDER (Insert > Input > Text Entry)')
+        e.text_frame.margin_left = px(14)
+        write(e, c['placeholder'], size=15, color='grey', anchor='m')
+    notes(s, *std_notes(sc, 'Reflection box: Insert > Input > Text Entry over the placeholder (variable Commitment, default text = the placeholder). It is optional: no trigger depends on it and it is not scored.' if c else ''))
+
+EXP_DY = 70                                        # tab layers sit below the tab row
+
+def L_explorer(sc):
+    s = new(sc)
+    NO_CENTRE.add(s.slide_id)
+    x = 75
+    for k, t in enumerate(sc['tabs']):
+        w = 40 + len(t['label']) * 10
+        b = box(s, x, 118, w, 44, 'white', 'line', radius=0.2, name=f"Tab {k+1}: {t['label']} (states: Selected, Visited)")
+        write(b, t['label'], size=15, bold=True, color='navy', align='c', anchor='m'); x += w + 12
+    text(s, x + 8, 128, 160, 26, sc['instruction'], name='Instruction', size=14, color='grey', anchor='m')
+    counter_box(s, x + 150, 126, len(sc['tabs']), 'viewed', f"Viewed{sc['n'][0]}")
+    p = box(s, 75, 180, 1130, 420, None, 'line', dash=True, radius=0.04, name='Empty pane (hide when a tab layer shows)')
+    write(p, 'Select a tab to begin.', size=18, color='grey', align='c', anchor='m')
+    notes(s, f"VOICEOVER (base layer)\n{sc['vo']}", 'BUILD IN STORYLINE\nOne layer per tab, named after the tab, with "Hide other slide layers" ticked; copy each LAYER slide that follows into its layer. Each tab: Show layer <tab> when clicked; Adjust variable Viewed' + str(sc['n'][0]) + ' Add 1 when clicked if the tab is not Visited (put it above the Show layer trigger). Next unlocks when Viewed' + str(sc['n'][0]) + ' = ' + str(len(sc['tabs'])) + '.', f"Design note: {sc.get('storyline','')}")
+    for k, t in enumerate(sc['tabs']):
+        globals()['L_' + t['layout']](dict(t, cue=None, storyline=''))
+        ly = LAST[0]
+        LIGHT_BASE.remove(ly)
+        for sh in list(ly.shapes):
+            if sh.name.startswith(CHROME): sh._element.getparent().remove(sh._element)
+            else: sh.top = sh.top + px(SHIFT + EXP_DY)
+        tag = box(ly, 75, 4, 760, 26, 'orange', radius=0.2, name='DELETE ME: layer tag')
+        write(tag, f"LAYER · Screen {sc['screen']} · Tab {k+1} “{t['label']}”: copy the objects below into this tab’s layer, then delete this slide",
+              size=10, bold=True, color='white', align='c', anchor='m')
+        notes(ly, f"LAYER for screen {sc['screen']}: tab {k+1} ({t['label']})", f"VOICEOVER (this layer)\n{t['vo']}", f"Design note: {t.get('storyline','')}")
 
 for sc in SCREENS:
     globals()['L_' + sc['layout']](sc)
 
 prs.core_properties.title = 'AI Literacy Level 1 – Storyline import'
+TOP, BOTTOM = 160, 645                            # free space under the title and above the footer
 for sl in LIGHT_BASE:
+    body = [sh for sh in sl.shapes if not sh.name.startswith(CHROME)]
+    if not body: continue
+    t = min(sh.top for sh in body) / 9525; b = max(sh.top + sh.height for sh in body) / 9525
+    dy = SHIFT
+    if sl.slide_id not in NO_CENTRE:                  # centre the content block in the free space
+        dy = max(SHIFT, min(round((TOP + BOTTOM) / 2 - (t + b) / 2), BOTTOM - b))
+    for sh in body: sh.top = sh.top + px(dy)
+for ly in LAYER_SHIFT:
+    for sh in ly.shapes:
+        if not sh.name.startswith(('DELETE ME', 'Title', 'Text Placeholder')): sh.top = sh.top + px(SHIFT)
+for sl in prs.slides:                              # small grey text is never below 12 pt
     for sh in sl.shapes:
-        if not sh.name.startswith(CHROME): sh.top = sh.top + px(SHIFT)
+        if not sh.has_text_frame: continue
+        for p_ in sh.text_frame.paragraphs:
+            for r in p_.runs:
+                if r.font.size and r.font.size < Pt(12) and r.font.color and r.font.color.type is not None and r.font.color.rgb == C['grey']:
+                    r.font.size = Pt(12)
 for sh in L_LIGHT.shapes:                         # template logo: centre it on the progress bar line
     if sh.shape_type == 13: sh.top = px(32 - sh.height / 9525 / 2)
 prs.save(OUT)

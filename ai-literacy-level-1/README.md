@@ -9,4 +9,9 @@ Design files for building the AI Literacy Level 1 course in Articulate Storyline
 - `source/design.js` — the design layer: layouts, interactions, Meera scenarios (new, needs approval) and flags.
 - `source/app.js`, `source/app.css`, `source/build-prototype.js` — prototype source. Rebuild with `node source/build-prototype.js`.
 
-Still to come after approval: PowerPoint file to import into Storyline, asset pack, step-by-step build guide.
+- `prototype/ai-literacy-level-1-build-book.html` — one card per screen: reference picture, exact text, voiceover and quickest Storyline steps. Rebuild with `node source/build-book.js <screenshot folder>`.
+- `AI-Literacy-L1-Design-Changes.docx` — every change to signed-off text and every piece of designer-added content, for sign-off. Rebuild with `node source/build-changes-doc.js`.
+- `source/build-deck.py` — builds the Storyline import PowerPoint on the Resource Pro template: `node source/export-deck-data.js deck-data.json`, then `python3 source/build-deck.py PPt_template.pptx deck-data.json out.pptx`. The template is confidential, so it and the generated deck are not stored here.
+- `source/render-icons.cjs` — renders the prototype's line icons and Meera to `assets/icons/` for the deck.
+- `assets/` — quick-reference slide, slide 60 activity text, icons.
+- `open-items.md` — sign-offs and decisions still open.
