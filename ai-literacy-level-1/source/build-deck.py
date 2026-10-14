@@ -120,8 +120,13 @@ def title_light(s, t):
 def title_dark(s, t, y=60, size=40):
     text(s, 75, y, 1000, 60, t, name='Title', size=size, bold=True, color='green', font=HEAD)
 
+def solid_bg(s, dark):
+    # The template's light background is white at 0% opacity; Storyline renders that as black, so set it explicitly.
+    s.background.fill.solid(); s.background.fill.fore_color.rgb = C['navy' if dark else 'white']
+
 def new(sc, dark=False):
     s = prs.slides.add_slide(L_DARK if dark else L_LIGHT)
+    solid_bg(s, dark)
     if not dark: title_light(s, sc['title'])
     progress(s, sc['section'] if sc['layout'] not in ('opener', 'assessIntro') else None)
     if not dark: badge(s, sc)
@@ -129,6 +134,7 @@ def new(sc, dark=False):
 
 def layer_slide(sc, name, how, dark=False):
     s = prs.slides.add_slide(L_DARK if dark else L_LIGHT)
+    solid_bg(s, dark)
     if not dark:
         ph = s.placeholders[10]; ph.text_frame.text = ''
         write(ph, f"{sc['title']}", size=30, bold=True, color='navy', font=HEAD)
