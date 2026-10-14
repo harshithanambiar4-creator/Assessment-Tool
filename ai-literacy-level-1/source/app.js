@@ -56,6 +56,7 @@
   }
 
   // ---------- state ----------
+  const MAX_ATTEMPTS = 3; // course owner decision
   const state = { attempt: 1, i: 0, review: true, cc: true, narr: false, notes: true, added: true, gate: {}, quiz: {}, kcDone: {}, meera: {} };
   const qScreens = SCREENS.map((s, i) => s.layout === 'quiz' ? i : -1).filter(i => i >= 0);
 
@@ -238,7 +239,7 @@
     const res = a.result;
     const label = sb(s.n[0]).title.split('—')[1] || '';
     return { gate: !!res, html: `<div class="content">
-      <div class="qhead"><span class="kc-tag" style="margin:0">Question ${s.qNo} of 8 · ${esc(label.trim())}</span><span class="kc-tag" style="margin:0">Attempt ${state.attempt} of 2</span><span class="qprog">${qScreens.map((qi, k) => `<i class="${k + 1 === s.qNo ? 'cur' : state.quiz[qi] && state.quiz[qi].result ? 'on' : ''}"></i>`).join('')}</span></div>
+      <div class="qhead"><span class="kc-tag" style="margin:0">Question ${s.qNo} of 8 · ${esc(label.trim())}</span><span class="kc-tag" style="margin:0">Attempt ${state.attempt} of ${MAX_ATTEMPTS}</span><span class="qprog">${qScreens.map((qi, k) => `<i class="${k + 1 === s.qNo ? 'cur' : state.quiz[qi] && state.quiz[qi].result ? 'on' : ''}"></i>`).join('')}</span></div>
       <div class="kc"><div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Read the scenario and select the response that best reflects the principles from this course.</p></div>
       ${optsHTML(q, a.sel, !!res, shuffled(4, s.qNo * 7 + state.attempt * 31))}</div></div>
       ${res && state.layer !== 'closed' ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Incorrect'}</p><p>${esc(res === 'ok' ? fb.c.replace(/^Correct\.\s*/, '') : fb.w)}</p><button class="navbtn next" data-act="next">Continue</button></div></div>` : ''}`,
@@ -411,7 +412,7 @@
       <div style="flex:1;min-width:0"><h2 class="h" style="margin-bottom:10px">${pass ? 'Pass' : 'Not Yet'}</h2><p class="lead">${esc(pass ? pl : nl)}</p>
       ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : `
         <div class="secbtns">${SECTIONS.slice(0, 7).map((sec, k) => `<button class="secbtn ${missed.has(k) ? 'miss' : ''}" data-act="gosec" data-k="${k}" ${missed.has(k) ? '' : 'hidden'}>Review: ${esc(sec.label)}</button>`).join('')}</div>
-        ${state.attempt < 2 ? `<button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment (attempt 2 of 2)</button>` : `<p class="outof">${esc(s.outOfAttempts)} <span class="added-tag" style="position:static">NEW · CONFIRM</span></p>`}`}</div></div>`}</div>` };
+        ${state.attempt < MAX_ATTEMPTS ? `<button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment (attempt ${state.attempt + 1} of ${MAX_ATTEMPTS})</button>` : `<p class="outof">${esc(s.outOfAttempts)}</p>`}`}</div></div>`}</div>` };
   };
 
   L.awareClose = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">${esc(sb(80).title)}</div>
@@ -468,7 +469,7 @@
     if (s.inputLabel) added.push(esc(s.inputLabel));
     if (s.layout === 'tryIt') added.push('Notes, prompt and expected output come from the original Atlas practical example (Karthika renamed Neha). Added one action with no owner: “' + esc(s.noOwnerLine) + '”.');
     if (s.layout === 'kc') added.push('After a second wrong answer the layer shows the correct answer and Continue (the review limits retries to one).');
-    if (s.outOfAttempts) added.push(`Message after two failed attempts: “${esc(s.outOfAttempts)}”`);
+    if (s.outOfAttempts) added.push(`Message after three failed attempts (approved): “${esc(s.outOfAttempts)}”`);
     return `<h2>Screen ${idx + 1} of ${SCREENS.length}</h2><p class="src">Storyboard slide${ns.length > 1 ? 's' : ''}:<br>${original}${merged ? `<br>Includes old slide ${merged} (merged by the review)` : ''}</p>
       ${s.pending ? `<h3>Pending sign-off before build</h3><div class="pend">${esc(s.pending)}</div>` : ''}
       ${added.length ? `<h3>Designer additions and changes</h3>${added.map(a => `<div class="new">${a}</div>`).join('')}` : ''}

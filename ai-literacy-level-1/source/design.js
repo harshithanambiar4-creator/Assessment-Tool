@@ -360,7 +360,7 @@ S.push({ n: [61, 62], layout: 'kc', section: 6, storyline: 'Same knowledge-check
 // ---------- Assessment ----------
 S.push({ n: [63], layout: 'assessIntro', section: 7,
   lines: ['Show what you know.', 'The assessment tests understanding and judgment, not simple recall.'],
-  info: ['8 questions', 'Pass mark 80% (7 of 8)', '2 attempts'], infoAdded: true,
+  info: ['8 questions', 'Pass mark 80% (7 of 8)', '3 attempts'], infoAdded: true,
   storyline: 'Clean transition into the assessment. The three info chips are new: they tell learners the rules before they start.' });
 
 const QSECTION = [0, 1, 3, 4, 5, 3, 2, 6]; // section each question checks, for "review this section" routing
@@ -371,8 +371,8 @@ const QSECTION = [0, 1, 3, 4, 5, 3, 2, 6]; // section each question checks, for 
       : 'Same graded pattern as question 1.' }));
 
 S.push({ n: ['79a'], layout: 'results', section: 7,
-  outOfAttempts: 'You have used both attempts. Your result has been recorded. Please contact your L&D team for next steps.',
-  storyline: 'Insert > New Slide > Quizzing > Result Slide > Graded Results Slide (all 8 questions, passing score 80%). Success layer: Continue to slide 80; the LMS records completion. Results slide properties: Attempts = 2. Failure layer: seven "Review" buttons, one per section, each jumping to that section opener, plus Retry Quiz (resets the results). Show Retry Quiz only while attempts remain (the built-in Results.ScorePercent / attempts variables, or your own number variable QuizAttempts +1 on Retry). After the second failed attempt, show the "attempts used" message instead. Show each Review button only if the matching question was answered wrong: use the question\'s "Show when" condition on the built-in question result, or set a True/False variable on each Incorrect layer.' });
+  outOfAttempts: 'You have used three attempts. Your result has been recorded. Please contact your Talent Development team for next steps.',
+  storyline: 'Insert > New Slide > Quizzing > Result Slide > Graded Results Slide (all 8 questions, passing score 80%). Success layer: Continue to slide 80; the LMS records completion. Results slide properties: Attempts = 3 (course owner decision; the review suggested 2). Failure layer: seven "Review" buttons, one per section, each jumping to that section opener, plus Retry Quiz (resets the results). Show Retry Quiz only while attempts remain (the built-in Results.ScorePercent / attempts variables, or your own number variable QuizAttempts +1 on Retry). After the third failed attempt, show the "attempts used" message instead. Show each Review button only if the matching question was answered wrong: use the question\'s "Show when" condition on the built-in question result, or set a True/False variable on each Incorrect layer.' });
 
 // ---------- Close ----------
 S.push({ n: [80], layout: 'awareClose', section: null,
@@ -394,7 +394,6 @@ const FLAGS = [
   { slides: [10, 11, 15, 16, 23, 24, 30, 32, 33, 40, 41, 46, 47, 48, 49, 50, 51, 52, 56, 57, 58, 60], who: 'Team lead', text: 'The brand template says to avoid ALL CAPITALS, but the storyboard writes labels such as PROMPT, CONTEXT, CHECK and CONFIDENTIAL in capitals.', fix: 'Approve sentence case (Prompt, Context, Check, Confidential). It is a styling change only, with no change to wording.' },
   { slides: [60], who: 'Team lead', text: 'The slide 60 voiceover has been replaced with a learner-facing version built from the original script (the reviewed text was written to the course builder).', fix: 'Team lead to confirm the new wording before audio is recorded.' },
   { slides: [55], who: 'Team lead', text: 'Added the one-line Atlas description the review asked for.', fix: 'Team lead to confirm the wording.' },
-  { slides: ['79a'], who: 'You', text: 'With 2 attempts, learners who fail twice need a next step. The prototype shows a drafted message pointing them to the L&D team.', fix: 'Confirm the message and who learners should contact.' },
   { slides: [66, 68, 70, 74], who: 'Team lead', text: 'The review itself notes that questions 2, 3, 4 and 6 still mirror earlier knowledge checks.', fix: 'Optional: rewrite these four as new scenarios.' },
   { slides: [32, 33], who: 'Team lead', text: 'The review notes that bias/fairness and intellectual property have no assessment question.', fix: 'Optional: add one question for each.' },
 ];
