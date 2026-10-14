@@ -533,20 +533,33 @@
     const stage = $('#stage');
     stage.className = 'stage' + (out.dark ? ' dark' : '') + (state.shown === state.i ? ' static' : '');
     state.shown = state.i;
-    const canNext = state.review || out.gate === undefined || out.gate;
+    // Next waits until every item has appeared + 3 s, and (on activity screens) 3 s after the activity is done.
+    const now = Date.now(), done = out.gate === undefined || out.gate;
+    if (done && out.gate !== undefined && !state.doneAt) state.doneAt = now;
+    const nextAt = Math.max(state.readyAt || 0, out.gate === undefined ? 0 : (state.doneAt || Infinity) + 3000);
+    const canNext = state.review || (done && !!state.readyAt && now >= nextAt);
+    clearTimeout(state.nextTimer);
+    if (!state.review && done && now < nextAt && isFinite(nextAt)) state.nextTimer = setTimeout(render, nextAt - now + 30);
     stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s)}${s.pending ? '<span class="pending-tag">⚑ PENDING SIGN-OFF</span>' : ''}${out.html}
       <div class="logo-ph" aria-hidden="true">Logo</div><div class="brandline"></div><div class="footer"><span class="brand">AI Literacy · Level 1</span><span class="conf">Proprietary • Confidential</span><span class="sp"></span>
         <button class="iconbtn" data-act="cc" aria-pressed="${state.cc}" title="Closed captions">CC</button>
         <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
         <button class="navbtn next" data-act="next" ${!canNext || state.i === SCREENS.length - 1 ? 'disabled' : ''}>Next</button></div>`;
     stage.querySelectorAll('[data-d]').forEach(el => { el.style.animationDelay = el.dataset.d + 's'; });
+    if (!state.readyAt) {   // first render of this visit: last item's entrance end + 3 s
+      let last = 0;
+      stage.querySelectorAll('.content *').forEach(el => { const d = parseFloat(el.style.animationDelay); if (!isNaN(d)) last = Math.max(last, d); });
+      state.readyAt = now + (last + 0.6 + 3) * 1000;
+      clearTimeout(state.nextTimer);
+      if (!state.review && !canNext && done) state.nextTimer = setTimeout(render, state.readyAt - now + 30);
+    }
     $('#notes').innerHTML = notesHTML(s, state.i);
     $('#jump').value = state.i;
     document.body.classList.toggle('hide-added', !state.added);
     out.after && out.after($('#stage'));
   }
   function go(i) {
-    state.i = Math.max(0, Math.min(SCREENS.length - 1, i)); state.layer = null; state.shown = null;
+    state.i = Math.max(0, Math.min(SCREENS.length - 1, i)); state.layer = null; state.shown = null; state.readyAt = 0; state.doneAt = 0;
     render(); speak(screenVO(SCREENS[state.i]));
   }
 
