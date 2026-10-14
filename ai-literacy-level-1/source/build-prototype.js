@@ -8,7 +8,7 @@ const safe = o => JSON.stringify(o).replace(/</g, '\\u003c');
 const html = `<title>AI Literacy Level 1 Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
 ${css}
 </style>
@@ -19,7 +19,7 @@ ${css}
     <span class="sp"></span>
     <button id="t-narr" title="Reads the voiceover with your browser's voice. The final course uses Storyline's AI voice.">Narration</button>
     <button id="t-review" title="On: move freely. Off: experience the learner restrictions.">Free navigation</button>
-    <button id="t-added" title="Show purple tags on content that is new and needs your approval">Show NEW tags</button>
+    <button id="t-added" title="Show tags for pending sign-offs and items still to confirm">Show tags</button>
     <button id="t-notes">Designer notes</button>
   </div>
   <div class="main">
@@ -28,7 +28,9 @@ ${css}
       <div class="legend" style="margin-top:10px">
         <span><i style="background:#4278bc"></i>AI: Process blue, dashed outline, mono type</span>
         <span><i style="background:#00b6bd"></i>People: Talent teal, solid</span>
-        <span><i style="background:#7a3cc8"></i>NEW / DRAFT: designer additions that need your approval</span>
+        <span><i style="background:#e07a1f"></i>⚑ Pending sign-off (Legal, HR, Privacy, policy)</span>
+        <span><i style="background:#7a3cc8"></i>NEW: still to confirm</span>
+        <span>Fonts: Aptos family (shown in Aptos if installed on your computer)</span>
         <span>Arrow keys move between screens.</span>
       </div></div>
     <aside class="notes" id="notes" aria-live="polite"></aside>

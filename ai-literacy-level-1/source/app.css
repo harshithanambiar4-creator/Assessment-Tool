@@ -24,9 +24,9 @@
   --alert: #c63b6a;     /* Resource Pro alternative magenta */
   --alert-soft: #f8e2ea;
 
-  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --f-mono: "IBM Plex Mono", Consolas, monospace;
+  --f-display: "Aptos Display", "Aptos", "Segoe UI", "IBM Plex Sans", system-ui, sans-serif;  /* Resource Pro brand font */
+  --f-body: "Aptos", "Segoe UI", "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "Aptos Mono", Consolas, "IBM Plex Mono", monospace;  /* AI output style */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -506,3 +506,15 @@ body { background: var(--shell-bg); color: var(--shell-fg); font-family: var(--f
 .dl-item { display: grid; gap: 4px; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 18px 22px; font-size: 20px; }
 .notes .who { font-size: 12px; color: var(--shell-muted); }
 .dl-card .navbtn.next { background: var(--human); border-color: var(--human); color: var(--ink); }
+
+/* decisions round */
+.atlas-line { margin-top: 22px; font: 400 21px/1.4 var(--f-body); color: #d3d9e4; max-width: 880px; }
+.pending-tag { position: absolute; z-index: 40; right: 48px; top: 60px; font: 700 11px var(--f-mono); letter-spacing: .08em; background: #e07a1f; color: #fff; border-radius: 4px; padding: 3px 8px; }
+.hide-added .pending-tag { display: none; }
+.notes .pend { border-left: 3px solid #e07a1f; padding: 6px 10px; margin: 6px 0; background: color-mix(in srgb, #e07a1f 10%, transparent); border-radius: 0 6px 6px 0; font-weight: 600; }
+.tpane li.noowner { background: var(--human-soft); border-radius: 4px; padding: 0 4px; }
+.xtab { width: 100%; border-collapse: collapse; font-size: 16px; }
+.xtab th { text-align: left; font: 700 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--line); padding: 8px 10px; }
+.xtab td { border-bottom: 1px solid var(--line); padding: 9px 10px; vertical-align: top; }
+.xtab td.ns { color: var(--alert); font-family: var(--f-mono); font-size: 14px; }
+.outof { margin-top: 18px; font-size: 18px; line-height: 1.45; background: var(--alert-soft); border-radius: 10px; padding: 12px 16px; }

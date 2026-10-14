@@ -56,7 +56,7 @@
   }
 
   // ---------- state ----------
-  const state = { i: 0, review: true, cc: true, narr: false, notes: true, added: true, gate: {}, quiz: {}, kcDone: {}, meera: {} };
+  const state = { attempt: 1, i: 0, review: true, cc: true, narr: false, notes: true, added: true, gate: {}, quiz: {}, kcDone: {}, meera: {} };
   const qScreens = SCREENS.map((s, i) => s.layout === 'quiz' ? i : -1).filter(i => i >= 0);
 
   // ---------- chrome ----------
@@ -109,6 +109,7 @@
       <div class="secno in">${String(s.sectionNo).padStart(2, '0')}</div>
       <h2 class="h in" ${st(1, .1, .2)}>${esc(sb(n).title)}</h2>
       <ul>${s.lines.map((t, k) => `<li class="in" ${st(k, .5, .4)}>${esc(t)}</li>`).join('')}</ul>
+      ${s.atlasLine ? `<p class="atlas-line in" ${st(0, 1.2)}>${esc(s.atlasLine)} <span class="added-tag" style="position:static">NEW · TEAM LEAD TO CONFIRM</span></p>` : ''}
       ${s.meera ? `<button class="navbtn next meera-cta in" ${st(0, 1.6)} data-act="meera">${done ? 'Revisit' : 'Meet'} ${CHARACTER.name}'s moment</button>` : ''}
     </div>${s.meera && state.layer === 'meera' ? meeraLayer(s, idx) : ''}`, after: el => {
       if (s.meera && !done && state.layer !== 'meera' && !state.autoMeera[idx]) { state.autoMeera[idx] = true; setTimeout(() => { if (state.i === idx) { state.layer = 'meera'; render(); speak(s.meera.vo); } }, 2600); }
@@ -116,7 +117,7 @@
   };
   function meeraLayer(s, idx) {
     const m = s.meera, pick = state.meera[idx];
-    return `<div class="layer"><span class="added-tag" style="left:24px;top:64px">NEW · NEEDS APPROVAL</span><div class="panel">
+    return `<div class="layer"><div class="panel">
       <div class="meera-fig">${MEERA}<div class="nm">${CHARACTER.name}</div><div class="rl">${CHARACTER.role}</div></div>
       <div><p class="sit">${esc(m.situation)}</p><p class="q">${esc(m.question)}</p>
         <div class="choices">${m.options.map((o, k) => `<button class="choice ${pick === k ? 'sel' : ''}" data-act="mpick" data-k="${k}">${esc(o.label)}</button>`).join('')}</div>
@@ -157,7 +158,7 @@
         return `<button class="rcard in ${o ? 'open' : ''}" ${st(k, .3, .2)} data-act="rev" data-k="${k}" aria-expanded="${o}">
           ${s.icons ? I[s.icons[k]] : ''}<span class="term">${esc(t)}</span>${o ? `<span class="def">${esc(d)}</span>` : '<span class="hint">Select to reveal</span>'}</button>`;
       }).join('')}</div>
-      <div class="instr">${esc(s.instruction)} <span class="added-tag" style="position:static">NEW</span></div></div>` };
+      <div class="instr">${esc(s.instruction)}</div></div>` };
   };
 
   L.beforeAfter = s => ({ html: `<div class="content">${head(15)}<div class="ba">
@@ -189,8 +190,15 @@
   L.notEqual = s => ({ html: `<div class="content">${head(19)}<div class="neq">
     <div class="side l in">${esc(s.left)}</div><div class="sym">≠</div><div class="side r in" ${st(0, .5)}>${esc(s.right)}</div></div></div>` });
 
-  function optsHTML(q, sel, locked) {
-    return `<div class="opts">${q.opts.map((o, k) => `<button class="opt ${sel === k ? 'sel' : ''}" data-act="opt" data-k="${k}" ${locked ? 'disabled' : ''} aria-pressed="${sel === k}"><span class="k">${'ABCD'[k]}</span><span>${esc(o)}</span></button>`).join('')}
+  // seeded shuffle so an attempt keeps its order when a screen re-renders
+  function shuffled(n, seed) {
+    const a = [...Array(n).keys()]; let x = seed * 9301 + 49297;
+    for (let i = n - 1; i > 0; i--) { x = (x * 9301 + 49297) % 233280; const j = Math.floor(x / 233280 * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function optsHTML(q, sel, locked, order) {
+    const ord = order || q.opts.map((_, k) => k);
+    return `<div class="opts">${ord.map((k, pos) => [q.opts[k], k, pos]).map(([o, k, pos]) => `<button class="opt ${sel === k ? 'sel' : ''}" data-act="opt" data-k="${k}" ${locked ? 'disabled' : ''} aria-pressed="${sel === k}"><span class="k">${'ABCD'[pos]}</span><span>${esc(o)}</span></button>`).join('')}
       <button class="navbtn next submit" data-act="submit" ${sel == null || locked ? 'disabled' : ''}>Submit</button></div>`;
   }
   L.kc = (s, idx) => {
@@ -212,9 +220,9 @@
     const res = a.result;
     const label = sb(s.n[0]).title.split('—')[1] || '';
     return { gate: !!res, html: `<div class="content">
-      <div class="qhead"><span class="kc-tag" style="margin:0">Question ${s.qNo} of 8 · ${esc(label.trim())}</span><span class="qprog">${qScreens.map((qi, k) => `<i class="${k + 1 === s.qNo ? 'cur' : state.quiz[qi] && state.quiz[qi].result ? 'on' : ''}"></i>`).join('')}</span></div>
+      <div class="qhead"><span class="kc-tag" style="margin:0">Question ${s.qNo} of 8 · ${esc(label.trim())}</span><span class="kc-tag" style="margin:0">Attempt ${state.attempt} of 2</span><span class="qprog">${qScreens.map((qi, k) => `<i class="${k + 1 === s.qNo ? 'cur' : state.quiz[qi] && state.quiz[qi].result ? 'on' : ''}"></i>`).join('')}</span></div>
       <div class="kc"><div><p class="stem">${q.stem.map(esc).join('<br><br>')}</p><p class="sub">Read the scenario and select the response that best reflects the principles from this course.</p></div>
-      ${optsHTML(q, a.sel, !!res)}</div></div>
+      ${optsHTML(q, a.sel, !!res, shuffled(4, s.qNo * 7 + state.attempt * 31))}</div></div>
       ${res && state.layer !== 'closed' ? `<div class="fb"><div class="box ${res === 'ok' ? '' : 'bad'}"><p class="ttl">${res === 'ok' ? 'Correct' : 'Incorrect'}</p><p>${esc(res === 'ok' ? fb.c.replace(/^Correct\.\s*/, '') : fb.w)}</p><button class="navbtn next" data-act="next">Continue</button></div></div>` : ''}`,
       onSubmit: () => { a.result = a.sel === answerKey(s.n[0]) ? 'ok' : 'bad'; state.quiz[idx] = a; render(); speak(a.result === 'ok' ? fb.vc : fb.vw); } };
   };
@@ -270,7 +278,7 @@
     const on = state.gate[idx] || [];
     return { gate: on.length === s.items.length, html: `<div class="content">${head(39)}<div class="check-list">${s.items.map((t, k) =>
       `<button class="chk in ${on.includes(k) ? 'on' : ''}" ${st(k, .3, .3)} data-act="rev" data-k="${k}" aria-pressed="${on.includes(k)}"><span class="box">✓</span><span><span class="n">0${k + 1}</span>${esc(t)}</span></button>`).join('')}</div>
-      <div class="instr">${esc(s.instruction)} <span class="added-tag" style="position:static">NEW</span></div></div>` };
+      <div class="instr">${esc(s.instruction)}</div></div>` };
   };
 
   L.categories = s => ({ html: `<div class="content">${head(40)}<div class="cats" style="grid-template-columns:repeat(${s.items.length > 5 ? 4 : s.items.length},1fr)">${s.items.map((t, k) => `<div class="cat" ${st(k, .4, .35)}>${I.lock('#00b6bd')}${t}</div>`).join('')}</div></div>` });
@@ -294,7 +302,7 @@
     const used = Object.values(g.pick).map(v => v.t);
     const last = g.result === 'bad' && g.tries >= 2;
     const full = `${s.slots[0].right} ${s.base} ${s.slots.slice(1).map(x => x.right).join(' ')}`;
-    return { gate: g.result === 'ok' || last, html: `<span class="added-tag" style="right:24px;top:64px">NEW · OPTION CARDS NEED APPROVAL</span><div class="content">${head(s.n[0], 'Practice · not scored')}
+    return { gate: g.result === 'ok' || last, html: `<div class="content">${head(s.n[0], 'Practice · not scored')}
       <div class="dp">
         <div><div class="dp-base"><span class="term">START WITH</span><p>${esc(s.base)}</p></div>
           <div class="dp-slots">${s.slots.map((sl, k) => `<button class="dslot ${g.pick[k] ? 'full' : ''} ${g.active != null ? 'armed' : ''}" data-act="dslot" data-k="${k}" ${g.result ? 'disabled' : ''}><span class="term">${sl.part}</span><span>${g.pick[k] ? esc(g.pick[k].t) : 'Drop a piece here'}</span></button>`).join('')}</div></div>
@@ -352,12 +360,12 @@
   L.tryIt = (s, idx) => {
     const g = state.gate[idx] || { seen: [], cur: null };
     state.gate[idx] = g;
-    const draft = '<span class="added-tag" style="position:static;margin-left:8px">DRAFT · NEEDS APPROVAL</span>';
     const panes = [
-      `<h3>${esc(s.tabs[0][1])}</h3><p>${esc(s.tabs[2][1])}.</p><p><b>${esc(s.tabs[3][1])}.</b></p>`,
-      `<h3>${esc(s.notesTitle)}${draft}</h3><ul>${s.notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul><p style="color:#5a5c61;font-size:14px;margin-top:12px">Names are fictional.</p>`,
-      `<h3>Prompt for Atlas${draft}</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
-      `<h3>Review before you use it${draft}</h3><ol>${s.check.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
+      `<h3>${esc(s.tabs[0][1])}</h3><p>${esc(s.scenario)}</p><p><b>${esc(s.tabs[3][1])}.</b></p>`,
+      `<h3>${esc(s.notesTitle)}</h3><ul>${s.notes.map(t => `<li${t === s.noOwnerLine ? ' class="noowner"' : ''}>${esc(t)}</li>`).join('')}</ul><p style="color:#5a5c61;font-size:14px;margin-top:12px">Names are fictional.</p>`,
+      `<h3>Prompt for Atlas</h3><div class="mono-box" id="prompt-box">${esc(s.prompt)}</div><button class="minibtn" data-act="copy">Copy prompt</button>`,
+      `<h3>Expected action items</h3><table class="xtab"><thead><tr><th>Action</th><th>Owner</th><th>Due date</th></tr></thead><tbody>${s.expected.map(r => `<tr>${r.map(c => `<td${c === 'Not specified' ? ' class="ns"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+       <p style="margin:14px 0 6px"><b>Before you use the output, ask:</b></p><ol>${s.check.map(t => `<li>${esc(t)}</li>`).join('')}</ol>`,
     ];
     return { gate: g.seen.length === 4, html: `<div class="content">${head(60, 'Hands-on or guided practice')}
       <div class="tryit"><div class="tabs">${s.tabs.map(([t, d], k) => `<button class="tab ${g.cur === k ? 'cur' : ''} ${g.seen.includes(k) ? 'seen' : ''}" data-act="tab" data-k="${k}"><span class="term">${t}</span><span>${esc(d)}</span></button>`).join('')}
@@ -368,7 +376,7 @@
   L.assessIntro = s => ({ dark: true, html: `<div class="content opener" style="justify-content:center">
     <div class="eyebrow">${esc(sb(63).title)}</div><h2 class="h in" style="font-size:72px">${esc(s.lines[0])}</h2>
     <p class="lead in" ${st(0, .6)}>${esc(s.lines[1])}</p>
-    <div class="chips in" ${st(0, 1.2)}>${s.info.map(t => `<span>${esc(t)}</span>`).join('')}<span class="added-tag" style="position:static;align-self:center">NEW</span></div></div>` });
+    <div class="chips in" ${st(0, 1.2)}>${s.info.map(t => `<span>${esc(t)}</span>`).join('')}</div></div>` });
 
   L.results = (s, idx) => {
     const answered = qScreens.filter(i => state.quiz[i] && state.quiz[i].result);
@@ -385,7 +393,7 @@
       <div style="flex:1;min-width:0"><h2 class="h" style="margin-bottom:10px">${pass ? 'Pass' : 'Not yet'}</h2><p class="lead">${esc(pass ? pl : nl)}</p>
       ${pass ? '<button class="navbtn next" style="margin-top:22px" data-act="next">Continue</button>' : `
         <div class="secbtns">${SECTIONS.slice(0, 7).map((sec, k) => `<button class="secbtn ${missed.has(k) ? 'miss' : ''}" data-act="gosec" data-k="${k}" ${missed.has(k) ? '' : 'hidden'}>Review: ${esc(sec.label)}</button>`).join('')}</div>
-        <button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment</button>`}</div></div>`}</div>` };
+        ${state.attempt < 2 ? `<button class="navbtn next" style="margin-top:18px" data-act="retake">Retry assessment (attempt 2 of 2)</button>` : `<p class="outof">${esc(s.outOfAttempts)} <span class="added-tag" style="position:static">NEW · CONFIRM</span></p>`}`}</div></div>`}</div>` };
   };
 
   L.awareClose = s => ({ dark: true, html: `<div class="content"><div class="eyebrow">${esc(sb(80).title)}</div>
@@ -422,7 +430,7 @@
   }
   function screenVO(s) {
     if (s.layout === 'results') return '';
-    return s.n.length ? sb(s.n[0]).vo : '';
+    return s.voOverride || (s.n.length ? sb(s.n[0]).vo : '');
   }
 
   // ---------- notes drawer ----------
@@ -431,20 +439,24 @@
     const flags = FLAGS.filter(f => f.slides.some(x => ns.includes(x) || (x === 'results' && s.layout === 'results')));
     const original = ns.map(n => `<b>${n}</b> ${esc(sb(n).title)}${/[a-z]$/.test(n) ? ' <i>(new slide from the review)</i>' : ''}`).join('<br>');
     const merged = { 25: 26, 30: 31, 34: 35 }[ns[0]];
-    const vo = ns.length ? sb(ns[0]).vo : '';
+    const vo = s.voOverride || sb(ns[0]).vo;
     const added = [];
     if (s.meera) added.push(`<b>${CHARACTER.name}'s moment</b> (layer). Voiceover: “${esc(s.meera.vo)}”`);
     if (s.instructionAdded) added.push(`Instruction line: “${esc(s.instruction)}”`);
     if (s.infoAdded) added.push(`Info chips: ${s.info.map(esc).join(' · ')}`);
-    if (s.layout === 'dragPrompt') added.push('The eight option cards and the "stronger prompt" are designer drafts. The review asked for them but did not write them.');
-    if (s.layout === 'tryIt') added.push('Sample notes, prompt and review questions are designer drafts. The review removed the old example and did not supply new ones.');
+    if (s.designed) added.push(esc(s.designed));
+    if (s.override) added.push(esc(s.override));
+    if (s.atlasLine) added.push(`Atlas description: “${esc(s.atlasLine)}” (requested by the review; team lead to confirm)`);
+    if (s.layout === 'tryIt') added.push('Notes, prompt and expected output come from the original Atlas practical example (Karthika renamed Neha). Added one action with no owner: “' + esc(s.noOwnerLine) + '”.');
     if (s.layout === 'kc') added.push('After a second wrong answer the layer shows the correct answer and Continue (the review limits retries to one).');
+    if (s.outOfAttempts) added.push(`Message after two failed attempts: “${esc(s.outOfAttempts)}”`);
     return `<h2>Screen ${idx + 1} of ${SCREENS.length}</h2><p class="src">Storyboard slide${ns.length > 1 ? 's' : ''}:<br>${original}${merged ? `<br>Includes old slide ${merged} (merged by the review)` : ''}</p>
-      ${added.length ? `<h3>Added — needs your approval</h3>${added.map(a => `<div class="new">${a}</div>`).join('')}` : ''}
+      ${s.pending ? `<h3>Pending sign-off before build</h3><div class="pend">${esc(s.pending)}</div>` : ''}
+      ${added.length ? `<h3>Designer additions and changes</h3>${added.map(a => `<div class="new">${a}</div>`).join('')}` : ''}
       ${flags.length ? `<h3>Flag for your decision</h3>${flags.map(f => `<div class="flag"><b>${esc(f.text)}</b>Suggestion: ${esc(f.fix)}<br><span class="who">Decision: ${esc(f.who)}</span></div>`).join('')}` : ''}
       <h3>How to build it in Storyline</h3><p>${esc(s.storyline || '')}</p>
       ${ns.length ? `<h3>Storyboard build note</h3><p class="src">${esc(sb(ns[0]).build.split('\n\n')[0])}</p>` : ''}
-      ${vo ? `<h3>Voiceover (reviewed storyboard)</h3><p class="vo">${esc(vo)}</p>` : ''}`;
+      ${vo ? `<h3>${s.voOverride ? 'Voiceover (designer rewrite built from the original script; replaces the reviewed text; team lead to confirm)' : 'Voiceover (reviewed storyboard)'}</h3><p class="vo">${esc(vo)}</p>` : ''}`;
   }
 
   // ---------- render ----------
@@ -458,7 +470,7 @@
     stage.className = 'stage' + (out.dark ? ' dark' : '') + (state.shown === state.i ? ' static' : '');
     state.shown = state.i;
     const canNext = state.review || out.gate === undefined || out.gate;
-    stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s)}${out.html}
+    stage.innerHTML = `${out.chrome === false ? '' : pathHTML(s.section) + badgeHTML(s)}${s.pending ? '<span class="pending-tag">⚑ PENDING SIGN-OFF</span>' : ''}${out.html}
       <div class="footer"><span class="brand">AI Literacy · Level 1</span><span>${state.i + 1} / ${SCREENS.length}</span><span class="sp"></span>
         <button class="iconbtn" data-act="cc" aria-pressed="${state.cc}" title="Closed captions">CC</button>
         <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
@@ -499,7 +511,7 @@
     else if (act === 'dretry') { const g = state.gate[state.i]; g.result = null; Object.keys(g.pick).forEach(j => { if (!(g.pick[j].ok && g.pick[j].k === +j)) delete g.pick[j]; }); render(); }
     else if (act === 'gosec') go(SCREENS.findIndex(x => x.layout === 'opener' && x.section === k));
     else if (act === 'retry') { state.kc[state.i] = { tries: state.kc[state.i].tries }; render(); }
-    else if (act === 'retake') { qScreens.forEach(i => delete state.quiz[i]); go(qScreens[0]); }
+    else if (act === 'retake') { qScreens.forEach(i => delete state.quiz[i]); state.attempt++; go(qScreens[0]); }
   });
   document.addEventListener('keydown', e => {
     if (e.target.closest('select')) return;
@@ -509,7 +521,7 @@
 
   // ---------- toolbar ----------
   const jump = $('#jump');
-  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${i + 1}. ${esc(sb(s.n[0]).title)}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
+  jump.innerHTML = SCREENS.map((s, i) => `<option value="${i}">${s.pending ? '⚑ ' : ''}${i + 1}. ${esc(sb(s.n[0]).title)}${s.n.length > 1 ? ' + feedback' : ''}</option>`).join('');
   jump.addEventListener('change', () => go(+jump.value));
   const tog = (id, key, fn) => { const b = $(id); b.setAttribute('aria-pressed', state[key]); b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', state[key]); fn && fn(); render(); }); };
   tog('#t-review', 'review', () => { jump.disabled = !state.review; });

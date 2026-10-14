@@ -48,7 +48,6 @@ S.push({ n: [4], layout: 'aware', section: null,
 S.push({ n: [5], layout: 'opener', section: 0, sectionNo: 1,
   lines: ['What is AI?', 'How does generative AI work at a high level?', 'What language will you hear when people talk about AI?'],
   meera: {
-    added: true,
     situation: 'Meera\'s manager says, "Just ask the AI. It knows everything." Meera has used a chatbot twice and isn\'t sure what "the AI" actually is.',
     question: 'What would you want to understand first?',
     options: [
@@ -98,7 +97,6 @@ S.push({ n: [12, 13], layout: 'kc', section: 0,
 S.push({ n: [14], layout: 'opener', section: 1, sectionNo: 2,
   lines: ['AI can support many kinds of work.', 'But capability does not equal reliability.'],
   meera: {
-    added: true,
     situation: 'Meera asks AI to summarize 40 pages of survey comments. The summary is polished, and it includes a statistic she has not seen before.',
     question: 'What should Meera do with the summary?',
     options: [
@@ -137,7 +135,6 @@ S.push({ n: [20, 21], layout: 'kc', section: 1, storyline: 'Same knowledge-check
 S.push({ n: [22], layout: 'opener', section: 2, sectionNo: 3,
   lines: ['Think  •  Create  •  Understand  •  Explore', 'AI supports the work. People own the work.'],
   meera: {
-    added: true,
     situation: 'Meera needs ideas for a learning campaign by Friday. A colleague suggests letting AI choose the campaign.',
     question: 'How should Meera use AI here?',
     options: [
@@ -168,7 +165,6 @@ S.push({ n: [27, 28], layout: 'kc', section: 2, storyline: 'Same knowledge-check
 S.push({ n: [29], layout: 'opener', section: 3, sectionNo: 4,
   lines: ['Pause before you trust the output.', 'Check accuracy. Consider fairness. Respect intellectual property. Review use. Keep human accountability.'],
   meera: {
-    added: true,
     situation: 'An AI tool recommends which three employees should join a leadership programme. Meera\'s manager wants the list today.',
     question: 'What is Meera\'s next step?',
     options: [
@@ -187,8 +183,9 @@ S.push({ n: [30], layout: 'steps', section: 3,
 
 S.push({ n: ['30a'], layout: 'hotspot', section: 3,
   intro: 'An AI draft says (fictional example):',
-  text: 'Our travel policy was updated in March 2022. It allows up to $75 per day for meals, as stated in Section 4.2 of the handbook.',
-  claims: ['March 2022', '$75 per day', 'Section 4.2'],
+  text: 'Our travel policy was updated in March 2022. It allows up to ₹2,000 per day for meals, as stated in Section 4.2 of the handbook.',
+  claims: ['March 2022', '₹2,000 per day', 'Section 4.2'],
+  override: 'Currency changed from $75 to ₹2,000 for learners in India (course owner decision).',
   prompt: 'Select every claim you would verify.',
   storyline: 'New slide from the review. Put the sentence in one text box, then draw three transparent rectangles over the claims. Each rectangle has Normal and Selected states (Selected = teal underline + fill). Submit button: if all three are Selected, show layer Correct; otherwise show layer Incorrect. Number variable Attempts30a: on the second wrong attempt the Incorrect layer shows all three claims highlighted and a Continue button. Unscored.' });
 
@@ -199,11 +196,13 @@ S.push({ n: [32], layout: 'balance', section: 3,
 S.push({ n: [33], layout: 'checks3', section: 3,
   intro: 'Before you use or share AI-generated content:',
   checks: [['CHECK', 'Does it copy or closely resemble protected material?'], ['REVIEW', 'Who owns it, and what permissions apply?'], ['CONFIRM', 'Does your organization allow this use?']],
+  pending: 'Legal review of the intellectual-property wording (on screen and voiceover).',
   storyline: 'Three check cards, each with its question. Each gets a tick on its narration cue. Do not add legal claims (wording pending legal review).' });
 
 S.push({ n: [34], layout: 'gate', section: 3,
   text: 'Do not delegate sensitive decisions or accountability to AI.', sub: 'Especially when decisions affect people or carry significant consequences.',
   closing: ['AI can assist.', 'Humans remain accountable.'],
+  pending: 'Legal and HR review of the voiceover sentences on laws for employee decisions and on being open about AI use.',
   storyline: 'Merged with old slide 35. Decision-gate visual: the AI path stops at a gate; only the human path continues. Then a full-width navy band slides up with "AI can assist." (light blue) "Humans remain accountable." (teal). Reuse this band on slide 80.' });
 
 S.push({ n: [36, 37], layout: 'kc', section: 3, storyline: 'Same knowledge-check pattern as slide 12.' });
@@ -212,7 +211,6 @@ S.push({ n: [36, 37], layout: 'kc', section: 3, storyline: 'Same knowledge-check
 S.push({ n: [38], layout: 'opener', section: 4, sectionNo: 5,
   lines: ['Before you share information with an AI tool, stop and assess the information, the tool, and your permission to use it.'],
   meera: {
-    added: true,
     situation: 'Meera wants AI to help her draft feedback for a team member. The full performance review is open on her screen.',
     question: 'What should Meera do before pasting anything?',
     options: [
@@ -231,6 +229,7 @@ S.push({ n: [39], layout: 'checklist', section: 4,
 
 S.push({ n: [40], layout: 'categories', section: 4,
   items: ['CONFIDENTIAL', 'SENSITIVE', 'EMPLOYEE', 'CANDIDATE', 'PERSONAL', 'CLIENT', 'PROPRIETARY', 'CREDENTIALS'],
+  pending: 'Privacy check: do Client, Proprietary and Credentials match the data-classification policy?',
   storyline: 'Eight category cards in two rows of four, each with a small lock. Recognition only, no policy detail. Categories pending your data-classification check.' });
 
 S.push({ n: [41], layout: 'threeGate', section: 4,
@@ -243,6 +242,7 @@ S.push({ n: [42], layout: 'stages', section: 4,
 
 S.push({ n: ['42a'], layout: 'recover', section: 4,
   steps: [['STOP', 'Stop using that conversation'], ['REPORT', 'Tell [approved contact] right away'], ['LEARN', 'Reporting early helps limit harm']],
+  pending: 'Replace [approved contact] in the on-screen text and voiceover with the real contact and process from policy.',
   storyline: 'New slide from the review. Three-step process reusing the lock motif from slide 42. Replace [approved contact] with the real contact from your policy before you build. Do not guess.' });
 
 S.push({ n: [43, 44], layout: 'kc', section: 4, storyline: 'Same knowledge-check pattern as slide 12.' });
@@ -251,7 +251,6 @@ S.push({ n: [43, 44], layout: 'kc', section: 4, storyline: 'Same knowledge-check
 S.push({ n: [45], layout: 'opener', section: 5, sectionNo: 6,
   lines: ['A useful prompt gives AI enough information to interpret what you need.'],
   meera: {
-    added: true,
     situation: 'Meera typed "Write an email" and got something generic that she can\'t use.',
     question: 'What should she try next?',
     options: [
@@ -281,21 +280,21 @@ S.push({ n: [52], layout: 'compare', section: 5,
 S.push({ n: ['52a'], layout: 'dragPrompt', section: 5,
   base: 'Summarize this document.',
   slots: [
-    { part: 'CONTEXT', right: 'This is our 12-page quarterly employee engagement survey report.', wrong: 'Here is a file.' },
-    { part: 'AUDIENCE', right: 'Write it for the leadership team.', wrong: 'Write it for anyone.' },
-    { part: 'OUTPUT', right: 'Use five bullet points.', wrong: 'Use whatever format works.' },
-    { part: 'CONSTRAINTS', right: 'Keep it under 120 words, in a neutral tone, with no employee names.', wrong: 'Make it good.' },
+    { part: 'CONTEXT', right: 'This is our quarterly employee engagement survey report.', wrong: 'Here is a file.' },
+    { part: 'AUDIENCE', right: 'The summary is for our leadership team.', wrong: 'It is for anyone.' },
+    { part: 'OUTPUT', right: 'Highlight three key actions.', wrong: 'Use whatever format works.' },
+    { part: 'CONSTRAINTS', right: 'Keep it concise, professional, and under 100 words.', wrong: 'Make it good.' },
   ],
-  added: true,
-  storyline: 'New slide from the review. Insert > Convert to Freeform > Drag and Drop. Drag items: the 8 option cards (fictional, drafted by the designer, needs approval). Drop targets: 4 slots labelled CONTEXT, AUDIENCE, OUTPUT, CONSTRAINTS. In Form View, match each correct card to its slot; distractors have no target. Options: "Snap dropped items to drop target", "Allow only one item in each drop target". Attempts: 2. Correct/Incorrect layers use the slide 52a feedback; the Correct layer also shows the full stronger prompt. Unscored.' });
+  designed: 'Option cards written by the designer to match assessment question 5 (approved by course owner).',
+  storyline: 'New slide from the review. Insert > Convert to Freeform > Drag and Drop. Drag items: the 8 option cards. Drop targets: 4 slots labelled CONTEXT, AUDIENCE, OUTPUT, CONSTRAINTS. In Form View, match each correct card to its slot; distractors have no target. Options: "Snap dropped items to drop target", "Allow only one item in each drop target". Attempts: 2. Correct/Incorrect layers use the slide 52a feedback; the Correct layer also shows the full stronger prompt. Unscored.' });
 
 S.push({ n: [53, 54], layout: 'kc', section: 5, storyline: 'Same knowledge-check pattern as slide 12.' });
 
 // ---------- Agents ----------
 S.push({ n: [55], layout: 'opener', section: 6, sectionNo: 7,
   lines: ['From a single response to a defined task'],
+  atlasLine: 'Atlas is our approved AI platform. Its Agent Builder lets you set up simple agents for defined tasks.',
   meera: {
-    added: true,
     situation: 'After every team meeting, Meera pulls out the action items and emails each owner a reminder.',
     question: 'What could help most?',
     options: [
@@ -326,40 +325,53 @@ S.push({ n: [59], layout: 'atlasSteps', section: 6,
 
 S.push({ n: [60], layout: 'tryIt', section: 6,
   tabs: [['SCENARIO', 'Meeting action tracker'], ['INPUT', 'Fictional sample meeting notes (no real names or data)'], ['TASK', 'Identify action, owner, and due date, then draft a reminder for each owner'], ['OUTPUT', 'Action-item table and draft reminders for human review']],
-  added: true,
-  notesTitle: 'Learning Team Weekly Sync (fictional)',
+  voOverride: 'Now it is your turn to try the concept using a familiar Talent workflow. We will create an agent that turns meeting notes into an action-item table, with the action, owner, and due date, and then drafts a reminder for each owner. The important rule is that the agent must use only the information in the meeting notes. If an owner or due date is not provided, it must not invent one. Then review the result before you use it.',
+  scenario: 'Turn the notes from a team meeting into an action-item table, then draft a reminder for each owner. The agent must use only the information in the notes. If an owner or due date is not provided, it must not invent one.',
+  notesTitle: 'Sample meeting notes',
   notes: [
-    'Ravi will update the onboarding checklist. Due: 18 November.',
-    'Anjali will book the room for the December workshop. Due: 22 November.',
-    'The team agreed to move the quarterly survey to January.',
-    'Someone needs to send the survey link to managers. No owner or date was agreed.',
+    'Purpose: Business Writing Team Connect',
+    'The team reviewed the October Tip 3 content and finalized the version for sharing.',
+    'The finalized Tip 3 should be shared with the team. Owner: Team. Deadline: October 2.',
+    'Neha demonstrated the AI Agent Builder feature in Atlas and walked the team through an R&R Auditor Agent she created.',
+    'Neha will share the R&R Auditor Agent prompt and demonstration details with the team. Deadline: October 2.',
+    'Neha walked the team through the AI presentation prepared for Talent Development.',
+    'The November Tip 4 topic still needs to be finalized.',
+    'No announcements or minority views were recorded.',
   ],
-  prompt: 'Review the meeting notes below. Create a table with three columns: Action, Owner, Due date. Use only information stated in the notes. If an owner or due date is not stated, write "Not specified". Then draft a short, friendly reminder email for each owner that has a due date.',
+  noOwnerLine: 'The November Tip 4 topic still needs to be finalized.',
+  prompt: 'Create an action-item table from the meeting notes below, with three columns: Action, Owner, and Due date. Then draft a short reminder for each owner. Use only information explicitly stated in the meeting notes. Do not infer or invent owners, deadlines, decisions, or other details. If an owner or due date is not supported by the notes, mark it as Not specified, and do not draft a reminder for that action. Keep the wording concise and professional while preserving the meaning of the original notes.',
+  expected: [
+    ['Share the finalized October Tip 3', 'Team', 'October 2'],
+    ['Share the R&R Auditor Agent prompt and demonstration details', 'Neha', 'October 2'],
+    ['Finalize the November Tip 4 topic', 'Not specified', 'Not specified'],
+  ],
   check: [
-    'Did the agent list only actions that are in the notes?',
-    'Did it write "Not specified" for the survey-link action instead of inventing an owner?',
-    'Are the owners and dates correct?',
+    'Did the agent capture the actions that are actually in the notes?',
+    'Are the owners and due dates in the right columns?',
+    'Did it invent any owner, deadline, decision, or viewpoint? Check the Tip 4 action.',
     'Are the reminders accurate and appropriate to send?',
+    'What would you correct before sending them?',
   ],
-  storyline: 'Base layer: four tab buttons (Scenario, Input, Task, Output), each opening its own layer. Track visited tabs with True/False variables; enable Next when all four are visited. The sample notes, prompt and review questions are designer drafts (needs approval) because the review removed the old Talent meeting-summary example. Confirm Atlas can run this two-step task.' });
+  storyline: 'Base layer: four tab buttons (Scenario, Input, Task, Output), each opening its own layer. Track visited tabs with True/False variables; enable Next when all four are visited. Notes, prompt and expected output come from the original Atlas practical example (Karthika renamed Neha), with one added action that has no owner. Atlas can run the two-step task (confirmed by course owner). Record your own Atlas walkthrough for slide 58.' });
 
 S.push({ n: [61, 62], layout: 'kc', section: 6, storyline: 'Same knowledge-check pattern as slide 12.' });
 
 // ---------- Assessment ----------
 S.push({ n: [63], layout: 'assessIntro', section: 7,
   lines: ['Show what you know.', 'The assessment tests understanding and judgment, not simple recall.'],
-  info: ['8 questions', 'Pass mark 80% (7 of 8)', 'Unlimited attempts'], infoAdded: true,
+  info: ['8 questions', 'Pass mark 80% (7 of 8)', '2 attempts'], infoAdded: true,
   storyline: 'Clean transition into the assessment. The three info chips are new: they tell learners the rules before they start.' });
 
 const QSECTION = [0, 1, 3, 4, 5, 3, 2, 6]; // section each question checks, for "review this section" routing
 [[64, 65], [66, 67], [68, 69], [70, 71], [72, 73], [74, 75], [76, 77], [78, 79]].forEach(([q, l], i) =>
   S.push({ n: [q, l], layout: 'quiz', section: 7, qNo: i + 1, reviewSection: QSECTION[i],
     storyline: i === 0
-      ? 'Graded Pick One question (Insert > New Slide > Quizzing > Graded Question > Pick One). Points: 10 each. Attempts: 1. Feedback by question, using the slide ' + l + ' text on the Correct and Incorrect layers (record the two feedback clips separately, without reading the labels). The Continue button on each layer goes to the next question. Do not shuffle answers.'
+      ? 'Graded Pick One question (Insert > New Slide > Quizzing > Graded Question > Pick One). Points: 10 each. Attempts: 1. Feedback by question, using the slide ' + l + ' text on the Correct and Incorrect layers (record the two feedback clips separately, without reading the labels). The Continue button on each layer goes to the next question. Shuffle: Answers (in the question\'s Form View, Shuffle > Answers), as the review recommends.'
       : 'Same graded pattern as question 1.' }));
 
 S.push({ n: ['79a'], layout: 'results', section: 7,
-  storyline: 'Insert > New Slide > Quizzing > Result Slide > Graded Results Slide (all 8 questions, passing score 80%). Success layer: Continue to slide 80; the LMS records completion. Failure layer: seven "Review" buttons, one per section, each jumping to that section opener, plus Retry Quiz (resets the results). Show each Review button only if the matching question was answered wrong: use the question\'s "Show when" condition on the built-in question result, or set a True/False variable on each Incorrect layer.' });
+  outOfAttempts: 'You have used both attempts. Your result has been recorded. Please contact your L&D team for next steps.',
+  storyline: 'Insert > New Slide > Quizzing > Result Slide > Graded Results Slide (all 8 questions, passing score 80%). Success layer: Continue to slide 80; the LMS records completion. Results slide properties: Attempts = 2. Failure layer: seven "Review" buttons, one per section, each jumping to that section opener, plus Retry Quiz (resets the results). Show Retry Quiz only while attempts remain (the built-in Results.ScorePercent / attempts variables, or your own number variable QuizAttempts +1 on Retry). After the second failed attempt, show the "attempts used" message instead. Show each Review button only if the matching question was answered wrong: use the question\'s "Show when" condition on the built-in question result, or set a True/False variable on each Incorrect layer.' });
 
 // ---------- Close ----------
 S.push({ n: [80], layout: 'awareClose', section: null,
@@ -375,19 +387,12 @@ S.push({ n: [81], layout: 'levels', section: null,
   levels: [['LEVEL 1', 'Understand', 'Build the foundation'], ['LEVEL 2', 'Use', 'Use AI in everyday work'], ['LEVEL 3', 'Apply', 'Apply AI within your function'], ['LEVEL 4', 'Improve and Transform', 'Redesign and scale AI-enabled work']],
   storyline: 'Four connected level cards. Level 1 shows a "Complete" tick. Add an Exit Course button (trigger: Exit course) if your LMS needs one.' });
 
-// Open questions on the reviewed storyboard. `who` says who has to answer.
+// Still open after the course owner's decisions. `who` says who has to answer.
 const FLAGS = [
-  { slides: [60], who: 'Team lead', text: 'The slide 60 voiceover is written to the course builder, not the learner ("For the learner experience, use a simple meeting action tracker. Give the agent…"). Read aloud by the AI voice, it will sound wrong.', fix: 'Rewrite it for learners, for example: "Now try a simple agent: give it meeting notes, let it build an action-item table and draft reminders, then review what it produced."' },
-  { slides: ['42a'], who: 'Team lead / Privacy', text: 'Slide 42a has a placeholder: "[approved contact]". The slide cannot be built until the real contact and process are named.', fix: 'Get the contact and process from your privacy or security policy.' },
-  { slides: [33, 34], who: 'Legal / HR', text: 'The review asks for legal review of the intellectual-property wording (slide 33) and the new sentences about laws on employee decisions and being open about AI use (slide 34).', fix: 'Send slides 33 and 34 to Legal and HR before recording audio.' },
-  { slides: [40], who: 'Privacy', text: 'Three information categories were added (Client, Proprietary, Credentials).', fix: 'Confirm they match your data-classification policy.' },
-  { slides: [55], who: 'Team lead', text: 'The review notes that Atlas is never described for learners.', fix: 'Add one line, for example "Atlas is our approved AI platform for building agents."' },
-  { slides: [60], who: 'You', text: 'The review replaced the Talent meeting-summary example with a meeting action tracker but gave no sample notes or prompt. The prototype shows designer drafts.', fix: 'Approve or edit the drafted notes and prompt, and confirm Atlas can run the two-step task.' },
-  { slides: ['52a'], who: 'You', text: 'The drag-and-drop practice needs its option cards, which the review did not write. The prototype shows designer drafts.', fix: 'Approve or edit the eight option cards.' },
-  { slides: ['30a'], who: 'You', text: 'The practice example uses dollars ("$75 per day"). Learners are in India.', fix: 'Use rupees, for example "₹2,000 per day".' },
-  { slides: [63, '79a'], who: 'You', text: 'The review suggests 2 attempts and shuffled answer order, which differs from your decision (unlimited attempts, no shuffling). The prototype follows your decision. 80% of 8 still means 7 correct.', fix: 'Confirm which rules apply.' },
-  { slides: [66, 68, 70, 74], who: 'Team lead', text: 'The review itself notes that questions 2, 3, 4 and 6 still mirror earlier knowledge checks, and the correct answer is often the longest option.', fix: 'Optional: rewrite these four as new scenarios.' },
-  { slides: ['79a'], who: 'You', text: 'The results voiceover holds both outcomes in one script ("[Pass layer] … [Not yet layer] …").', fix: 'Record it as two clips, one per layer. Already set up this way in the prototype.' },
+  { slides: [60], who: 'Team lead', text: 'The slide 60 voiceover has been replaced with a learner-facing version built from the original script (the reviewed text was written to the course builder).', fix: 'Team lead to confirm the new wording before audio is recorded.' },
+  { slides: [55], who: 'Team lead', text: 'Added the one-line Atlas description the review asked for.', fix: 'Team lead to confirm the wording.' },
+  { slides: ['79a'], who: 'You', text: 'With 2 attempts, learners who fail twice need a next step. The prototype shows a drafted message pointing them to the L&D team.', fix: 'Confirm the message and who learners should contact.' },
+  { slides: [66, 68, 70, 74], who: 'Team lead', text: 'The review itself notes that questions 2, 3, 4 and 6 still mirror earlier knowledge checks.', fix: 'Optional: rewrite these four as new scenarios.' },
   { slides: [32, 33], who: 'Team lead', text: 'The review notes that bias/fairness and intellectual property have no assessment question.', fix: 'Optional: add one question for each.' },
 ];
 
