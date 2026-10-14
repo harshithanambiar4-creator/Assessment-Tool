@@ -533,10 +533,10 @@
     const stage = $('#stage');
     stage.className = 'stage' + (out.dark ? ' dark' : '') + (state.shown === state.i ? ' static' : '');
     state.shown = state.i;
-    // Next waits until every item has appeared + 3 s, and (on activity screens) 3 s after the activity is done.
+    // Next waits until every item has appeared + 2 s, and (on activity screens) 2 s after the activity is done.
     const now = Date.now(), done = out.gate === undefined || out.gate;
     if (done && out.gate !== undefined && !state.doneAt) state.doneAt = now;
-    const nextAt = Math.max(state.readyAt || 0, out.gate === undefined ? 0 : (state.doneAt || Infinity) + 3000);
+    const nextAt = Math.max(state.readyAt || 0, out.gate === undefined ? 0 : (state.doneAt || Infinity) + 2000);
     const canNext = state.review || (done && !!state.readyAt && now >= nextAt);
     clearTimeout(state.nextTimer);
     if (!state.review && done && now < nextAt && isFinite(nextAt)) state.nextTimer = setTimeout(render, nextAt - now + 30);
@@ -546,10 +546,10 @@
         <button class="navbtn" data-act="prev" ${state.i === 0 ? 'disabled' : ''}>Previous</button>
         <button class="navbtn next" data-act="next" ${!canNext || state.i === SCREENS.length - 1 ? 'disabled' : ''}>Next</button></div>`;
     stage.querySelectorAll('[data-d]').forEach(el => { el.style.animationDelay = el.dataset.d + 's'; });
-    if (!state.readyAt) {   // first render of this visit: last item's entrance end + 3 s
+    if (!state.readyAt) {   // first render of this visit: last item's entrance end + 2 s
       let last = 0;
       stage.querySelectorAll('.content *').forEach(el => { const d = parseFloat(el.style.animationDelay); if (!isNaN(d)) last = Math.max(last, d); });
-      state.readyAt = now + (last + 0.6 + 3) * 1000;
+      state.readyAt = now + (last + 0.6 + 2) * 1000;
       clearTimeout(state.nextTimer);
       if (!state.review && !canNext && done) state.nextTimer = setTimeout(render, state.readyAt - now + 30);
     }
