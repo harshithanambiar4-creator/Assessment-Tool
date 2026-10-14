@@ -25,6 +25,8 @@ C = {k: RGBColor.from_string(v) for k, v in dict(
     orange='E07A1F').items()}
 HEAD, BODY, MONO = 'Aptos Display', 'Aptos', 'Aptos Mono'
 px = lambda v: Emu(int(round(v * 9525)))          # 1280 x 720 px canvas = 13.333 x 7.5 in
+import os
+ICONS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'icons')   # rendered from the prototype by render-icons.cjs
 
 prs = Presentation(TPL)
 lst = prs.slides._sldIdLst
@@ -87,6 +89,11 @@ def line(s, x1, y1, x2, y2, color='line', w=2, name=None):
     if name: c.name = name
     return c
 
+def icon(s, key, x, y, size, name=None):
+    pic = s.shapes.add_picture(os.path.join(ICONS, key + '.png'), px(x), px(y), px(size), px(size))
+    pic.name = name or f'Icon {key}'
+    return pic
+
 def notes(s, *parts):
     s.notes_slide.notes_text_frame.text = '\n\n'.join(p for p in parts if p)
 
@@ -112,22 +119,24 @@ def badge(s, sc):
     write(sq, c['L'], size=20, bold=True, color='teal', font=HEAD, align='c', anchor='m')
     text(s, 860, 104, 300, 20, c['w'], name='AWARE badge word', size=11, color='grey', align='r')
 
-def title_light(s, t):
+def title_light(s, t, eyebrow=None):
     ph = s.placeholders[10]; ph.text_frame.text = ''
-    write(ph, t, size=30, bold=True, color='navy', font=HEAD)
+    ph.left, ph.top, ph.width, ph.height = px(74), px(70), px(900), px(44)
+    write(ph, t, size=30 if len(t) <= 40 else 26, bold=True, color='navy', font=HEAD)
     ph.name = 'Title'
+    if eyebrow: text(s, 75, 50, 700, 16, eyebrow, name='Section label', size=11, bold=True, color='tealink')
 
 def title_dark(s, t, y=60, size=40):
     text(s, 75, y, 1000, 60, t, name='Title', size=size, bold=True, color='green', font=HEAD)
 
 def solid_bg(s, dark):
     # The template's light background is white at 0% opacity; Storyline renders that as black, so set it explicitly.
-    s.background.fill.solid(); s.background.fill.fore_color.rgb = C['navy' if dark else 'white']
+    s.background.fill.solid(); s.background.fill.fore_color.rgb = C['navy' if dark else 'snow']
 
-def new(sc, dark=False):
+def new(sc, dark=False, eyebrow=None):
     s = prs.slides.add_slide(L_DARK if dark else L_LIGHT)
     solid_bg(s, dark)
-    if not dark: title_light(s, sc['title'])
+    if not dark: title_light(s, sc['title'], eyebrow or sc.get('section_name'))
     progress(s, sc['section'] if sc['layout'] not in ('opener', 'assessIntro') else None)
     if not dark: badge(s, sc)
     return s
@@ -223,9 +232,8 @@ def L_opener(sc):
     m = sc['meera']
     ly = layer_slide(sc, 'Meera', f"MEERA VOICEOVER\n{m['vo']}\n\nTriggers: each choice shows its reply and the Continue button; Continue hides this layer; Next unlocks when any choice is Selected.", dark=True)
     ov = box(ly, 0, 36, 1280, 684, 'navy', shape=MSO_SHAPE.RECTANGLE, name='Dim overlay', alpha=70)
-    box(ly, 120, 110, 1040, 470, 'snow', radius=0.04, name='Meera panel')
-    ch = box(ly, 150, 150, 170, 170, 'tealsoft', 'teal', dash=True, shape=MSO_SHAPE.OVAL, name='Meera character placeholder')
-    write(ch, 'Insert Meera\n(Insert > Character)', size=11, color='tealink', align='c', anchor='m')
+    box(ly, 120, 110, 1040, 470, 'white', radius=0.04, name='Meera panel')
+    icon(ly, 'meera', 150, 150, 170, 'Meera')
     text(ly, 150, 330, 170, 24, 'Meera', name='Meera name', size=18, bold=True, color='navy', font=HEAD, align='c')
     text(ly, 150, 356, 170, 20, 'Talent Partner', name='Meera role', size=11, color='grey', align='c')
     text(ly, 360, 140, 770, 70, m['situation'], name='Situation', size=16, color='navy')
@@ -248,7 +256,7 @@ def L_defineCards(sc):
         b = box(s, x, y, 466, 150, 'bluesoft', 'blue', dash=True, name=f'Capability {k+1}')
         b.text_frame.margin_left = b.text_frame.margin_right = px(24)
         write(b, t, size=20, bold=True, color='navy', align='l' if k % 2 == 0 else 'r', anchor='m')
-    c = box(s, 465, 240, 350, 160, 'navy', radius=0.1, name='Definition card')
+    c = box(s, 455, 220, 370, 200, 'navy', radius=0.1, name='Definition card')
     c.text_frame.margin_left = c.text_frame.margin_right = px(18)
     write(c, [[('AI', dict(size=12, bold=True, color='teal', font=MONO))], [(sc['definition'], dict(size=17, color='white'))]], align='c', anchor='m', spacing=4)
     notes(s, *std_notes(sc))
@@ -259,7 +267,7 @@ def L_umbrella(sc):
     write(u, 'AI', size=40, bold=True, color='teal', font=HEAD, align='c', anchor='m')
     for k in range(sc['tiles']):
         b = box(s, 75 + k * 192, 270, 178, 90, 'bluesoft', 'blue', dash=True, name=f'System tile {k+1}')
-        write(b, '⚙', size=26, color='blue', align='c', anchor='m')
+        icon(s, 'sys', 75 + k * 192 + 71, 297, 36, f'System icon {k+1}')
     text(s, 75, 390, 1100, 60, [(sc['statement'] + ' ', dict(bold=True)), (sc['sub'], {})], name='Statement', size=22, color='navy')
     notes(s, *std_notes(sc))
 
@@ -401,7 +409,7 @@ def L_pair(sc):
     for k, (t, d) in enumerate(sc['cards']):
         b = card(s, 75 + k * 580, 150, 550, 260, t, d, term_size=16, desc_size=22)
         b.text_frame.margin_top = px(80)
-        text(s, 100 + k * 580, 170, 60, 50, sym.get(sc['icons'][k], '○'), name=f'Icon {k+1} (replace with Insert > Icons)', size=30, color='blue')
+        icon(s, sc['icons'][k] if sc['icons'][k] in sym else 'doc', 100 + k * 580, 172, 44, f'Icon {k+1}')
     notes(s, *std_notes(sc))
 
 def L_twoCol(sc):
@@ -420,7 +428,8 @@ def three_steps(s, items, y=140, h=170, lock=False):
         x = 75 + k * (w + 55)
         b = box(s, x, y, w, h, 'white', 'line', name=f'Step {k+1}')
         b.text_frame.margin_left = b.text_frame.margin_right = px(22); b.text_frame.margin_top = px(18)
-        head = [(('\U0001F512  ' if lock else f'STEP {k+1}'), dict(size=11, bold=True, color='grey'))]
+        head = [(('LOCKED' if lock else f'STEP {k+1}'), dict(size=11, bold=True, color='grey'))]
+        if lock: icon(s, 'lockGrey', x + w - 50, y + 16, 28, f'Lock {k+1}')
         write(b, [head, [(t, dict(size=16, bold=True, color='blue', font=MONO))], [(d, dict(size=17, color='navy'))]], spacing=6)
         if k: arrow(s, x - 48, y + h / 2 - 15)
 
@@ -453,7 +462,7 @@ def L_hotspot(sc):
 
 def L_balance(sc):
     s = new(sc)
-    text(s, 75, 200, 220, 200, '⚖', name='Balance icon (replace with Insert > Icons)', size=120, color='blue', align='c', anchor='m')
+    icon(s, 'balance', 105, 220, 160, 'Balance icon')
     card(s, 330, 170, 425, 230, sc['cards'][0][0], sc['cards'][0][1], 'ai', 16, 21)
     card(s, 780, 170, 425, 230, sc['cards'][1][0], sc['cards'][1][1], 'human', 16, 21)
     notes(s, *std_notes(sc))
@@ -503,7 +512,9 @@ def L_categories(sc):
     for k, t in enumerate(sc['items']):
         x = 75 + (k % 4) * 288; y = 160 + (k // 4) * 150
         b = box(s, x, y, 266, 125, 'navy', name=f'Category {t}')
-        write(b, [[('\U0001F512', dict(size=20, color='teal'))], [(t, dict(size=15, bold=True, color='white', font=MONO))]], align='c', anchor='m', spacing=4)
+        b.text_frame.margin_top = px(46)
+        write(b, t, size=15, bold=True, color='white', font=MONO, align='c', anchor='m')
+        icon(s, 'lock', x + 115, y + 24, 36, f'Lock {t}')
     notes(s, *std_notes(sc, '⚑ Pending Privacy check of Client, Proprietary, Credentials.'))
 
 def L_threeGate(sc):
@@ -511,7 +522,9 @@ def L_threeGate(sc):
     for k, t in enumerate(sc['parts']):
         x = 75 + k * 400
         b = box(s, x, 200, 340, 170, 'white', 'greentxt', name=f'Gate {k+1}')
-        write(b, [[('\U0001F513', dict(size=22, color='greentxt'))], [(t, dict(size=18, bold=True, color='navy', font=MONO))]], align='c', anchor='m', spacing=6)
+        b.text_frame.margin_top = px(50)
+        write(b, t, size=18, bold=True, color='navy', font=MONO, align='c', anchor='m')
+        icon(s, 'open', x + 150, 228, 40, f'Open lock {k+1}')
         if k: text(s, x - 52, 255, 40, 50, '+', name='Plus', size=34, bold=True, color='grey', align='c')
     notes(s, *std_notes(sc))
 
@@ -520,7 +533,7 @@ def L_stages(sc):
     for k, t in enumerate(sc['stages']):
         cx = 220 + k * 420
         c = box(s, cx - 48, 180, 96, 96, 'navy', shape=MSO_SHAPE.OVAL, name=f'Lock {k+1}')
-        write(c, '\U0001F512', size=26, color='teal', align='c', anchor='m')
+        icon(s, 'lock', cx - 22, 206, 44, f'Lock icon {k+1}')
         text(s, cx - 150, 290, 300, 30, t, name=f'Stage {k+1}', size=20, bold=True, color='navy', font=HEAD, align='c')
         if k: line(s, cx - 372, 228, cx - 60, 228, 'teal', 3, f'Stage line {k}')
     text(s, 75, 380, 1130, 30, sc['sub'], name='Sub', size=20, bold=True, color='navy', align='c')
@@ -533,9 +546,8 @@ def L_recover(sc):
     notes(s, *std_notes(sc, '⚑ Pending: the real contact and process. Hold the voice.'))
 
 def L_promptPart(sc):
-    s = new(sc)
+    s = new(sc, eyebrow=f"Prompt element {sc['part']+1} of 5")
     t, d = [x.strip() for x in sc['onscreen'].split('\n')][:2]
-    text(s, 75, 100, 400, 20, f"Prompt element {sc['part']+1} of 5", name='Label', size=12, color='tealink')
     c = box(s, 230, 160, 820, 200, 'white', 'line', name='Element card')
     write(c, [[(t, dict(size=24, bold=True, color='blue', font=MONO))], [(d, dict(size=28, bold=True, color='navy', font=HEAD))]], align='c', anchor='m', spacing=8)
     text(s, 75, 470, 400, 18, 'Your prompt so far', name='Builder label', size=11, color='grey')
